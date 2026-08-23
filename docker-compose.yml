@@ -1,0 +1,21 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: guarda-roupa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: guarda_roupa
+      POSTGRES_PASSWORD: guarda_roupa
+      POSTGRES_DB: guarda_roupa
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guarda_roupa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

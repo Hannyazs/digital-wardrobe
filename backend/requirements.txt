@@ -1,0 +1,21 @@
+fastapi
+uvicorn[standard]
+
+# Banco de dados: asyncpg para a aplicação (async), psycopg2 para o Alembic (migrações são síncronas)
+sqlalchemy>=2.0
+alembic
+asyncpg
+psycopg2-binary
+pgvector
+
+pydantic-settings
+python-multipart
+pillow
+
+# IA / visão computacional
+rembg
+google-generativeai
+
+# Auth (validação de JWT emitido pelo Supabase Auth) e client de Storage
+pyjwt[crypto]
+supabase

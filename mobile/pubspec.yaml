@@ -1,0 +1,32 @@
+name: guarda_roupa_app
+description: Guarda-roupa digital com IA — organize peças e monte looks personalizados.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # Estado
+  flutter_riverpod: ^2.5.1
+
+  # Rede
+  dio: ^5.4.3
+
+  # Auth + Storage (Supabase)
+  supabase_flutter: ^2.5.6
+
+  # Câmera / galeria para cadastro de peças
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,28 @@
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Uploads processados localmente (mantém a pasta via .gitkeep, ignora o conteúdo)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# --- Variáveis de ambiente ---
+.env
+*.env
+!*.env.example
+
+# --- Editores / SO ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Observação: a estrutura de ignore do Flutter fica em mobile/.gitignore,
+# porque os padrões ancorados (ex: /bin/cache/) só funcionam relativos
+# à pasta onde o .gitignore está.
