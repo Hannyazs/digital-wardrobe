@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Usamos a câmera para você fotografar suas peças de roupa ao cadastrá-las.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Usamos a galeria para você escolher fotos já existentes das suas peças de roupa.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

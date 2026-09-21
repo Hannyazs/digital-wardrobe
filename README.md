@@ -102,6 +102,49 @@ Por padrão o app aponta para `http://localhost:8000/api/v1` ([lib/core/constant
 - **Tabelas criadas**: `docker exec -it guarda-roupa-db psql -U guarda_roupa -d guarda_roupa -c "\dt"` deve listar a tabela `pecas`.
 - **Extensão pgvector habilitada**: mesmo comando com `-c "\dx"` deve listar `vector` entre as extensões instaladas.
 
+## Trabalhando com o banco no dia a dia
+
+`alembic upgrade head` não é um passo único do setup inicial — é algo que roda **de novo, sempre que houver uma migração nova**. O Alembic guarda, dentro do próprio banco (tabela `alembic_version`), quais migrações já foram aplicadas, então rodar o comando sem nada pendente não faz nada — é seguro rodar mais de uma vez.
+
+Regra prática pro time:
+
+- **Depois de um `git pull`**: olhe se apareceu algum arquivo novo em `backend/alembic/versions/`. Se sim, rode `alembic upgrade head` antes de subir a API — sem isso, o código pode esperar uma coluna/tabela que ainda não existe no seu banco local.
+- **Mudou só lógica** (rota, service, adapter, regra de negócio) — não precisa de migração, só reiniciar a API. Rodando com `--reload` (como no passo 3 acima), isso acontece sozinho a cada salvamento de arquivo `.py`.
+- **Mudou um model** (`app/db/models.py`) — sempre gera uma migração nova, nunca altera o banco na mão:
+  ```bash
+  alembic revision --autogenerate -m "descrição da mudança"
+  ```
+  Revise o arquivo gerado em `alembic/versions/`, rode `alembic upgrade head` pra aplicar localmente, e comite o model **junto** com o arquivo de migração — sem os dois juntos, quem puxar seu código fica com o model sem a tabela correspondente.
+
+## Testando endpoints autenticados (antes do Supabase Auth existir)
+
+Os endpoints de `/pecas` exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. Enquanto não existe um projeto Supabase real, gere um token de teste localmente, assinado com o mesmo `SUPABASE_JWT_SECRET` do seu `.env`:
+
+```bash
+cd backend
+python scripts/gerar_token_teste.py
+```
+
+Use o token impresso no header `Authorization: Bearer <token>`, ou cole ele no botão **"Authorize"** do Swagger (`/docs`). Por padrão vale 30 dias e usa um `usuario_id` aleatório — dá pra fixar um usuário específico com `--usuario-id <uuid>` (útil pra sempre testar como "o mesmo usuário") ou ajustar a validade com `--dias`.
+
+Isso é só uma ferramenta de desenvolvimento — some assim que o projeto Supabase real existir e os tokens passarem a vir do login de verdade.
+
+## Visualizando o banco (opcional)
+
+Não é obrigatório, mas ajuda ter uma interface visual em vez de só `psql`. Opção recomendada: **pgAdmin** ([pgadmin.org/download](https://www.pgadmin.org/download/)) — cliente oficial do Postgres, gratuito.
+
+Depois de instalado: botão direito em "Servers" → **Register → Server**, e na aba **Connection** use os dados do `docker-compose.yml`:
+
+| Campo | Valor |
+| --- | --- |
+| Host name/address | `localhost` |
+| Port | `5432` |
+| Maintenance database | `guarda_roupa` |
+| Username | `guarda_roupa` |
+| Password | `guarda_roupa` |
+
+Alternativas equivalentes: [DBeaver](https://dbeaver.io/) (gratuito, suporta vários bancos) ou a extensão "PostgreSQL"/"SQLTools" do VS Code, se preferir não sair do editor.
+
 ## Comandos principais (cheat sheet)
 
 | Ação | Comando |
@@ -137,3 +180,4 @@ O `.env` **não é versionado** (está no `.gitignore`) — cada pessoa cria o s
 - **`alembic upgrade head` falha com erro de conexão** — confira se `docker compose up -d` rodou com sucesso e se a porta `5432` não está sendo usada por outro Postgres na máquina (`docker compose ps`, `docker compose logs db`).
 - **Porta 5432 já em uso** — provavelmente há outro Postgres local rodando. Pare-o ou troque a porta mapeada no `docker-compose.yml` (ex: `"5433:5432"`) e ajuste `DATABASE_URL`/`ALEMBIC_DATABASE_URL` de acordo.
 - **Emulador Android não conecta na API** — troque `localhost` por `10.0.2.2` em `app_constants.dart`.
+- **Docker Desktop diz "Virtualization support not detected" mesmo com a BIOS habilitada** — no Windows, verifique também se o hypervisor não foi desligado por software (comum depois de configurar algum jogo com anti-cheat, que às vezes pede pra desabilitar isso). Abra um PowerShell **como Administrador** e rode `bcdedit /enum {current}`, procurando a linha `hypervisorlaunchtype`. Se estiver `Off`, corrija com `bcdedit /set hypervisorlaunchtype auto` e reinicie o PC. (Pra jogar de novo depois, o mesmo comando com `off` no lugar de `auto`.)

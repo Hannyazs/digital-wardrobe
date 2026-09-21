@@ -15,3 +15,9 @@ def processar_imagem_peca(imagem_bytes: bytes) -> ImagemProcessadaResponse:
     sugestao = gemini_adapter.extract_metadata(imagem_sem_fundo)
 
     return ImagemProcessadaResponse(imagem_url=imagem_url, sugestao=sugestao)
+
+
+def salvar_imagem_original(imagem_bytes: bytes, extensao: str) -> str:
+    """Salva a foto sem remoção de fundo (E1.F1.4) — usado quando o
+    processamento falhou e o usuário optou por continuar sem ele."""
+    return storage_adapter.save_image(imagem_bytes, extensao=extensao)

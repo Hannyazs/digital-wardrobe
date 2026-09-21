@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Scaffold criado (backend FastAPI + mobile Flutter, ver "Estrutura de diretórios"). Endpoints e telas são esqueletos/placeholders — a lógica de negócio real (regras de recomendação, telas funcionais, chamada real ao Gemini) ainda não foi implementada. Atualize este arquivo quando decisões reais divergirem do plano.
 
+Este arquivo é o resumo **operacional** — o que basta saber para trabalhar no código. Os documentos completos, com o racional por trás das decisões, estão em `docs/`: [visão](docs/visao.md) (objetivo, público-alvo, persona, não-objetivos), [arquitetura](docs/arquitetura.md) (diagrama, stack com justificativa, trade-offs) e [requisitos](docs/requisitos.md) (épicos, features, histórias de usuário, ordem de implementação). Quando este arquivo e os documentos completos divergirem sobre o "porquê" de uma decisão, os documentos em `docs/` são a fonte de verdade — atualize ambos juntos quando possível.
+
 ## O produto
 
 Guarda-roupa digital com IA. O usuário fotografa suas peças, o app extrai metadados automaticamente e sugere looks montados **exclusivamente com roupas que o usuário já possui**.
@@ -67,6 +69,10 @@ schemas/   → Pydantic, separados dos models
 ### Auth
 
 Supabase Auth emite o JWT; a API **valida** o token e deriva o `user_id` dele. O `user_id` nunca vem do corpo ou da query da requisição. Todo dado é escopado por usuário — peças, looks, preferências e histórico.
+
+### Banco em produção
+
+`docker-compose.yml` é só para desenvolvimento local. Em produção, `DATABASE_URL`/`ALEMBIC_DATABASE_URL` apontam para o Postgres gerenciado do **próprio projeto Supabase** (mesmo provedor do Auth — evita espalhar por múltiplos serviços), que já suporta `pgvector` como extensão habilitável. O código não muda entre ambientes, só o valor das variáveis. Usar a connection string **pooled** do Supabase para `DATABASE_URL` (runtime da API) e a **direta** para `ALEMBIC_DATABASE_URL` (migrações, que nem sempre funcionam bem através do pooler). Migrações em produção rodam como passo explícito do deploy, não automaticamente no boot da API.
 
 ### Recomendação
 

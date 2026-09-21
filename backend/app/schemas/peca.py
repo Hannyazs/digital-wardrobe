@@ -32,3 +32,11 @@ class ImagemProcessadaResponse(BaseModel):
 
     imagem_url: str
     sugestao: PecaBase
+
+
+class ImagemOriginalResponse(BaseModel):
+    """Resposta do fallback de upload sem processamento (E1.F1.4): usado
+    quando /processar-imagem falhou e o usuário optou por continuar sem
+    remoção de fundo."""
+
+    imagem_url: str

@@ -9,11 +9,12 @@ psycopg2-binary
 pgvector
 
 pydantic-settings
+python-dotenv
 python-multipart
 pillow
 
 # IA / visão computacional
-rembg
+rembg[cpu]
 google-generativeai
 
 # Auth (validação de JWT emitido pelo Supabase Auth) e client de Storage

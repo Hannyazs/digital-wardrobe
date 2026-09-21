@@ -9,7 +9,15 @@ class ApiClient {
   ApiClient._();
 
   static final Dio instance = Dio(
-    BaseOptions(baseUrl: AppConstants.apiBaseUrl),
+    BaseOptions(
+      baseUrl: AppConstants.apiBaseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      // 60s, não menos: a primeira chamada a /pecas/processar-imagem baixa
+      // o modelo do rembg (~176MB) no backend e é bem mais lenta que as
+      // seguintes — ver E1.F1.2 e E1.F1.3.
+      sendTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 60),
+    ),
   )..interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
