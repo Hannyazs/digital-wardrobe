@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/state/envio_state.dart';
+import 'peca_form_view.dart';
 import 'upload_controller.dart';
 
 /// Cadastro de peça por foto — cobre a PBI E1.F1.1 (captura/seleção + preview)
@@ -259,6 +261,18 @@ class _ResultadoProcessado extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PecaFormView(
+                imagemUrl: imagemUrl,
+                semRemocaoDeFundo: semRemocaoDeFundo,
+              ),
+            ),
+          ),
+          child: const Text('Continuar'),
+        ),
+        const SizedBox(height: 8),
         TextButton(onPressed: onNovaFoto, child: const Text('Adicionar outra foto')),
       ],
     );

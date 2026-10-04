@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/constants/app_constants.dart';
+import '../../core/state/envio_state.dart';
 import '../../services/peca_service.dart';
 
 /// Guarda a foto escolhida para o cadastro de uma peça, antes do envio ao
@@ -41,37 +43,12 @@ final uploadPhotoProvider = NotifierProvider<UploadPhotoController, XFile?>(
 
 final pecaServiceProvider = Provider<PecaService>((ref) => PecaService());
 
-/// Estado do envio da foto pro backend (E1.F1.3) — separado do
+/// Controller do envio da foto pro backend (E1.F1.3) — separado do
 /// [UploadPhotoController] porque tem um ciclo de vida diferente: trocar a
 /// foto reseta o envio, mas um erro de envio não deve descartar a foto
 /// escolhida (o usuário precisa poder tentar de novo sem escolhê-la de novo).
-sealed class EnvioState {
-  const EnvioState();
-}
-
-class EnvioIdle extends EnvioState {
-  const EnvioIdle();
-}
-
-class Enviando extends EnvioState {
-  const Enviando();
-}
-
-class EnvioSucesso extends EnvioState {
-  const EnvioSucesso(this.imagemUrl, {this.semRemocaoDeFundo = false});
-
-  final String imagemUrl;
-  // true quando veio do fallback do E1.F1.4 (upload sem rembg), não do
-  // caminho normal de processamento.
-  final bool semRemocaoDeFundo;
-}
-
-class EnvioErro extends EnvioState {
-  const EnvioErro(this.mensagem);
-
-  final String mensagem;
-}
-
+/// O estado ([EnvioState]) é compartilhado com [PecaFormController] (E1.F2.1)
+/// — ver core/state/envio_state.dart.
 class UploadSubmissionController extends Notifier<EnvioState> {
   @override
   EnvioState build() => const EnvioIdle();
@@ -83,7 +60,9 @@ class UploadSubmissionController extends Notifier<EnvioState> {
     state = const Enviando();
     try {
       final resultado = await ref.read(pecaServiceProvider).processarImagem(foto);
-      state = EnvioSucesso(resultado['imagem_url'] as String);
+      state = EnvioSucesso(
+        AppConstants.resolveMediaUrl(resultado['imagem_url'] as String),
+      );
     } on DioException catch (e) {
       state = EnvioErro(_mensagemDeErro(e));
     } catch (_) {
@@ -103,7 +82,10 @@ class UploadSubmissionController extends Notifier<EnvioState> {
     state = const Enviando();
     try {
       final resultado = await ref.read(pecaServiceProvider).uploadImagemOriginal(foto);
-      state = EnvioSucesso(resultado['imagem_url'] as String, semRemocaoDeFundo: true);
+      state = EnvioSucesso(
+        AppConstants.resolveMediaUrl(resultado['imagem_url'] as String),
+        semRemocaoDeFundo: true,
+      );
     } on DioException catch (e) {
       state = EnvioErro(_mensagemDeErro(e));
     } catch (_) {

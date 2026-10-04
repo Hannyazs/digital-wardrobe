@@ -16,6 +16,7 @@ from app.schemas.peca import (
     ImagemProcessadaResponse,
     PecaCreate,
     PecaRead,
+    PecaUpdate,
 )
 from app.services.image_service import processar_imagem_peca, salvar_imagem_original
 
@@ -72,5 +73,43 @@ async def listar_pecas(
     usuario_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    resultado = await db.execute(select(Peca).where(Peca.usuario_id == usuario_id))
+    resultado = await db.execute(
+        select(Peca).where(Peca.usuario_id == usuario_id).order_by(Peca.criado_em.desc())
+    )
     return resultado.scalars().all()
+
+
+@router.put("/{peca_id}", response_model=PecaRead)
+async def atualizar_peca(
+    peca_id: uuid.UUID,
+    dados: PecaUpdate,
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Edita os metadados de uma peça (E1.F3.1) — nunca a imagem_url."""
+    peca = await db.get(Peca, peca_id)
+    if peca is None or peca.usuario_id != usuario_id:
+        # 404 em ambos os casos — nunca revela que a peça existe e é de outro usuário.
+        raise HTTPException(status_code=404, detail="Peça não encontrada.")
+
+    for campo, valor in dados.model_dump().items():
+        setattr(peca, campo, valor)
+
+    await db.commit()
+    await db.refresh(peca)
+    return peca
+
+
+@router.delete("/{peca_id}", status_code=204)
+async def excluir_peca(
+    peca_id: uuid.UUID,
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Exclui uma peça (E1.F3.1) — física e definitiva, sem soft-delete."""
+    peca = await db.get(Peca, peca_id)
+    if peca is None or peca.usuario_id != usuario_id:
+        raise HTTPException(status_code=404, detail="Peça não encontrada.")
+
+    await db.delete(peca)
+    await db.commit()

@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:guarda_roupa_app/main.dart';
+import 'package:guarda_roupa_app/models/peca.dart';
 import 'package:guarda_roupa_app/services/peca_service.dart';
 import 'package:guarda_roupa_app/views/upload/upload_controller.dart';
 import 'package:guarda_roupa_app/views/upload/upload_view.dart';
@@ -37,7 +38,14 @@ class _FotoJaSelecionadaController extends UploadPhotoController {
   XFile? build() => XFile.fromData(_pngDeTeste, name: 'foto.png');
 }
 
-class _PecaServiceComSucesso extends PecaService {
+/// Armário sem peças, usado nos testes que só precisam renderizar
+/// `WardrobeView`/`HomeShell` sem bater numa API real (E2.F1.1).
+class _PecaServiceArmarioVazio extends PecaService {
+  @override
+  Future<List<Peca>> listarPecas() async => [];
+}
+
+class _PecaServiceComSucesso extends _PecaServiceArmarioVazio {
   @override
   Future<Map<String, dynamic>> processarImagem(XFile imagem) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -99,7 +107,13 @@ class _PecaServiceTudoFalha extends PecaService {
 
 void main() {
   testWidgets('App abre exibindo o armário', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: GuardaRoupaApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio())],
+        child: const GuardaRoupaApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
   });
@@ -107,7 +121,13 @@ void main() {
   testWidgets('FAB do armário navega para a tela de adicionar peça (E1.F1.1)', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: GuardaRoupaApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio())],
+        child: const GuardaRoupaApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.add_a_photo));
     await tester.pumpAndSettle();
@@ -141,6 +161,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Fundo removido! Revise os dados na próxima etapa.'), findsOneWidget);
+  });
+
+  testWidgets('"Continuar" na tela de resultado abre o formulário de metadados (E1.F2.1)', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          uploadPhotoProvider.overrideWith(_FotoJaSelecionadaController.new),
+          pecaServiceProvider.overrideWithValue(_PecaServiceComSucesso()),
+        ],
+        child: const MaterialApp(home: UploadView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Confirmar'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Detalhes da peça'), findsOneWidget);
   });
 
   testWidgets('Falha no envio mostra mensagem de erro com opção de tentar novamente (E1.F1.3)', (

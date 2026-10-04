@@ -16,6 +16,11 @@ class PecaCreate(PecaBase):
     imagem_url: str
 
 
+class PecaUpdate(PecaBase):
+    """Payload de PUT /pecas/{id} (E1.F3.1) — mesmos campos de PecaBase,
+    nunca imagem_url: a foto da peça é imutável após o cadastro."""
+
+
 class PecaRead(PecaBase):
     model_config = ConfigDict(from_attributes=True)
 

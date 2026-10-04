@@ -95,6 +95,14 @@ flutter run
 
 Por padrão o app aponta para `http://localhost:8000/api/v1` ([lib/core/constants/app_constants.dart](mobile/lib/core/constants/app_constants.dart)). Rodando em emulador Android, troque `localhost` por `10.0.2.2` — o emulador não enxerga `localhost` da máquina host diretamente.
 
+**Rodando no Chrome (`flutter run -d chrome`)**: use sempre a porta fixa `8080`, já liberada em `CORS_ORIGINS` no backend:
+
+```bash
+flutter run -d chrome --web-port=8080
+```
+
+Sem o `--web-port`, o Flutter sobe em uma porta aleatória a cada execução, que não está na whitelist de CORS da API — a chamada é bloqueada no preflight e o app mostra "Sem conexão com o servidor".
+
 ## Verificando que está tudo funcionando
 
 - **API no ar**: `http://localhost:8000/` deve responder `{"status": "ok"}`.
@@ -128,6 +136,17 @@ python scripts/gerar_token_teste.py
 Use o token impresso no header `Authorization: Bearer <token>`, ou cole ele no botão **"Authorize"** do Swagger (`/docs`). Por padrão vale 30 dias e usa um `usuario_id` aleatório — dá pra fixar um usuário específico com `--usuario-id <uuid>` (útil pra sempre testar como "o mesmo usuário") ou ajustar a validade com `--dias`.
 
 Isso é só uma ferramenta de desenvolvimento — some assim que o projeto Supabase real existir e os tokens passarem a vir do login de verdade.
+
+### Usando o token no app mobile (E1.F2.1)
+
+O `ApiClient` (mobile) injeta esse token via `--dart-define`:
+
+```bash
+cd mobile
+flutter run -d chrome --web-port=8080 --dart-define=DEV_AUTH_TOKEN=<token-copiado>
+```
+
+> Token atual gerado em 2026-10-02, válido por 30 dias (expira ~2026-11-01). Depois disso, gere um novo com `python scripts/gerar_token_teste.py`.
 
 ## Visualizando o banco (opcional)
 
@@ -180,4 +199,5 @@ O `.env` **não é versionado** (está no `.gitignore`) — cada pessoa cria o s
 - **`alembic upgrade head` falha com erro de conexão** — confira se `docker compose up -d` rodou com sucesso e se a porta `5432` não está sendo usada por outro Postgres na máquina (`docker compose ps`, `docker compose logs db`).
 - **Porta 5432 já em uso** — provavelmente há outro Postgres local rodando. Pare-o ou troque a porta mapeada no `docker-compose.yml` (ex: `"5433:5432"`) e ajuste `DATABASE_URL`/`ALEMBIC_DATABASE_URL` de acordo.
 - **Emulador Android não conecta na API** — troque `localhost` por `10.0.2.2` em `app_constants.dart`.
+- **Erro de CORS no Chrome (`Access-Control-Allow-Origin`)** — rode `flutter run -d chrome --web-port=8080` em vez de `flutter run` puro. Sem o `--web-port`, cada execução usa uma porta aleatória que não está em `CORS_ORIGINS`.
 - **Docker Desktop diz "Virtualization support not detected" mesmo com a BIOS habilitada** — no Windows, verifique também se o hypervisor não foi desligado por software (comum depois de configurar algum jogo com anti-cheat, que às vezes pede pra desabilitar isso). Abra um PowerShell **como Administrador** e rode `bcdedit /enum {current}`, procurando a linha `hypervisorlaunchtype`. Se estiver `Off`, corrija com `bcdedit /set hypervisorlaunchtype auto` e reinicie o PC. (Pra jogar de novo depois, o mesmo comando com `off` no lugar de `auto`.)

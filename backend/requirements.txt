@@ -3,6 +3,7 @@ uvicorn[standard]
 
 # Banco de dados: asyncpg para a aplicação (async), psycopg2 para o Alembic (migrações são síncronas)
 sqlalchemy>=2.0
+greenlet
 alembic
 asyncpg
 psycopg2-binary
@@ -16,6 +17,11 @@ pillow
 # IA / visão computacional
 rembg[cpu]
 google-generativeai
+
+# Faz o Python confiar nos certificados raiz instalados no Windows (necessário
+# quando antivírus/proxy corporativo faz inspeção SSL) — sem isso, downloads
+# HTTPS (ex: modelo do rembg) falham com CERTIFICATE_VERIFY_FAILED.
+pip-system-certs; sys_platform == "win32"
 
 # Auth (validação de JWT emitido pelo Supabase Auth) e client de Storage
 pyjwt[crypto]

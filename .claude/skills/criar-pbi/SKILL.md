@@ -5,7 +5,19 @@ description: Cria um PBI (Product Backlog Item) detalhado para este projeto, no 
 
 # Criar PBI
 
-Gera um PBI detalhado seguindo exatamente o padrão já usado no projeto — o exemplo canônico e sempre atualizado é `docs/PBIs/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md`. Leia esse arquivo antes de criar um novo, em vez de confiar só na descrição das seções abaixo — se o padrão real evoluir, esse arquivo é a fonte de verdade, não este skill.
+Gera um PBI detalhado seguindo exatamente o padrão já usado no projeto — o exemplo canônico e sempre atualizado é `docs/PBIs/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md`. Leia esse arquivo antes de criar um novo, em vez de confiar só na descrição das seções abaixo — se o padrão real evoluir, esse arquivo é a fonte de verdade, não este skill.
+
+## Regra central: seja conciso
+
+PBIs anteriores deste projeto ficaram grandes demais (200+ linhas), com cada decisão justificada em um parágrafo próprio repetindo contexto já dado em outra seção. **Isso é o erro a não repetir.** Por PBI de tamanho médio (estimativa P/M), alvo de **80–130 linhas no total**. Uma PBI G pode passar disso, mas só se a complexidade real exigir — não por hábito de prosa.
+
+Como manter conciso sem perder informação real:
+- **Uma frase por decisão, não um parágrafo.** Diga o quê e, se o porquê não for óbvio, uma cláusula curta junto — não uma seção de justificativa separada.
+- **Não repita a mesma informação em seções diferentes.** Se "Contexto" já explica por que a PBI existe, "Riscos" não precisa reexplicar — só aponta o risco.
+- **Prefira listas a prosa corrida.** Bullets curtos > parágrafos longos, em "Escopo", "Como será feito", "Riscos".
+- **Corte a ligação com a persona/visão a uma frase, quando fizer sentido** — não um parágrafo por PBI reexplicando quem é a Marina.
+- **Código só quando esclarece algo que a prosa não consegue** (uma assinatura de função, um trecho crítico) — não blocos inteiros de implementação; isso é trabalho do `implementar-pbi`, não desta PBI.
+- **"Como testar"**: passos numerados diretos, sem reexplicar o racional de cada passo.
 
 ## Antes de criar: identificar épico, feature e número
 
@@ -38,10 +50,10 @@ Todo PBI usa o ID `E<épico>.F<feature>.<número>` (ex: `E1.F1.3`). Para descobr
 1. `# PBI E<x>.F<y>.<n> — <título>`
 2. Tabela de metadados: Épico, Feature, Estimativa, Status, Dependências, Arquivo principal.
 3. Linha de link de volta para `../../backlog.md` e `../../requisitos.md` (ajuste a profundidade relativa se a estrutura de pastas mudar).
-4. `## Contexto` — por que essa PBI importa, ligada à persona/visão do produto quando fizer sentido (ver `docs/visao.md`).
-5. `## Descrição` — o que exatamente será entregue, e onde essa PBI **para** (o que ela explicitamente não faz, remetendo à próxima PBI que continua o fluxo).
-6. `## Escopo` — "Dentro do escopo" e "Fora do escopo" como duas listas. Verifique ativamente se o escopo não se sobrepõe com PBIs vizinhas já existentes (isso já aconteceu neste projeto entre E1.F1.2 e E1.F1.4 — releia PBIs relacionadas antes de finalizar esta seção).
-7. `## Como será feito` — decisões técnicas concretas: abordagem, gerenciamento de estado, arquivos que serão criados/alterados (caminhos reais do repositório), e qualquer armadilha específica da stack do projeto (ex: `dart:io File` não funciona no Flutter Web, `pydantic` vs SQLAlchemy, etc. — cheque `CLAUDE.md` e `docs/arquitetura.md` para as convenções já registradas antes de propor algo nesta seção).
+4. `## Contexto` — 2-4 linhas: por que essa PBI importa agora. Uma frase ligando à persona/visão quando agregar (ver `docs/visao.md`), não um parágrafo.
+5. `## Descrição` — o que exatamente será entregue, em bullets curtos, e onde essa PBI **para** (remetendo à próxima PBI que continua o fluxo) em uma frase.
+6. `## Escopo` — "Dentro do escopo" e "Fora do escopo" como duas listas de bullets de uma linha cada. Verifique ativamente se o escopo não se sobrepõe com PBIs vizinhas já existentes (isso já aconteceu neste projeto entre E1.F1.2 e E1.F1.4 — releia PBIs relacionadas antes de finalizar esta seção), mas registre isso como uma linha, não um parágrafo.
+7. `## Como será feito` — decisões técnicas concretas em bullets/frases curtas: abordagem, gerenciamento de estado, arquivos que serão criados/alterados (caminhos reais do repositório), e qualquer armadilha específica da stack do projeto (ex: `dart:io File` não funciona no Flutter Web — cheque `CLAUDE.md`/`docs/arquitetura.md` antes de propor algo). Use um trecho de código só quando uma assinatura/contrato precisa ser fixado por escrito; não implemente a PBI aqui.
 8. `## Critérios de aceite` — formato "Dado / Quando / Então".
 9. `## Definição de pronto` — checklist (`- [ ]`), distinto dos critérios de aceite (é sobre qualidade de engenharia — lint, dependências, testes manuais —, não sobre o comportamento da feature em si).
 10. `## Riscos e pontos de atenção`.

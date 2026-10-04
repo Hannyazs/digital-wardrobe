@@ -35,8 +35,49 @@ class PecaService {
     return response.data as Map<String, dynamic>;
   }
 
-  Future<Peca> criarPeca(Peca peca) async {
-    final response = await _dio.post('/pecas', data: peca.toJson());
+  /// Recebe só os campos que `PecaCreate` (backend) espera, não um [Peca]
+  /// completo — este ainda não existe antes da criação (exige `id`, que só
+  /// o backend atribui na resposta).
+  Future<Peca> criarPeca({
+    required String imagemUrl,
+    required String categoria,
+    String? subcategoria,
+    String? corPrincipal,
+    String? estacao,
+    String? ocasiao,
+  }) async {
+    final response = await _dio.post('/pecas', data: {
+      'imagem_url': imagemUrl,
+      'categoria': categoria,
+      'subcategoria': subcategoria,
+      'cor_principal': corPrincipal,
+      'estacao': estacao,
+      'ocasiao': ocasiao,
+    });
     return Peca.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Edita os metadados de uma peça existente (E1.F3.1) — nunca a imagem.
+  Future<Peca> atualizarPeca({
+    required String id,
+    required String categoria,
+    String? subcategoria,
+    String? corPrincipal,
+    String? estacao,
+    String? ocasiao,
+  }) async {
+    final response = await _dio.put('/pecas/$id', data: {
+      'categoria': categoria,
+      'subcategoria': subcategoria,
+      'cor_principal': corPrincipal,
+      'estacao': estacao,
+      'ocasiao': ocasiao,
+    });
+    return Peca.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Exclui uma peça (E1.F3.1) — física e definitiva, sem undo.
+  Future<void> excluirPeca(String id) async {
+    await _dio.delete('/pecas/$id');
   }
 }
