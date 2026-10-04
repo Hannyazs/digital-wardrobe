@@ -94,9 +94,10 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Pilha de navegação substituída pelo armário — não dá pra voltar e
-    // reenviar a mesma peça.
-    expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
+    // Pilha de navegação substituída pela Home (aba inicial do HomeShell
+    // desde o redesign visual, Etapa 4) — não dá pra voltar e reenviar a
+    // mesma peça.
+    expect(find.text('Welcome!'), findsOneWidget);
     expect(find.text('Detalhes da peça'), findsNothing);
   });
 

@@ -2,15 +2,21 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/constants/peca_opcoes.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/category_section.dart';
+import '../../core/widgets/clothing_card.dart';
+import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
 import '../upload/upload_view.dart';
 import 'peca_detail_view.dart';
 import 'wardrobe_controller.dart';
 
 /// Armário: listagem agrupada por categoria (E2.F1.1) com filtro por cor,
-/// estação e ocasião (E2.F2.1).
+/// estação e ocasião (E2.F2.1). Visual alinhado ao redesign (Etapa 3):
+/// carrosséis por categoria com `CategorySection`/`ClothingCard`.
 class WardrobeView extends ConsumerWidget {
   const WardrobeView({super.key});
 
@@ -19,21 +25,30 @@ class WardrobeView extends ConsumerWidget {
     final pecasAsync = ref.watch(pecaListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Meu Guarda-Roupa')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(pecaListProvider);
-          await ref.read(pecaListProvider.future);
-        },
-        child: pecasAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _Erro(
-            mensagem: _mensagemDeErro(error),
-            onTentarNovamente: () => ref.invalidate(pecaListProvider),
+      body: Column(
+        children: [
+          const ScreenHeader(
+            titulo: 'Meu Guarda-Roupa',
+            subtitulo: 'Suas peças, organizadas por categoria.',
           ),
-          data: (pecas) =>
-              pecas.isEmpty ? const _ArmarioVazio() : _ArmarioFiltravel(pecas: pecas),
-        ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(pecaListProvider);
+                await ref.read(pecaListProvider.future);
+              },
+              child: pecasAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => _Erro(
+                  mensagem: _mensagemDeErro(error),
+                  onTentarNovamente: () => ref.invalidate(pecaListProvider),
+                ),
+                data: (pecas) =>
+                    pecas.isEmpty ? const _ArmarioVazio() : _ArmarioFiltravel(pecas: pecas),
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Adicionar peça',
@@ -106,7 +121,7 @@ class _PainelFiltros extends ConsumerWidget {
     final notifier = ref.read(filtroArmarioProvider.notifier);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -139,9 +154,10 @@ class _PainelFiltros extends ConsumerWidget {
           if (filtro.ativo)
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton(
+              child: AppButton(
+                label: 'Limpar filtros',
+                variant: AppButtonVariant.text,
                 onPressed: () => notifier.state = const FiltroArmario(),
-                child: const Text('Limpar filtros'),
               ),
             ),
           const SizedBox(height: 4),
@@ -173,7 +189,7 @@ class _LinhaFiltro extends StatelessWidget {
         spacing: 8,
         runSpacing: 4,
         children: [
-          Text('$rotulo:', style: Theme.of(context).textTheme.labelMedium),
+          Text('$rotulo:', style: AppTextStyles.labelCategoria()),
           for (final opcao in opcoes)
             FilterChip(
               label: Text(opcao),
@@ -202,11 +218,15 @@ class _SemResultadoFiltro extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.filter_alt_off, size: 48),
+                const Icon(Icons.filter_alt_off, size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 16),
                 const Text('Nenhuma peça encontrada com esses filtros'),
                 const SizedBox(height: 8),
-                TextButton(onPressed: onLimpar, child: const Text('Limpar filtros')),
+                AppButton(
+                  label: 'Limpar filtros',
+                  variant: AppButtonVariant.text,
+                  onPressed: onLimpar,
+                ),
               ],
             ),
           ),
@@ -223,66 +243,27 @@ class _ArmarioComPecas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
+    return ListView(
+      key: const Key('armario-lista-categorias'),
       physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        for (final entry in grupos.entries) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                '${entry.key} (${entry.value.length})',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      children: [
+        for (final entry in grupos.entries)
+          CategorySection(
+            titulo: entry.key,
+            contagem: entry.value.length,
+            itemCount: entry.value.length,
+            itemBuilder: (context, index) {
+              final peca = entry.value[index];
+              return ClothingCard(
+                imagemUrl: peca.imagemUrl,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => PecaDetailView(peca: peca)),
+                ),
+              );
+            },
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                mainAxisExtent: 110,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _Miniatura(peca: entry.value[index]),
-                childCount: entry.value.length,
-              ),
-            ),
-          ),
-        ],
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
-    );
-  }
-}
-
-class _Miniatura extends StatelessWidget {
-  const _Miniatura({required this.peca});
-
-  final Peca peca;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => PecaDetailView(peca: peca)),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Image.network(
-          AppConstants.resolveMediaUrl(peca.imagemUrl),
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => const Center(
-            child: Icon(Icons.broken_image_outlined),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -301,7 +282,7 @@ class _ArmarioVazio extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.checkroom, size: 64),
+                Icon(Icons.checkroom, size: 64, color: AppColors.textSecondary),
                 SizedBox(height: 16),
                 Text('Seu armário está vazio'),
                 SizedBox(height: 8),
@@ -332,14 +313,11 @@ class _Erro extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+                const Icon(Icons.error_outline, color: AppColors.error, size: 40),
                 const SizedBox(height: 12),
                 Text(mensagem, textAlign: TextAlign.center),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: onTentarNovamente,
-                  child: const Text('Tentar novamente'),
-                ),
+                AppButton(label: 'Tentar novamente', onPressed: onTentarNovamente),
               ],
             ),
           ),

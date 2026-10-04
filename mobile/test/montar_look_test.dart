@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:guarda_roupa_app/core/widgets/clothing_card.dart';
 import 'package:guarda_roupa_app/models/look.dart';
 import 'package:guarda_roupa_app/models/peca.dart';
 import 'package:guarda_roupa_app/services/look_service.dart';
@@ -142,7 +143,7 @@ void main() {
     await _abrirMontarLook(tester);
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nome do look *'), 'Look de sexta');
-    await tester.tap(find.byType(InkWell).first);
+    await tester.tap(find.byType(ClothingCard).first);
     await tester.pump();
 
     final salvarButton = tester.widget<ElevatedButton>(
@@ -175,7 +176,7 @@ void main() {
     await _abrirMontarLook(tester);
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nome do look *'), 'Look de sexta');
-    await tester.tap(find.byType(InkWell).first);
+    await tester.tap(find.byType(ClothingCard).first);
     await tester.pump();
 
     await tester.tap(find.widgetWithText(ElevatedButton, 'Salvar look'));

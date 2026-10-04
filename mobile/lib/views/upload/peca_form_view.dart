@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/peca_opcoes.dart';
 import '../../core/state/envio_state.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_button.dart';
 import '../../models/peca.dart';
 import '../home/home_shell.dart';
 import '../wardrobe/wardrobe_controller.dart';
@@ -118,8 +120,13 @@ class _PecaFormViewState extends ConsumerState<PecaFormView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
+                Container(
                   height: 200,
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSecondary,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  clipBehavior: Clip.antiAlias,
                   child: Image.network(
                     AppConstants.resolveMediaUrl(widget.imagemUrl),
                     fit: BoxFit.contain,
@@ -172,15 +179,10 @@ class _PecaFormViewState extends ConsumerState<PecaFormView> {
                       : (value) => setState(() => _ocasiao = value),
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: enviando ? null : _confirmar,
-                  child: enviando
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(editando ? 'Salvar alterações' : 'Salvar peça'),
+                AppButton(
+                  label: editando ? 'Salvar alterações' : 'Salvar peça',
+                  onPressed: _confirmar,
+                  loading: enviando,
                 ),
               ],
             ),

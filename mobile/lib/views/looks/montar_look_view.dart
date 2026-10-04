@@ -2,16 +2,28 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/category_section.dart';
+import '../../core/widgets/clothing_card.dart';
+import '../../core/widgets/filter_button.dart';
+import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
 import '../upload/upload_view.dart';
 import '../wardrobe/wardrobe_controller.dart';
 import 'looks_controller.dart';
+import 'looks_view.dart';
 import 'montar_look_controller.dart';
 
 /// Tela de montagem manual de um look (E3.F1.2): seleciona peças do
 /// armário, nomeia e confirma. Ao salvar, invalida `lookListProvider`
 /// (E3.F1.3) pra "Looks" já mostrar o look novo ao voltar.
+///
+/// Visual alinhado ao Figma "VIRTUALASSIST" (redesign visual, Etapa 2):
+/// `ScreenHeader` + carrosséis por categoria com `ClothingCard` +
+/// `FilterButton`. O botão de filtros aqui é só visual — esta tela não tem
+/// filtro de peças implementado (diferente do armário, que tem desde a
+/// E2.F2.1); tocar nele avisa isso em vez de fingir que funciona.
 class MontarLookView extends ConsumerStatefulWidget {
   const MontarLookView({super.key});
 
@@ -66,29 +78,36 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Montar look')),
-      body: pecasAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _Erro(
-          mensagem: _mensagemDeErro(error),
-          onTentarNovamente: () => ref.invalidate(pecaListProvider),
-        ),
-        data: (pecas) => pecas.isEmpty ? const _ArmarioVazio() : _buildFormulario(pecas, selecao, enviando),
+      body: Column(
+        children: [
+          ScreenHeader(
+            titulo: 'Monte seu look',
+            subtitulo: 'Escolha peças do seu armário.',
+            acao: _acaoHeader(context),
+          ),
+          Expanded(
+            child: pecasAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _Erro(
+                mensagem: _mensagemDeErro(error),
+                onTentarNovamente: () => ref.invalidate(pecaListProvider),
+              ),
+              data: (pecas) => pecas.isEmpty
+                  ? const _ArmarioVazio()
+                  : _buildConteudo(pecas, selecao, enviando),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: pecasAsync.maybeWhen(
         data: (pecas) => pecas.isEmpty
             ? null
             : Padding(
                 padding: const EdgeInsets.all(16),
-                child: ElevatedButton(
+                child: AppButton(
+                  label: 'Salvar look',
                   onPressed: podeConfirmar ? _salvar : null,
-                  child: enviando
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Salvar look'),
+                  loading: enviando,
                 ),
               ),
         orElse: () => null,
@@ -96,48 +115,81 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
     );
   }
 
-  Widget _buildFormulario(List<Peca> pecas, Set<String> selecao, bool enviando) {
+  /// Ação exibida no canto do `ScreenHeader`: "Meus looks" sempre, e um
+  /// botão de voltar quando esta tela foi empurrada por cima de outra (ex:
+  /// a partir da Home) — sem isso, remover a `AppBar` perderia a navegação
+  /// de volta nesse caso.
+  Widget _acaoHeader(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (Navigator.of(context).canPop())
+          IconButton(
+            tooltip: 'Voltar',
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        IconButton(
+          tooltip: 'Meus looks',
+          icon: const Icon(Icons.collections_bookmark_outlined),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const LooksView()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConteudo(List<Peca> pecas, Set<String> selecao, bool enviando) {
     final grupos = agruparPorCategoria(pecas);
 
     return Form(
       key: _formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextFormField(
-              controller: _nomeController,
-              enabled: !enviando,
-              decoration: const InputDecoration(labelText: 'Nome do look *'),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Dê um nome ao look' : null,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _nomeController,
+                    enabled: !enviando,
+                    decoration: const InputDecoration(labelText: 'Nome do look *'),
+                    validator: (value) =>
+                        value == null || value.trim().isEmpty ? 'Dê um nome ao look' : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: FilterButton(
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Filtros ainda não disponíveis aqui.')),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView(
+              padding: const EdgeInsets.only(top: 8, bottom: 16),
               children: [
-                for (final entry in grupos.entries) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Text(entry.key, style: Theme.of(context).textTheme.titleMedium),
-                  ),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      mainAxisExtent: 110,
-                    ),
+                for (final entry in grupos.entries)
+                  CategorySection(
+                    titulo: entry.key,
                     itemCount: entry.value.length,
                     itemBuilder: (context, index) {
                       final peca = entry.value[index];
-                      return _PecaSelecionavel(
-                        peca: peca,
+                      return ClothingCard(
+                        imagemUrl: peca.imagemUrl,
+                        selecionavel: true,
                         selecionada: selecao.contains(peca.id),
-                        onToggle: enviando
+                        onTap: enviando
                             ? null
                             : () {
                                 final notifier = ref.read(selecaoLookProvider.notifier);
@@ -152,8 +204,6 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
                       );
                     },
                   ),
-                ],
-                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -170,56 +220,6 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
   }
 }
 
-class _PecaSelecionavel extends StatelessWidget {
-  const _PecaSelecionavel({
-    required this.peca,
-    required this.selecionada,
-    required this.onToggle,
-  });
-
-  final Peca peca;
-  final bool selecionada;
-  final VoidCallback? onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onToggle,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-              border: selecionada
-                  ? Border.all(color: Theme.of(context).colorScheme.primary, width: 3)
-                  : null,
-            ),
-            child: Image.network(
-              AppConstants.resolveMediaUrl(peca.imagemUrl),
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Icon(Icons.broken_image_outlined),
-              ),
-            ),
-          ),
-          if (selecionada)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: CircleAvatar(
-                radius: 10,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                child: const Icon(Icons.check, size: 14, color: Colors.white),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ArmarioVazio extends StatelessWidget {
   const _ArmarioVazio();
 
@@ -231,18 +231,18 @@ class _ArmarioVazio extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.checkroom, size: 64),
+            const Icon(Icons.checkroom, size: 64, color: AppColors.textSecondary),
             const SizedBox(height: 16),
             const Text(
               'Cadastre uma peça antes de montar um look',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            AppButton(
+              label: 'Cadastrar peça',
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const UploadView()),
               ),
-              child: const Text('Cadastrar peça'),
             ),
           ],
         ),
@@ -265,11 +265,11 @@ class _Erro extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+            const Icon(Icons.error_outline, color: AppColors.error, size: 40),
             const SizedBox(height: 12),
             Text(mensagem, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onTentarNovamente, child: const Text('Tentar novamente')),
+            AppButton(label: 'Tentar novamente', onPressed: onTentarNovamente),
           ],
         ),
       ),

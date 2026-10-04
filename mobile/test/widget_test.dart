@@ -106,13 +106,20 @@ class _PecaServiceTudoFalha extends PecaService {
 }
 
 void main() {
-  testWidgets('App abre exibindo o armário', (WidgetTester tester) async {
+  testWidgets('App abre na Home; aba Armário mostra o guarda-roupa', (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio())],
         child: const GuardaRoupaApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Redesign visual (Etapa 4): a aba inicial agora é "Casa", não o
+    // armário diretamente.
+    expect(find.text('Welcome!'), findsOneWidget);
+
+    await tester.tap(find.text('Armário'));
     await tester.pumpAndSettle();
 
     expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
@@ -127,6 +134,11 @@ void main() {
         child: const GuardaRoupaApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Redesign visual (Etapa 4): precisa entrar na aba Armário primeiro —
+    // a Home tem seu próprio atalho "Adicionar peça", que usa outro ícone.
+    await tester.tap(find.text('Armário'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.add_a_photo));

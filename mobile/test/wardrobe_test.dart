@@ -241,7 +241,7 @@ void main() {
     expect(find.text('Calças (1)'), findsNothing);
     await tester.dragUntilVisible(
       find.text('Sapatos (1)'),
-      find.byType(CustomScrollView),
+      find.byKey(const Key('armario-lista-categorias')),
       const Offset(0, -100),
     );
     expect(find.text('Sapatos (1)'), findsOneWidget);
@@ -272,7 +272,9 @@ void main() {
     expect(find.text('Calças (1)'), findsOneWidget);
   });
 
-  testWidgets('Alternar Armário <-> Looks pela barra inferior', (WidgetTester tester) async {
+  testWidgets('Navega pelas 5 abas da barra inferior (redesign visual, Etapa 4)', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -284,17 +286,32 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
-
-    await tester.tap(find.text('Looks'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Looks'), findsWidgets);
-    expect(find.text('Você ainda não tem nenhum look salvo'), findsOneWidget);
+    // Aba inicial: Casa.
+    expect(find.text('Welcome!'), findsOneWidget);
 
     await tester.tap(find.text('Armário'));
     await tester.pumpAndSettle();
-
     expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
+
+    // "Looks" agora é a tela de montagem (Criação de Looks) — "Meus looks"
+    // salvos virou um botão dentro dela, não uma aba própria (ver
+    // docs/redesign-visual.md).
+    await tester.tap(find.text('Looks'));
+    await tester.pumpAndSettle();
+    // Armário vazio neste teste (`_PecaServiceVazio`) — MontarLookView
+    // mostra a orientação pra cadastrar peça primeiro, não a grade.
+    expect(find.text('Cadastre uma peça antes de montar um look'), findsOneWidget);
+
+    await tester.tap(find.text('IA'));
+    await tester.pumpAndSettle();
+    expect(find.text('Your suggestions'), findsOneWidget);
+
+    await tester.tap(find.text('Referências'));
+    await tester.pumpAndSettle();
+    expect(find.text('Find your inspiration'), findsOneWidget);
+
+    await tester.tap(find.text('Casa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome!'), findsOneWidget);
   });
 }

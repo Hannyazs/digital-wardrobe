@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_colors.dart';
 import '../../models/peca.dart';
 import '../upload/peca_form_view.dart';
 import '../upload/upload_controller.dart' show pecaServiceProvider;
@@ -110,8 +111,13 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          SizedBox(
+          Container(
             height: 240,
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            clipBehavior: Clip.antiAlias,
             child: Image.network(
               AppConstants.resolveMediaUrl(peca.imagemUrl),
               fit: BoxFit.contain,

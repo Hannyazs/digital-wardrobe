@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/state/envio_state.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_button.dart';
 import 'peca_form_view.dart';
 import 'upload_controller.dart';
 
@@ -125,20 +127,17 @@ class _EscolhaDeFoto extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.checkroom, size: 64),
+          const Icon(Icons.checkroom, size: 64, color: AppColors.textSecondary),
           const SizedBox(height: 16),
           const Text('Adicione uma foto da peça'),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: onTirarFoto,
-            icon: const Icon(Icons.photo_camera),
-            label: const Text('Tirar foto'),
-          ),
+          AppButton(label: 'Tirar foto', icon: Icons.photo_camera, onPressed: onTirarFoto),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
+          AppButton(
+            label: 'Escolher da galeria',
+            icon: Icons.photo_library,
+            variant: AppButtonVariant.secondary,
             onPressed: onEscolherDaGaleria,
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Escolher da galeria'),
           ),
         ],
       ),
@@ -191,8 +190,12 @@ class _PreviewDeFoto extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            OutlinedButton(onPressed: onTrocarFoto, child: const Text('Trocar foto')),
-            ElevatedButton(onPressed: onConfirmar, child: const Text('Confirmar')),
+            AppButton(
+              label: 'Trocar foto',
+              variant: AppButtonVariant.secondary,
+              onPressed: onTrocarFoto,
+            ),
+            AppButton(label: 'Confirmar', onPressed: onConfirmar),
           ],
         ),
       ],
@@ -261,7 +264,8 @@ class _ResultadoProcessado extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        ElevatedButton(
+        AppButton(
+          label: 'Continuar',
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => PecaFormView(
@@ -270,10 +274,13 @@ class _ResultadoProcessado extends StatelessWidget {
               ),
             ),
           ),
-          child: const Text('Continuar'),
         ),
         const SizedBox(height: 8),
-        TextButton(onPressed: onNovaFoto, child: const Text('Adicionar outra foto')),
+        AppButton(
+          label: 'Adicionar outra foto',
+          variant: AppButtonVariant.text,
+          onPressed: onNovaFoto,
+        ),
       ],
     );
   }
@@ -298,24 +305,29 @@ class _ErroEnvio extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+          const Icon(Icons.error_outline, color: AppColors.error, size: 40),
           const SizedBox(height: 12),
           Text(mensagem, textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              OutlinedButton(onPressed: onTrocarFoto, child: const Text('Trocar foto')),
+              AppButton(
+                label: 'Trocar foto',
+                variant: AppButtonVariant.secondary,
+                onPressed: onTrocarFoto,
+              ),
               const SizedBox(width: 12),
-              ElevatedButton(onPressed: onTentarNovamente, child: const Text('Tentar novamente')),
+              AppButton(label: 'Tentar novamente', onPressed: onTentarNovamente),
             ],
           ),
           const SizedBox(height: 12),
           // E1.F1.4: nunca deixar o cadastro travado esperando o
           // processamento funcionar — sempre existe uma saída.
-          TextButton(
+          AppButton(
+            label: 'Continuar sem remoção de fundo',
+            variant: AppButtonVariant.text,
             onPressed: onContinuarSemProcessamento,
-            child: const Text('Continuar sem remoção de fundo'),
           ),
         ],
       ),
