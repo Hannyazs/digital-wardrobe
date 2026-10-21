@@ -73,7 +73,7 @@ Motor de regras (não um modelo generativo) que filtra as peças cadastradas por
 | --- | --- | --- |
 | `Peca` | Implementada | `id`, `usuario_id`, `imagem_url`, `categoria`, `subcategoria`, `cor_principal`, `estacao`, `ocasiao`, `criado_em` |
 | `Look` | Planejada | `id`, `usuario_id`, `nome`, `ocasiao`, `favorito`, `criado_em` + tabela associativa N:N com `Peca` |
-| `Preferencia` | Planejada | `usuario_id` (chave única), cores favoritas, estilos preferidos, tolerância a sobreposição, peças evitadas, nível de criatividade |
+| `Preferencia` | Implementada (E4.F1.1; evitadas: E4.F4.1) | `usuario_id` (chave única), `estilos`, `sobreposicoes`, `combinacoes_cores` (pares de cores), `criatividade` (1–5). Peças e pares de peças evitados ficam em tabelas próprias, `pecas_evitadas` e `combinacoes_evitadas` (E4.F4.1), com FK para `pecas` e `ON DELETE CASCADE` |
 
 A coluna de embedding (`vector`, via `pgvector`) entra em `Peca` só quando a feature de inspiração por imagem for implementada — decisão deliberada de não adicionar coluna não utilizada antes da hora.
 

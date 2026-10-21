@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/peca_opcoes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/category_section.dart';
@@ -53,6 +54,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
     ref.read(montagemLookProvider.notifier).salvar(
           nome: _nomeController.text.trim(),
           pecaIds: selecao,
+          ocasioes: ref.read(ocasioesLookProvider),
         );
   }
 
@@ -175,6 +177,11 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
             ),
           ),
           const SizedBox(height: 8),
+          _SeletorOcasiao(
+            selecionadas: ref.watch(ocasioesLookProvider),
+            habilitado: !enviando,
+            onChanged: (valores) => ref.read(ocasioesLookProvider.notifier).state = valores,
+          ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.only(top: 8, bottom: 16),
@@ -217,6 +224,49 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
       return 'Sessão expirada ou inválida. Não foi possível carregar seu armário.';
     }
     return 'Não foi possível carregar seu armário. Tente novamente.';
+  }
+}
+
+/// Seletor opcional de ocasiões (E3.F3.2): seleção múltipla; tocar num chip
+/// já marcado desmarca. Nunca bloqueia o salvamento.
+class _SeletorOcasiao extends StatelessWidget {
+  const _SeletorOcasiao({
+    required this.selecionadas,
+    required this.habilitado,
+    required this.onChanged,
+  });
+
+  final List<String> selecionadas;
+  final bool habilitado;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        children: [
+          for (final ocasiao in ocasioesFixas)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(ocasiao),
+                selected: selecionadas.contains(ocasiao),
+                onSelected: habilitado
+                    ? (marcado) {
+                        final marcadas = {...selecionadas};
+                        marcado ? marcadas.add(ocasiao) : marcadas.remove(ocasiao);
+                        // Ordem canônica (a de `ocasioesFixas`), não a do toque.
+                        onChanged(ocasioesFixas.where(marcadas.contains).toList());
+                      }
+                    : null,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

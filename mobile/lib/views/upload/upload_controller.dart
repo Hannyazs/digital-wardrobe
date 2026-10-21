@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,8 +14,16 @@ import '../../services/peca_service.dart';
 class UploadPhotoController extends Notifier<XFile?> {
   final ImagePicker _picker = ImagePicker();
 
+  /// Foto como veio da câmera/galeria. O recorte é sempre refeito a partir
+  /// dela — recortar o recorte só encolheria a imagem a cada tentativa.
+  XFile? _original;
+
   @override
   XFile? build() => null;
+
+  /// Original disponível para (re)recortar; cai na foto atual se ela veio
+  /// sem passar pelo seletor.
+  XFile? get original => _original ?? state;
 
   Future<void> pickFromCamera() => _pick(ImageSource.camera);
 
@@ -26,12 +36,20 @@ class UploadPhotoController extends Notifier<XFile?> {
     // estado atual permanece (não sobrescreve com null).
     final XFile? arquivo = await _picker.pickImage(source: source);
     if (arquivo != null) {
+      _original = arquivo;
       state = arquivo;
       ref.read(uploadSubmissionProvider.notifier).reset();
     }
   }
 
+  /// Substitui a foto pelo recorte escolhido; o original fica guardado.
+  void usarRecorte(Uint8List bytes) {
+    state = XFile.fromData(bytes, name: 'recorte.png', mimeType: 'image/png');
+    ref.read(uploadSubmissionProvider.notifier).reset();
+  }
+
   void clear() {
+    _original = null;
     state = null;
     ref.read(uploadSubmissionProvider.notifier).reset();
   }

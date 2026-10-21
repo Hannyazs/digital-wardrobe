@@ -5,8 +5,11 @@ class Peca {
   final String categoria;
   final String? subcategoria;
   final String? corPrincipal;
+  final String? tonalidadeCor;
   final String? estacao;
-  final String? ocasiao;
+  final String? estilo;
+  final String? modelagem;
+  final List<String> ocasioes;
 
   Peca({
     required this.id,
@@ -14,8 +17,11 @@ class Peca {
     required this.categoria,
     this.subcategoria,
     this.corPrincipal,
+    this.tonalidadeCor,
     this.estacao,
-    this.ocasiao,
+    this.estilo,
+    this.modelagem,
+    this.ocasioes = const [],
   });
 
   factory Peca.fromJson(Map<String, dynamic> json) {
@@ -25,8 +31,11 @@ class Peca {
       categoria: json['categoria'] as String,
       subcategoria: json['subcategoria'] as String?,
       corPrincipal: json['cor_principal'] as String?,
+      tonalidadeCor: json['tonalidade_cor'] as String?,
       estacao: json['estacao'] as String?,
-      ocasiao: json['ocasiao'] as String?,
+      estilo: json['estilo'] as String?,
+      modelagem: json['modelagem'] as String?,
+      ocasioes: (json['ocasioes'] as List?)?.cast<String>() ?? const [],
     );
   }
 
@@ -36,8 +45,11 @@ class Peca {
       'categoria': categoria,
       'subcategoria': subcategoria,
       'cor_principal': corPrincipal,
+      'tonalidade_cor': tonalidadeCor,
       'estacao': estacao,
-      'ocasiao': ocasiao,
+      'estilo': estilo,
+      'modelagem': modelagem,
+      'ocasioes': ocasioes,
     };
   }
 }

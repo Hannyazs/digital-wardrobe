@@ -10,4 +10,4 @@ from app.schemas.peca import PecaBase
 
 
 def extract_metadata(imagem_bytes: bytes) -> PecaBase:
-    return PecaBase(categoria="", subcategoria=None, cor_principal=None, estacao=None, ocasiao=None)
+    return PecaBase(categoria="", subcategoria=None, cor_principal=None, estacao=None)

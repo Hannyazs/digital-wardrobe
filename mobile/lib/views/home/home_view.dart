@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/screen_header.dart';
 import '../looks/montar_look_view.dart';
+import '../preferences/preferences_view.dart';
 import '../upload/upload_view.dart';
 
 /// Tela inicial do app — aba "Casa" (redesign visual, Etapa 4). Saudação +
@@ -44,6 +45,15 @@ class HomeView extends StatelessWidget {
                   variant: AppButtonVariant.secondary,
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(builder: (_) => const MontarLookView()),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                AppButton(
+                  label: 'Preferências de estilo',
+                  icon: Icons.tune,
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const PreferencesView()),
                   ),
                 ),
               ],

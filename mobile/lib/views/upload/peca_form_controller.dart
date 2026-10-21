@@ -20,8 +20,11 @@ class PecaFormController extends Notifier<EnvioState> {
     required String categoria,
     String? subcategoria,
     String? corPrincipal,
+    String? tonalidadeCor,
     String? estacao,
-    String? ocasiao,
+    String? estilo,
+    String? modelagem,
+    List<String> ocasioes = const [],
   }) async {
     state = const Enviando();
     try {
@@ -31,8 +34,11 @@ class PecaFormController extends Notifier<EnvioState> {
               categoria: categoria,
               subcategoria: subcategoria,
               corPrincipal: corPrincipal,
+              tonalidadeCor: tonalidadeCor,
               estacao: estacao,
-              ocasiao: ocasiao,
+              estilo: estilo,
+              modelagem: modelagem,
+              ocasioes: ocasioes,
             );
       } else {
         await ref.read(pecaServiceProvider).atualizarPeca(
@@ -40,8 +46,11 @@ class PecaFormController extends Notifier<EnvioState> {
               categoria: categoria,
               subcategoria: subcategoria,
               corPrincipal: corPrincipal,
+              tonalidadeCor: tonalidadeCor,
               estacao: estacao,
-              ocasiao: ocasiao,
+              estilo: estilo,
+              modelagem: modelagem,
+              ocasioes: ocasioes,
             );
       }
       state = EnvioSucesso(imagemUrl);

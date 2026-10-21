@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:guarda_roupa_app/models/look.dart';
 import 'package:guarda_roupa_app/models/peca.dart';
-import 'package:guarda_roupa_app/services/look_service.dart';
+import 'support/look_service_sem_historico.dart';
 import 'package:guarda_roupa_app/services/peca_service.dart';
 import 'package:guarda_roupa_app/views/home/home_shell.dart';
 import 'package:guarda_roupa_app/views/looks/montar_look_controller.dart' show lookServiceProvider;
@@ -19,7 +19,7 @@ import 'package:guarda_roupa_app/views/upload/upload_controller.dart' show pecaS
 import 'package:guarda_roupa_app/views/wardrobe/wardrobe_controller.dart';
 import 'package:guarda_roupa_app/views/wardrobe/wardrobe_view.dart';
 
-class _LookServiceVazio extends LookService {
+class _LookServiceVazio extends LookServiceSemHistorico {
   @override
   Future<List<Look>> listarLooks() async => [];
 }
@@ -37,7 +37,7 @@ Peca _peca(
       categoria: categoria,
       corPrincipal: corPrincipal,
       estacao: estacao,
-      ocasiao: ocasiao,
+      ocasioes: ocasiao == null ? const [] : [ocasiao],
     );
 
 class _PecaServiceLento extends PecaService {

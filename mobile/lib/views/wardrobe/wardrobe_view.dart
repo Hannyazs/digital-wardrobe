@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/peca_opcoes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_button.dart';
@@ -145,7 +144,7 @@ class _PainelFiltros extends ConsumerWidget {
             ),
           _LinhaFiltro(
             rotulo: 'Ocasião',
-            opcoes: ocasioesFixas,
+            opcoes: ocasioesDisponiveis(pecas),
             selecionado: filtro.ocasiao,
             onSelecionar: (valor) => notifier.state = filtro.copyWith(
               ocasiao: () => filtro.ocasiao == valor ? null : valor,

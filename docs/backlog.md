@@ -224,6 +224,313 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ---
 
+## Épico 3, Feature 2 — Salvar looks favoritos
+
+Feature completa = usuário marca e desmarca looks como favoritos e consegue listar só os favoritos. Backend primeiro (campo + rota que altera um look existente, que ainda não existe), depois o app — mesma separação da Feature 1. Introduz o `PATCH /looks/{id}` que a Feature 3 reaproveita para `ocasiao`.
+
+### E3.F2.1 — Campo favorito e `PATCH /looks/{id}` (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F2-looks-favoritos/E3.F2.1-campo-favorito-e-patch-de-look.md](PBIs/E3-F2-looks-favoritos/E3.F2.1-campo-favorito-e-patch-de-look.md).
+
+**Descrição**: coluna `favorito` em `looks` (migração `0003`), exposta em `LookRead`, e `PATCH /looks/{id}` com atualização parcial escopada por `usuario_id`.
+
+**Critérios de aceite:**
+- `PATCH /looks/{id}` com `{"favorito": true}` atualiza o look; `GET /looks` reflete.
+- Look novo nasce com `favorito: false`; looks anteriores à migração também.
+- Look inexistente ou de outro usuário → 404, sem alterar nada.
+
+**Status**: **concluída e validada** — coluna `favorito` (migração `0003`, upgrade/downgrade testados), `LookUpdate` e `PATCH /looks/{id}` implementados. Critérios de aceite verificados por execução real (API `uvicorn` + Postgres local + `curl`, dois usuários), não só `compileall`. Encontrado e tratado no caminho: `{"favorito": null}` virava erro de banco, agora é 422 — ver log de implementação no arquivo detalhado.
+**Estimativa**: P.
+**Dependências**: E3.F1.1.
+
+### E3.F2.2 — Favoritar looks e filtrar favoritos no app
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F2-looks-favoritos/E3.F2.2-favoritar-e-filtrar-no-app.md](PBIs/E3-F2-looks-favoritos/E3.F2.2-favoritar-e-filtrar-no-app.md).
+
+**Descrição**: coração em cada card da `LooksView` que alterna o favorito via `PATCH`, e filtro "Favoritos" client-side (mesmo padrão da E2.F2.1).
+
+**Critérios de aceite:**
+- Tocar no coração favorita/desfavorita o look e o estado persiste ao reabrir o app.
+- O filtro "Favoritos" restringe a lista; sem favoritos, mostra vazio-por-filtro com "Limpar filtro".
+- Falha no `PATCH` mostra mensagem clara e mantém o estado anterior.
+
+**Status**: concluída (validação manual no Chrome pendente).
+**Estimativa**: M.
+**Dependências**: E3.F2.1, E3.F1.3.
+
+---
+
+## Épico 3, Feature 3 — Organizar looks por ocasião
+
+Feature completa = look guarda uma ocasião (trabalho, faculdade, festa, academia, viagem), escolhida ao montar ou alterada depois, e a lista pode ser filtrada por ela. Mesmo vocabulário de `ocasioesFixas` já usado nas peças; no banco continua texto livre, sem enum.
+
+### E3.F3.1 — Campo ocasião no look (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F3-looks-por-ocasiao/E3.F3.1-campo-ocasiao-no-look.md](PBIs/E3-F3-looks-por-ocasiao/E3.F3.1-campo-ocasiao-no-look.md).
+
+**Descrição**: coluna `ocasiao` (nullable) em `looks` (migração `0005`), aceita em `POST /looks` e no `PATCH /looks/{id}` da E3.F2.1, e exposta em `LookRead`.
+
+**Critérios de aceite:**
+- `POST /looks` com `ocasiao` grava e devolve o valor; sem `ocasiao`, fica `null`.
+- `PATCH` com `{"ocasiao": "Festa"}` troca; com `null` ou texto vazio limpa; sem a chave, preserva.
+- Look de outro usuário → 404.
+
+**Status**: **concluída e validada** — coluna `ocasiao` (migração `0005`, upgrade/downgrade testados), aceita em `POST /looks` e `PATCH /looks/{id}`, exposta em `LookRead`; texto vazio ou só com espaços vira `null`. Critérios de aceite verificados por execução real (API + Postgres local + `curl`, dois usuários), sem suíte `pytest` ainda. **Atualizado em 2026-10-20 (a pedido do usuário):** o look passou a ter várias ocasiões — `ocasiao` virou `ocasioes` (lista; migração `0008`, que preserva as ocasiões já salvas); limpar = `[]`, `null` dá 422. Verificado por execução real (migração com dados reais, upgrade/downgrade, API com `curl`).
+**Estimativa**: P.
+**Dependências**: E3.F2.1.
+
+### E3.F3.2 — Ocasião na montagem, no card e na edição do look (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F3-looks-por-ocasiao/E3.F3.2-ocasiao-na-montagem-e-no-card.md](PBIs/E3-F3-looks-por-ocasiao/E3.F3.2-ocasiao-na-montagem-e-no-card.md).
+
+**Descrição**: seletor opcional de ocasião em `MontarLookView`, chip de ocasião no card e menu do card com "Alterar ocasião" (bottom sheet com "Sem ocasião"). O menu do card nasce aqui; a E3.F4.2 acrescenta itens.
+
+**Critérios de aceite:**
+- Ocasião escolhida ao montar aparece como chip no card; sem escolha, salvar funciona e o card não mostra chip.
+- "Alterar ocasião" troca ou remove a ocasião de um look já salvo.
+- Falha no envio mostra mensagem clara e preserva os dados da montagem.
+
+**Status**: **concluída (validação manual visual no Chrome pendente)** — `Look.ocasiao`, `criarLook` com `ocasiao` opcional, seletor de `ChoiceChip`s na montagem, `Chip` no card e menu "Alterar ocasião" (bottom sheet com "Sem ocasião") implementados. `dart analyze` limpo; `flutter test` 62/62, com 6 testes novos desta PBI. **Atualizado em 2026-10-20:** seletor de ocasiões na montagem e menu "Alterar ocasião" passaram a seleção múltipla (chips marcáveis; sheet com caixas de marcação, "Sem ocasião" e "Salvar"); o card mostra um chip por ocasião.
+**Estimativa**: M.
+**Dependências**: E3.F3.1, E3.F2.2.
+
+### E3.F3.3 — Filtro de looks por ocasião (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F3-looks-por-ocasiao/E3.F3.3-filtro-de-looks-por-ocasiao.md](PBIs/E3-F3-looks-por-ocasiao/E3.F3.3-filtro-de-looks-por-ocasiao.md).
+
+**Descrição**: chips de ocasião na `LooksView` (seleção única), combinados por E lógico com "Favoritos", estendendo o `FiltroLooks` da E3.F2.2.
+
+**Critérios de aceite:**
+- Selecionar uma ocasião restringe a lista; selecionar de novo desativa.
+- Combina com "Favoritos" (E lógico); sem resultado, vazio-por-filtro com "Limpar filtros".
+- Look sem ocasião só aparece quando nenhuma ocasião está selecionada.
+
+**Status**: **concluída (validação manual visual no Chrome pendente)** — `FiltroLooks.ocasiao` (seleção única, E lógico com Favoritos), `ChoiceChip`s de ocasião num `Wrap` ao lado de "Favoritos" e vazio-por-filtro genérico com "Limpar filtros". `dart analyze` limpo; `flutter test` 66/66, com 4 testes novos desta PBI. Atenção de UX: Favoritos + 10 ocasiões ocupam várias linhas em tela de celular — ver log. **Atualizado em 2026-10-20:** o filtro aceita várias ocasiões (OU entre elas; E lógico com "Favoritos"); `FiltroLooks.ocasioes` é um conjunto. `flutter test` 118/118.
+**Estimativa**: P.
+**Dependências**: E3.F3.2, E3.F2.2.
+
+---
+
+## Épico 3, Feature 4 — Histórico de looks utilizados
+
+Feature completa = usuário registra que usou um look em certa data, vê o histórico e é avisado quando está prestes a repetir uma combinação usada há pouco. Guarda um registro por uso (não um contador), porque a história pede saber **quando**, e o Épico 6 vai precisar de recência e frequência. **Não inclui** atualizar a "frequência de uso" das peças (campo ainda inexistente em `Peca`) nem estatísticas.
+
+### E3.F4.1 — Registro de uso e histórico de looks (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.1-registro-de-uso-e-historico-de-looks.md](PBIs/E3-F4-historico-de-looks/E3.F4.1-registro-de-uso-e-historico-de-looks.md).
+
+**Descrição**: tabela `looks_usos` (migração `0006`), `POST /looks/{id}/usos`, `GET /looks/historico` (usos do usuário com o look e as peças embutidos) e `DELETE /looks/usos/{id}`.
+
+**Critérios de aceite:**
+- `POST` registra um uso na data informada; data futura → 422; look de outro usuário ou inexistente → 404.
+- `GET /looks/historico` devolve só os usos do usuário, mais recentes primeiro, com as peças de cada look.
+- O mesmo look pode ter vários usos, inclusive no mesmo dia.
+- `DELETE` remove um uso próprio (204); de outro usuário → 404.
+
+**Status**: **concluída e validada** — tabela `looks_usos` (migração `0006`), `POST /looks/{id}/usos`, `GET /looks/historico` (com `de`/`ate` opcionais, acrescentados a pedido do calendário da E3.F4.3) e `DELETE /looks/usos/{id}`. Verificado por execução real (API + Postgres local + `curl`, dois usuários), sem suíte `pytest` ainda.
+**Estimativa**: M.
+**Dependências**: E3.F1.1.
+
+### E3.F4.2 — Registrar uso de um look no app (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.2-registrar-uso-do-look-no-app.md](PBIs/E3-F4-historico-de-looks/E3.F4.2-registrar-uso-do-look-no-app.md).
+
+**Descrição**: o menu do card ganha "Usei hoje" (um toque) e "Usei em outra data…" (seletor de data sem datas futuras), chamando `POST /looks/{id}/usos` com a data local do dispositivo.
+
+**Critérios de aceite:**
+- "Usei hoje" registra o uso com a data de hoje e confirma na tela.
+- "Usei em outra data…" não permite datas futuras; cancelar não envia nada.
+- Falha no envio mostra mensagem clara sem travar a tela.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — `LookService.registrarUso` e dois itens novos no menu do card ("Usei hoje", "Usei em outra data…" com `showDatePicker` sem datas futuras), com confirmação por `SnackBar` e mensagens de erro por status. `dart analyze` limpo; `flutter test` 74/74, com 8 testes novos desta PBI. Gravação real em `looks_usos` a partir do app ainda não conferida.
+**Estimativa**: P.
+**Dependências**: E3.F4.1, E3.F3.2.
+
+### E3.F4.3 — Tela de histórico de looks utilizados (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md](PBIs/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md).
+
+**Descrição**: `HistoricoView`, aberta por um ícone na `AppBar` de `LooksView`, lista os usos do mais recente ao mais antigo, agrupados por dia, com miniaturas das peças e remoção de registro com confirmação. Define o `historicoProvider`.
+
+**Critérios de aceite:**
+- Usos aparecem do mais recente ao mais antigo, com data, nome do look e miniaturas, agrupados por dia.
+- Sem usos, mostra orientação; falha mostra mensagem com "Tentar novamente".
+- Remover um uso (com confirmação) o tira da lista; um uso recém-registrado já aparece.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — histórico em formato de calendário mensal (grade com marcação nos dias de uso + lista do dia, remoção com confirmação), buscando só o mês visível; ícone na `AppBar` de Looks. `dart analyze` limpo; `flutter test` 90/90. Mudança de escopo em relação ao detalhamento original (lista agrupada → calendário) registrada no arquivo detalhado. Fluxo no Chrome com backend real ainda não conferido.
+**Estimativa**: M.
+**Dependências**: E3.F4.1, E3.F4.2.
+
+### E3.F4.4 — Aviso de repetição recente nos looks (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md](PBIs/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md).
+
+**Descrição**: cada card mostra "Usado hoje / ontem / há N dias" a partir do `historicoProvider`, em destaque quando o último uso foi há 7 dias ou menos. É o que atende "não repetir a mesma combinação sem perceber" no ponto de decisão.
+
+**Critérios de aceite:**
+- O rótulo reflete o uso mais recente do look; look nunca usado não mostra rótulo.
+- Último uso há 7 dias ou menos aparece em destaque.
+- Falha ao carregar o histórico não afeta a lista de looks.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — cada card mostra "Usado hoje" / "Usado ontem" / "Usado há N dias" (último uso do histórico), em cor de aviso quando o último uso foi há 7 dias ou menos; look nunca usado e histórico indisponível não mostram rótulo. `dart analyze` limpo; `flutter test` 101/101, com 11 testes novos desta PBI. Fluxo no Chrome com backend real ainda não conferido.
+**Estimativa**: P.
+**Dependências**: E3.F4.3.
+
+## Épico 4, Feature 1 — Combinações de cores favoritas
+
+Feature completa = usuário abre a tela de preferências (hoje só um `TODO` sem caminho até ela) e cadastra pares de cores que gosta de ver juntos. Esta feature também entrega a **base de todo o Épico 4**: a tabela `preferencias` (uma linha por usuário, já prevista em [arquitetura.md](arquitetura.md)) com todos os campos simples (cores, sobreposições, estilos, criatividade), para as features seguintes serem só telas. **Não inclui** peças/combinações evitadas (Feature 4, tabelas próprias) nem o uso das preferências nas sugestões (Épico 6).
+
+### E4.F1.1 — Modelo de preferências e endpoints `GET`/`PATCH` (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F1-cores-favoritas/E4.F1.1-modelo-e-endpoints-de-preferencias.md](PBIs/E4-F1-cores-favoritas/E4.F1.1-modelo-e-endpoints-de-preferencias.md).
+
+**Descrição**: tabela `preferencias` (migração `0007`) com `estilos`, `sobreposicoes`, `combinacoes_cores` e `criatividade`; `GET /preferencias` devolve os padrões quando nada foi salvo, e `PATCH /preferencias` atualiza só os campos enviados (upsert).
+
+**Critérios de aceite:**
+- Sem preferências salvas, `GET` devolve listas vazias e `criatividade: 3`, sem criar linha.
+- `PATCH` normaliza listas (sem vazios nem repetidos) e preserva os campos não enviados.
+- `criatividade` fora de 1–5, `null` em qualquer campo e par com a mesma cor nos dois lados dão 422.
+- Cada usuário só vê e altera as próprias preferências.
+
+**Status**: **concluída e validada** — tabela `preferencias` (migração `0007`, upgrade/downgrade testados), `GET /preferencias` (padrões sem gravar) e `PATCH /preferencias` (upsert atômico, parcial). Critérios de aceite verificados por execução real (API + Postgres local + `curl`, dois usuários, mais 5 primeiras chamadas simultâneas), sem suíte `pytest` ainda.
+**Estimativa**: M.
+**Dependências**: nenhuma.
+
+### E4.F1.2 — Tela de preferências e combinações de cores favoritas (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md](PBIs/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md).
+
+**Descrição**: botão "Preferências de estilo" na Home abre a `PreferencesView` (hoje placeholder), que carrega as preferências e traz a seção de pares de cores, com salvamento imediato (atualização otimista com reversão em falha).
+
+**Critérios de aceite:**
+- A Home leva à tela de preferências.
+- Adicionar um par de cores diferentes o mostra na lista e persiste; mesma cor nos dois lados ou par repetido (em qualquer ordem) é bloqueado.
+- Remover um par persiste; falha no `PATCH` desfaz a mudança com mensagem clara.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — botão "Preferências de estilo" na Home, `PreferencesView` real (carregamento, erro com "Tentar novamente"), seção "Cores que combinam" com bottom sheet de duas cores e salvamento imediato com atualização otimista, reversão em falha e fila de gravações. `dart analyze` limpo; `flutter test` 114/114, com 13 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Estimativa**: M.
+**Dependências**: E4.F1.1.
+
+---
+
+## Épico 4, Feature 2 — Preferência por sobreposições
+
+Feature completa = usuário marca os tipos de sobreposição que gosta (jaqueta, cardigan, camisa aberta etc.). Nenhuma marcação significa "sem preferência". **Não inclui** efeito nas sugestões (Épico 6).
+
+### E4.F2.1 — Sobreposições preferidas na tela de preferências (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F2-sobreposicoes/E4.F2.1-sobreposicoes-preferidas-na-tela.md](PBIs/E4-F2-sobreposicoes/E4.F2.1-sobreposicoes-preferidas-na-tela.md).
+
+**Descrição**: seção "Sobreposições" com um chip por tipo (Jaqueta, Cardigan, Camisa aberta, Blazer, Colete), salva na hora; cria o widget genérico `SecaoDeChips` que a E4.F3.1 reaproveita.
+
+**Critérios de aceite:**
+- Marcar e desmarcar tipos persiste ao reabrir a tela.
+- Nenhum tipo marcado é válido (sem preferência).
+- Valor salvo fora da lista fixa continua aparecendo marcado.
+- Falha no `PATCH` desfaz a marcação com mensagem clara.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — seção "Sobreposições" com `FilterChip`s de `sobreposicoesFixas`, salvamento imediato pelo `PreferenciasController`, valores fora da lista preservados; widget genérico `SecaoDeChips` pronto para a E4.F3.1. `dart analyze` limpo; `flutter test` 125/125, com 7 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Estimativa**: P.
+**Dependências**: E4.F1.1, E4.F1.2.
+
+---
+
+## Épico 4, Feature 3 — Estilos preferidos
+
+Feature completa = usuário escolhe os estilos que prefere (casual, streetwear, elegante, minimalista, esportivo etc.), usando a mesma lista do formulário de peça. **Não inclui** cruzamento com o `estilo` das peças (Épico 6).
+
+### E4.F3.1 — Estilos preferidos na tela de preferências (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F3-estilos-preferidos/E4.F3.1-estilos-preferidos-na-tela.md](PBIs/E4-F3-estilos-preferidos/E4.F3.1-estilos-preferidos-na-tela.md).
+
+**Descrição**: seção "Estilos preferidos" com um chip por item de `estilosFixos` (seleção múltipla, salva na hora), reaproveitando `SecaoDeChips`.
+
+**Critérios de aceite:**
+- Marcar vários estilos persiste ao reabrir a tela; desmarcar remove.
+- Estilo salvo fora da lista fixa continua aparecendo marcado.
+- Falha no `PATCH` desfaz a marcação com mensagem clara.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — seção "Estilos preferidos" (primeira da tela) com os seis `estilosFixos`, reaproveitando `SecaoDeChips` e `alternarNaLista`; o método de alternância da tela foi generalizado e serve estilos e sobreposições. `dart analyze` limpo; `flutter test` 130/130, com 5 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Estimativa**: P.
+**Dependências**: E4.F1.1, E4.F2.1.
+
+---
+
+## Épico 4, Feature 4 — Peças ou combinações que o usuário evita
+
+Feature completa = usuário marca peças que não quer ver sugeridas e pares de peças que não quer ver juntas. Diferente dos outros campos do épico, o Épico 6 deve tratar isto como **restrição**, não como peso ("nunca me sugira algo que eu não usaria"). Usa tabelas próprias com chave estrangeira para `pecas` (`ON DELETE CASCADE`, porque `excluir_peca` apaga fisicamente). **Não inclui** efeito em looks montados manualmente nem a aplicação da restrição nas sugestões.
+
+### E4.F4.1 — Peças e combinações evitadas (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.1-pecas-e-combinacoes-evitadas-no-backend.md](PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.1-pecas-e-combinacoes-evitadas-no-backend.md).
+
+**Descrição**: tabelas `pecas_evitadas` e `combinacoes_evitadas` (migração `0009`, par ordenado por UUID) e endpoints para listar, marcar e desmarcar peças e pares, escopados por usuário.
+
+**Critérios de aceite:**
+- Marcar uma peça é idempotente (201 na primeira vez, 200 depois) e ela aparece em `GET /preferencias/evitadas`.
+- O par `(A, B)` e o par `(B, A)` são o mesmo registro; par com a mesma peça nos dois lados dá 422.
+- Peça inexistente ou de outro usuário dá 404.
+- Excluir uma peça evitada (`DELETE /pecas/{id}`) remove também a peça e os pares dela da lista, sem erro.
+
+**Status**: **concluída e validada** — tabelas `pecas_evitadas` e `combinacoes_evitadas` (migração `0009`, upgrade/downgrade testados, FKs com `ON DELETE CASCADE`) e os cinco endpoints em `/preferencias`. Critérios de aceite verificados por execução real (API + Postgres local + `curl`, dois usuários), incluindo excluir pelo armário uma peça evitada e em par. Sem suíte `pytest` ainda.
+**Estimativa**: M.
+**Dependências**: E4.F1.1.
+
+### E4.F4.2 — Marcar peça como evitada no app (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md](PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md).
+
+**Descrição**: ação "Evitar nas sugestões" / "Parar de evitar" no detalhe da peça e seção "Peças que evito" na tela de preferências, com `evitadasProvider` e `Evitadas` já prontos para as combinações.
+
+**Critérios de aceite:**
+- Alternar no detalhe da peça marca e desmarca, com indicação visível.
+- A tela de preferências lista as peças evitadas e permite remover.
+- Falha de rede, 401 ou 404 mostra mensagem clara e mantém o estado anterior.
+- Peça evitada excluída pelo armário some da seção.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — ação "Evitar nas sugestões" / "Parar de evitar" no detalhe da peça (com aviso "Evitada nas sugestões") e seção "Peças que evito" na tela de preferências (remoção com confirmação), com `evitadasProvider` e o modelo `Evitadas` já prontos para as combinações. `dart analyze` limpo; `flutter test` 141/141, com 11 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Estimativa**: M.
+**Dependências**: E4.F4.1, E4.F1.2.
+
+### E4.F4.3 — Combinações de peças evitadas no app (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md](PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md).
+
+**Descrição**: seção "Combinações que evito" com os pares salvos e `EscolherParView`, uma grade do armário onde se seleciona exatamente duas peças.
+
+**Critérios de aceite:**
+- O botão de confirmar só habilita com exatamente 2 peças selecionadas.
+- O par salvo aparece com as duas miniaturas; o mesmo par em ordem inversa não duplica.
+- Remover um par (com confirmação) o tira da lista.
+- Armário com menos de 2 peças mostra orientação em vez da grade.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — seção "Combinações que evito" na tela de preferências (pares com as duas miniaturas, remoção com confirmação, 404 tratado como "já não existe") e `EscolherParView` (grade do armário, seleção local de exatamente duas peças, terceira bloqueada com aviso, par repetido avisado sem duplicar). `dart analyze` limpo; `flutter test` 152/152, com 11 testes novos. Fluxo no Chrome com backend real ainda não conferido. Com ela, a Feature 4 do Épico 4 está completa.
+**Estimativa**: M.
+**Dependências**: E4.F4.1, E4.F4.2.
+
+---
+
+## Épico 4, Feature 5 — Nível de criatividade desejado
+
+Feature completa = usuário define, de 1 a 5, o quanto aceita sair do óbvio nas combinações sugeridas. O campo já existe na API (E4.F1.1); aqui é só o controle. **Não inclui** o efeito real nas sugestões (Épico 6).
+
+### E4.F5.1 — Nível de criatividade na tela de preferências (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F5-nivel-de-criatividade/E4.F5.1-nivel-de-criatividade-na-tela.md](PBIs/E4-F5-nivel-de-criatividade/E4.F5.1-nivel-de-criatividade-na-tela.md).
+
+**Descrição**: seção "Criatividade das combinações" com um `Slider` de 5 posições e rótulo por nível, salvo ao soltar (padrão 3).
+
+**Critérios de aceite:**
+- Sem preferência salva, o controle aparece no nível 3.
+- Arrastar atualiza o rótulo sem chamar o servidor; soltar salva e persiste ao reabrir.
+- Falha no `PATCH` devolve o controle ao nível anterior com mensagem clara.
+
+**Status**: **concluída (validação manual end-to-end pendente)** — seção "Criatividade das combinações" com `Slider` de 5 níveis (rótulos em `niveisDeCriatividade`), valor local durante o arrasto e gravação só ao soltar; em falha volta ao nível anterior. `dart analyze` limpo; `flutter test` 159/159, com 7 testes novos — um deles pegou um bug real de reversão, corrigido. Fluxo no Chrome com backend real ainda não conferido. Com ela, todas as PBIs do Épico 4 estão implementadas.
+**Estimativa**: P.
+**Dependências**: E4.F1.1, E4.F1.2.
+
+---
+
 ## Resumo do estado atual
 
 | PBI | Descrição curta | Status |
@@ -240,5 +547,22 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E3.F1.1 | Modelo de dados e endpoint de looks (backend) | Concluída e validada (execução real contra Postgres local) |
 | E3.F1.2 | Tela de montagem manual do look (mobile) | Concluída (validação manual visual no Chrome pendente) |
 | E3.F1.3 | Listagem dos looks salvos (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F2.1 | Campo favorito e `PATCH /looks/{id}` (backend) | Concluída e validada (execução real contra Postgres local) |
+| E3.F2.2 | Favoritar looks e filtrar favoritos (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F3.1 | Campo ocasião no look (backend) | Concluída e validada (execução real contra Postgres local) |
+| E3.F3.2 | Ocasião na montagem, no card e na edição (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F3.3 | Filtro de looks por ocasião (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F4.1 | Registro de uso e histórico de looks (backend) | Concluída e validada (execução real contra Postgres local) |
+| E3.F4.2 | Registrar uso de um look (mobile) | Concluída (validação manual end-to-end pendente) |
+| E3.F4.3 | Tela de histórico de looks utilizados (mobile) | Concluída (validação manual end-to-end pendente) |
+| E3.F4.4 | Aviso de repetição recente nos looks (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F1.1 | Modelo de preferências e endpoints `GET`/`PATCH` (backend) | Concluída e validada (execução real contra Postgres local) |
+| E4.F1.2 | Tela de preferências e combinações de cores favoritas (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F2.1 | Sobreposições preferidas na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F3.1 | Estilos preferidos na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F4.1 | Peças e combinações evitadas (backend) | Concluída e validada (execução real contra Postgres local) |
+| E4.F4.2 | Marcar peça como evitada no app (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F4.3 | Combinações de peças evitadas no app (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F5.1 | Nível de criatividade na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
 
 E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão).

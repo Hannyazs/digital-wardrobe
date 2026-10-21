@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:guarda_roupa_app/core/widgets/clothing_card.dart';
 import 'package:guarda_roupa_app/models/look.dart';
 import 'package:guarda_roupa_app/models/peca.dart';
-import 'package:guarda_roupa_app/services/look_service.dart';
+import 'support/look_service_sem_historico.dart';
 import 'package:guarda_roupa_app/services/peca_service.dart';
 import 'package:guarda_roupa_app/views/looks/looks_view.dart';
 import 'package:guarda_roupa_app/views/looks/montar_look_controller.dart';
@@ -37,33 +37,45 @@ class _PecaServiceComDuasPecas extends PecaService {
 // `listarLooks` também é sobrescrito nas duas classes abaixo porque
 // `LooksView` (E3.F1.3) busca a lista ao montar e de novo ao voltar da
 // montagem — sem isso, bateria numa API real dentro do teste.
-class _LookServiceVazio extends LookService {
+class _LookServiceVazio extends LookServiceSemHistorico {
   @override
   Future<List<Look>> listarLooks() async => [];
 }
 
-class _LookServiceComSucesso extends LookService {
+class _LookServiceComSucesso extends LookServiceSemHistorico {
+  final criados = <(String, List<String>)>[];
+
   @override
   Future<List<Look>> listarLooks() async => [];
 
   @override
-  Future<Look> criarLook({required String nome, required List<String> pecaIds}) async {
+  Future<Look> criarLook({
+    required String nome,
+    required List<String> pecaIds,
+    List<String> ocasioes = const [],
+  }) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
+    criados.add((nome, ocasioes));
     return Look(
       id: 'look-1',
       nome: nome,
       criadoEm: DateTime.now(),
       pecas: pecaIds.map((id) => _peca(id, 'Camisetas')).toList(),
+      ocasioes: ocasioes,
     );
   }
 }
 
-class _LookServiceComErro extends LookService {
+class _LookServiceComErro extends LookServiceSemHistorico {
   @override
   Future<List<Look>> listarLooks() async => [];
 
   @override
-  Future<Look> criarLook({required String nome, required List<String> pecaIds}) async {
+  Future<Look> criarLook({
+    required String nome,
+    required List<String> pecaIds,
+    List<String> ocasioes = const [],
+  }) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
     throw DioException(
       requestOptions: RequestOptions(path: '/looks'),
@@ -129,11 +141,12 @@ void main() {
   testWidgets('Nome e peça selecionada salvam o look e voltam para Looks', (
     WidgetTester tester,
   ) async {
+    final servico = _LookServiceComSucesso();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           pecaServiceProvider.overrideWithValue(_PecaServiceComDuasPecas()),
-          lookServiceProvider.overrideWithValue(_LookServiceComSucesso()),
+          lookServiceProvider.overrideWithValue(servico),
         ],
         child: const MaterialApp(home: LooksView()),
       ),
@@ -190,5 +203,79 @@ void main() {
     // já digitado preservado.
     expect(find.text('Looks'), findsNothing);
     expect(find.text('Look de sexta'), findsOneWidget);
+  });
+
+  testWidgets('Ocasiões escolhidas são enviadas (várias, em ordem canônica); sem escolha, vai vazio', (
+    WidgetTester tester,
+  ) async {
+    final servico = _LookServiceComSucesso();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          pecaServiceProvider.overrideWithValue(_PecaServiceComDuasPecas()),
+          lookServiceProvider.overrideWithValue(servico),
+        ],
+        child: const MaterialApp(home: LooksView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    /// [marcar] são tocadas na ordem dada; [desmarcar] depois (toque no chip já marcado).
+    Future<void> montarESalvar(
+      String nome, {
+      List<String> marcar = const [],
+      List<String> desmarcar = const [],
+    }) async {
+      await _abrirMontarLook(tester);
+      await tester.enterText(find.widgetWithText(TextFormField, 'Nome do look *'), nome);
+      await tester.tap(find.byType(ClothingCard).first);
+      await tester.pump();
+      for (final ocasiao in [...marcar, ...desmarcar]) {
+        await tester.tap(find.widgetWithText(FilterChip, ocasiao));
+        await tester.pump();
+      }
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Salvar look'));
+      await tester.pumpAndSettle();
+    }
+
+    // Faculdade antes de Trabalho: a ordem enviada é a de `ocasioesFixas`.
+    await montarESalvar('Com duas', marcar: ['Faculdade', 'Trabalho']);
+    await montarESalvar('Sem ocasião');
+    await montarESalvar('Desmarcada', marcar: ['Festa'], desmarcar: ['Festa']);
+    await montarESalvar('Desmarca uma', marcar: ['Casual', 'Festa'], desmarcar: ['Casual']);
+
+    // Texto, porque registros Dart comparam as listas por identidade.
+    expect(servico.criados.map((c) => '${c.$1}: ${c.$2}'), [
+      'Com duas: [Trabalho, Faculdade]',
+      'Sem ocasião: []',
+      'Desmarcada: []',
+      'Desmarca uma: [Festa]',
+    ]);
+  });
+
+  testWidgets('Falha no envio preserva a ocasião escolhida', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          pecaServiceProvider.overrideWithValue(_PecaServiceComDuasPecas()),
+          lookServiceProvider.overrideWithValue(_LookServiceComErro()),
+        ],
+        child: const MaterialApp(home: LooksView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _abrirMontarLook(tester);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Nome do look *'), 'Look de sexta');
+    await tester.tap(find.byType(ClothingCard).first);
+    await tester.tap(find.widgetWithText(FilterChip, 'Festa'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Salvar look'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<FilterChip>(find.widgetWithText(FilterChip, 'Festa')).selected,
+      isTrue,
+    );
   });
 }

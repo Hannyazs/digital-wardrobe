@@ -15,6 +15,14 @@ import 'package:guarda_roupa_app/services/peca_service.dart';
 import 'package:guarda_roupa_app/views/upload/peca_form_view.dart';
 import 'package:guarda_roupa_app/views/upload/upload_controller.dart' show pecaServiceProvider;
 
+/// O formulário (com os grupos de chips) é mais alto que a tela padrão de
+/// teste (800x600): sem isso o botão de salvar fica fora da área tocável.
+void _telaAlta(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 2400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 class _PecaServiceComSucesso extends PecaService {
   @override
   Future<Peca> criarPeca({
@@ -22,8 +30,11 @@ class _PecaServiceComSucesso extends PecaService {
     required String categoria,
     String? subcategoria,
     String? corPrincipal,
+    String? tonalidadeCor,
     String? estacao,
-    String? ocasiao,
+    String? estilo,
+    String? modelagem,
+    List<String> ocasioes = const [],
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
     return Peca(id: 'peca-1', imagemUrl: imagemUrl, categoria: categoria);
@@ -37,8 +48,11 @@ class _PecaServiceComErro extends PecaService {
     required String categoria,
     String? subcategoria,
     String? corPrincipal,
+    String? tonalidadeCor,
     String? estacao,
-    String? ocasiao,
+    String? estilo,
+    String? modelagem,
+    List<String> ocasioes = const [],
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
     throw DioException(
@@ -52,6 +66,7 @@ void main() {
   testWidgets('Confirmar sem categoria impede o envio e sinaliza o campo obrigatório', (
     WidgetTester tester,
   ) async {
+    _telaAlta(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceComSucesso())],
@@ -73,6 +88,7 @@ void main() {
   testWidgets('Confirmar com categoria válida salva a peça e volta para o armário', (
     WidgetTester tester,
   ) async {
+    _telaAlta(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceComSucesso())],
@@ -104,6 +120,7 @@ void main() {
   testWidgets('Falha no envio mostra mensagem de erro e mantém os dados preenchidos', (
     WidgetTester tester,
   ) async {
+    _telaAlta(tester);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceComErro())],

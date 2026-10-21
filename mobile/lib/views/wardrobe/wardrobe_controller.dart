@@ -74,7 +74,7 @@ List<Peca> filtrarPecas(List<Peca> pecas, FiltroArmario filtro) {
     if (filtro.estacao != null && peca.estacao != filtro.estacao) {
       return false;
     }
-    if (filtro.ocasiao != null && peca.ocasiao != filtro.ocasiao) {
+    if (filtro.ocasiao != null && !peca.ocasioes.contains(filtro.ocasiao)) {
       return false;
     }
     return true;
@@ -95,3 +95,15 @@ List<String> coresDisponiveis(List<Peca> pecas) =>
 
 List<String> estacoesDisponiveis(List<Peca> pecas) =>
     _valoresDistintos(pecas, (p) => p.estacao);
+
+/// Opções do filtro de ocasião: as predefinidas (sempre) mais as
+/// personalizadas ("Outros") que já existem em alguma peça do usuário.
+List<String> ocasioesDisponiveis(List<Peca> pecas) {
+  final extras = pecas
+      .expand((p) => p.ocasioes)
+      .where((o) => !ocasioesFixas.contains(o))
+      .toSet()
+      .toList()
+    ..sort();
+  return [...ocasioesFixas, ...extras];
+}

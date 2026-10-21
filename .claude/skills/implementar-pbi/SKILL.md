@@ -56,6 +56,14 @@ Em `docs/backlog.md`: atualize a entrada resumida dessa PBI (status + uma frase)
 
 Não marque uma PBI como "Concluída" sem qualificação se alguma parte dos critérios de aceite depende de verificação humana ainda não feita. Nesse caso o status é algo como "Concluída (validação manual pendente)" — nunca "Concluída" liso quando isso esconderia uma lacuna real. Essa distinção entre "implementado" e "verificado" já foi uma correção necessária neste projeto (PBI E1.F1.2) — não repita o erro.
 
+## Reinicie o app no Chrome (pedido do usuário)
+
+Ao final de toda PBI que mexeu no `mobile/`, reinicie o `flutter run` para o usuário já ver as mudanças:
+- Encerre só o processo do `flutter run -d chrome` em andamento (a árvore inteira, ex.: `taskkill /PID <pid> /T /F`). Ache-o pela linha de comando, não só pela porta 8080. **Não** encerre o `flutter daemon` do VS Code.
+- Suba de novo em segundo plano, dentro de `mobile/`, **mantendo o stdin aberto** (`tail -f /dev/null | flutter run -d chrome --web-port=8080 --dart-define=DEV_AUTH_TOKEN=<token>`): sem terminal, o `flutter run` pode encerrar sozinho com "Application finished". Se ainda assim encerrar, a causa costuma ser a janela do Chrome aberta por ele ter sido fechada. O token **não** é versionado: o comando completo está na memória local do usuário. Se o token tiver expirado ou faltar, peça um novo (`python scripts/gerar_token_teste.py --usuario-id <id>`), não invente um.
+- Confirme que compilou (log com a URL servida, sem erro de compilação) antes de dizer que o app está no ar.
+- Se a PBI mudou o backend (rota nova, migração), avise que o `uvicorn` da porta 8000 também precisa ser reiniciado. Não o reinicie por conta própria sem o usuário pedir.
+
 ## Ao final, resuma para o usuário
 
 Poucas linhas: mudanças de escopo, comandos executados com resultado, e o que fica pendente de validação humana. Não repita o arquivo inteiro da PBI na resposta do chat.

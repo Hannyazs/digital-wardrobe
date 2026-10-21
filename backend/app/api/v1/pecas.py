@@ -4,12 +4,12 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ImagemInvalidaError, ProcessamentoImagemError
 from app.core.security import get_current_user_id
-from app.db.models import Peca
+from app.db.models import Peca, looks_pecas
 from app.db.session import get_db
 from app.schemas.peca import (
     ImagemOriginalResponse,
@@ -103,13 +103,35 @@ async def atualizar_peca(
 @router.delete("/{peca_id}", status_code=204)
 async def excluir_peca(
     peca_id: uuid.UUID,
+    remover_dos_looks: bool = False,
     usuario_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Exclui uma peça (E1.F3.1) — física e definitiva, sem soft-delete."""
+    """Exclui uma peça (E1.F3.1) — física e definitiva, sem soft-delete.
+
+    Se a peça está em looks salvos, responde 409 com a quantidade de looks e
+    nada é apagado. Com `remover_dos_looks=true` (o app só envia depois do
+    usuário confirmar), a peça sai desses looks — que continuam existindo —
+    e então é excluída.
+    """
     peca = await db.get(Peca, peca_id)
     if peca is None or peca.usuario_id != usuario_id:
         raise HTTPException(status_code=404, detail="Peça não encontrada.")
 
+    total_looks = await db.scalar(
+        select(func.count()).select_from(looks_pecas).where(looks_pecas.c.peca_id == peca_id)
+    )
+    if total_looks and not remover_dos_looks:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "codigo": "peca_em_looks",
+                "looks": total_looks,
+                "mensagem": f"Esta peça está em {total_looks} look(s).",
+            },
+        )
+
+    if total_looks:
+        await db.execute(delete(looks_pecas).where(looks_pecas.c.peca_id == peca_id))
     await db.delete(peca)
     await db.commit()

@@ -9,7 +9,10 @@ class PecaBase(BaseModel):
     subcategoria: str | None = None
     cor_principal: str | None = None
     estacao: str | None = None
-    ocasiao: str | None = None
+    tonalidade_cor: str | None = None
+    estilo: str | None = None
+    modelagem: str | None = None
+    ocasioes: list[str] = []
 
 
 class PecaCreate(PecaBase):

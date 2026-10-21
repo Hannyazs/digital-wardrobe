@@ -25,6 +25,7 @@ dependencies:
 
   # Fontes do protótipo visual do catálogo (ver views/looks/catalogo_look_mock_view.dart)
   google_fonts: ^6.2.1
+  crop_your_image: ^2.0.1
 
 dev_dependencies:
   flutter_test:

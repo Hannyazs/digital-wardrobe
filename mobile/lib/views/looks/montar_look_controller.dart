@@ -8,6 +8,11 @@ import '../../services/look_service.dart';
 /// para começar vazio sempre que a tela de montagem é reaberta.
 final selecaoLookProvider = StateProvider.autoDispose<Set<String>>((ref) => {});
 
+/// Ocasiões escolhidas na montagem (E3.F3.2); vazia = sem ocasião. Fica fora de
+/// `MontagemLookController` para sobreviver a um `MontagemErro` (a tela
+/// continua aberta com tudo preservado).
+final ocasioesLookProvider = StateProvider.autoDispose<List<String>>((ref) => const []);
+
 final lookServiceProvider = Provider<LookService>((ref) => LookService());
 
 /// Estado do envio de `POST /looks`. Não reaproveita o `EnvioState`
@@ -42,12 +47,16 @@ class MontagemLookController extends Notifier<MontagemLookState> {
   @override
   MontagemLookState build() => const MontagemIdle();
 
-  Future<void> salvar({required String nome, required Set<String> pecaIds}) async {
+  Future<void> salvar({
+    required String nome,
+    required Set<String> pecaIds,
+    List<String> ocasioes = const [],
+  }) async {
     state = const MontagemEnviando();
     try {
       final look = await ref
           .read(lookServiceProvider)
-          .criarLook(nome: nome, pecaIds: pecaIds.toList());
+          .criarLook(nome: nome, pecaIds: pecaIds.toList(), ocasioes: ocasioes);
       state = MontagemSucesso(look);
     } on DioException catch (e) {
       state = MontagemErro(_mensagemDeErro(e));

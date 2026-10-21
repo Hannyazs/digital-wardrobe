@@ -8,6 +8,7 @@ import '../../core/state/envio_state.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import 'peca_form_view.dart';
+import 'recorte_view.dart';
 import 'upload_controller.dart';
 
 /// Cadastro de peça por foto — cobre a PBI E1.F1.1 (captura/seleção + preview)
@@ -21,10 +22,15 @@ class UploadView extends ConsumerWidget {
   Future<void> _pick(BuildContext context, WidgetRef ref, ImageSource source) async {
     try {
       final controller = ref.read(uploadPhotoProvider.notifier);
+      final anterior = ref.read(uploadPhotoProvider);
       if (source == ImageSource.camera) {
         await controller.pickFromCamera();
       } else {
         await controller.pickFromGallery();
+      }
+      // Foto nova escolhida (não cancelou o seletor): vai direto ao recorte.
+      if (context.mounted && ref.read(uploadPhotoProvider) != anterior) {
+        await _recortar(context, ref);
       }
     } catch (_) {
       if (!context.mounted) return;
@@ -34,6 +40,19 @@ class UploadView extends ConsumerWidget {
         ),
       );
     }
+  }
+
+  /// Abre o recorte sobre a foto original. Cancelar mantém a foto como está.
+  Future<void> _recortar(BuildContext context, WidgetRef ref) async {
+    final controller = ref.read(uploadPhotoProvider.notifier);
+    final original = controller.original;
+    if (original == null) return;
+    final bytes = await original.readAsBytes();
+    if (!context.mounted) return;
+    final recortada = await Navigator.of(context).push<Uint8List>(
+      MaterialPageRoute<Uint8List>(builder: (_) => RecorteView(imagem: bytes)),
+    );
+    if (recortada != null) controller.usarRecorte(recortada);
   }
 
   void _showSourcePicker(BuildContext context, WidgetRef ref) {
@@ -96,6 +115,7 @@ class UploadView extends ConsumerWidget {
       EnvioIdle() => _PreviewDeFoto(
           foto: foto,
           onTrocarFoto: onTrocarFoto,
+          onRecortar: () => _recortar(context, ref),
           onConfirmar: () => ref.read(uploadSubmissionProvider.notifier).enviar(),
         ),
       Enviando() => _Processando(foto: foto),
@@ -174,11 +194,13 @@ class _PreviewDeFoto extends StatelessWidget {
   const _PreviewDeFoto({
     required this.foto,
     required this.onTrocarFoto,
+    required this.onRecortar,
     required this.onConfirmar,
   });
 
   final XFile foto;
   final VoidCallback onTrocarFoto;
+  final VoidCallback onRecortar;
   final VoidCallback onConfirmar;
 
   @override
@@ -186,7 +208,14 @@ class _PreviewDeFoto extends StatelessWidget {
     return Column(
       children: [
         Expanded(child: _FotoPreviewImage(foto: foto)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        AppButton(
+          label: 'Recortar',
+          icon: Icons.crop,
+          variant: AppButtonVariant.text,
+          onPressed: onRecortar,
+        ),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
