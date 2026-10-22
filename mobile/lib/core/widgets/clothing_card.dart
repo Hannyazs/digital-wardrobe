@@ -18,6 +18,7 @@ class ClothingCard extends StatelessWidget {
     this.tamanho = 110,
     this.selecionavel = false,
     this.selecionada = false,
+    this.incompleta = false,
     this.onTap,
   });
 
@@ -29,6 +30,10 @@ class ClothingCard extends StatelessWidget {
   /// dentro de um look salvo, sem interação).
   final bool selecionavel;
   final bool selecionada;
+
+  /// Selo de "cadastro incompleto" (E5.F4.1). Só o armário liga; a montagem
+  /// de look e as miniaturas de look não mostram.
+  final bool incompleta;
   final VoidCallback? onTap;
 
   @override
@@ -70,6 +75,20 @@ class ClothingCard extends StatelessWidget {
               radius: 11,
               backgroundColor: AppColors.sage,
               child: Icon(Icons.check, size: 14, color: Colors.white),
+            ),
+          ),
+        if (incompleta)
+          Positioned(
+            left: 6,
+            bottom: 6,
+            child: Tooltip(
+              key: const ValueKey('selo-cadastro-incompleto'),
+              message: 'Cadastro incompleto',
+              child: CircleAvatar(
+                radius: 10,
+                backgroundColor: Colors.orange.shade700,
+                child: const Icon(Icons.priority_high, size: 14, color: Colors.white),
+              ),
             ),
           ),
       ],

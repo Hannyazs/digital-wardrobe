@@ -27,10 +27,13 @@ class LookCreate(BaseModel):
 class LookUpdate(BaseModel):
     # Atualização parcial: o router aplica só o que veio no corpo
     # (`exclude_unset`), então campos novos entram aqui.
+    nome: str | None = None
     favorito: bool | None = None
     ocasioes: list[str] | None = None
+    # E3.F5.2: troca as peças do look (pelo menos uma; o router confere se são do usuário).
+    peca_ids: list[uuid.UUID] | None = Field(default=None, min_length=1)
 
-    @field_validator("favorito", "ocasioes", mode="before")
+    @field_validator("nome", "favorito", "ocasioes", "peca_ids", mode="before")
     @classmethod
     def _nao_nulo(cls, valor):
         # Colunas NOT NULL: `null` explícito é rejeitado (422) em vez de virar
@@ -43,6 +46,15 @@ class LookUpdate(BaseModel):
     @classmethod
     def _normaliza_ocasioes(cls, valores: list[str]) -> list[str]:
         return _normalizar_ocasioes(valores)
+
+    @field_validator("nome")
+    @classmethod
+    def _nome_preenchido(cls, valor: str) -> str:
+        # E5.F3.1: nomes podem repetir, mas não ficar vazios.
+        valor = valor.strip()
+        if not valor:
+            raise ValueError("O nome do look não pode ficar vazio.")
+        return valor
 
 
 class LookRead(BaseModel):

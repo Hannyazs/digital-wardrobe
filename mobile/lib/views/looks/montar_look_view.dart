@@ -7,24 +7,21 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/category_section.dart';
 import '../../core/widgets/clothing_card.dart';
-import '../../core/widgets/filter_button.dart';
 import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
 import '../upload/upload_view.dart';
 import '../wardrobe/wardrobe_controller.dart';
+import '../wardrobe/widgets/filtros_de_pecas.dart';
 import 'looks_controller.dart';
-import 'looks_view.dart';
 import 'montar_look_controller.dart';
 
 /// Tela de montagem manual de um look (E3.F1.2): seleciona peças do
 /// armário, nomeia e confirma. Ao salvar, invalida `lookListProvider`
-/// (E3.F1.3) pra "Looks" já mostrar o look novo ao voltar.
+/// (E3.F1.3) pra aba "Looks" do Armário já mostrar o look novo.
 ///
-/// Visual alinhado ao Figma "VIRTUALASSIST" (redesign visual, Etapa 2):
-/// `ScreenHeader` + carrosséis por categoria com `ClothingCard` +
-/// `FilterButton`. O botão de filtros aqui é só visual — esta tela não tem
-/// filtro de peças implementado (diferente do armário, que tem desde a
-/// E2.F2.1); tocar nele avisa isso em vez de fingir que funciona.
+/// Um carrossel por categoria, direto na tela (sem gavetas), na mesma ordem
+/// do armário. Filtros de cor/estação/ocasião no painel do botão de filtros;
+/// peças selecionadas continuam selecionadas mesmo que um filtro as esconda.
 class MontarLookView extends ConsumerStatefulWidget {
   const MontarLookView({super.key});
 
@@ -58,6 +55,15 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
         );
   }
 
+  /// Depois de salvar: nome, peças, ocasiões e filtros voltam ao início.
+  void _limparMontagem() {
+    _nomeController.clear();
+    ref.read(selecaoLookProvider.notifier).state = {};
+    ref.read(ocasioesLookProvider.notifier).state = const [];
+    ref.read(filtroMontagemProvider.notifier).state = const FiltroPecas();
+    ref.read(montagemLookProvider.notifier).reset();
+  }
+
   @override
   Widget build(BuildContext context) {
     final pecasAsync = ref.watch(pecaListProvider);
@@ -68,12 +74,19 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
         !enviando && _nomeController.text.trim().isNotEmpty && selecao.isNotEmpty;
 
     ref.listen<MontagemLookState>(montagemLookProvider, (previous, next) {
+      // A aba "Looks" fica montada por baixo quando a montagem é aberta por
+      // cima (atalho da Casa): só a tela visível reage, senão a mensagem
+      // aparece duas vezes.
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       if (next is MontagemSucesso) {
         ref.invalidate(lookListProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Look "${next.look.nome}" salvo.')),
         );
-        Navigator.of(context).pop();
+        _limparMontagem();
+        // Aberta por cima de outra tela: volta. Como aba, não há para onde
+        // voltar — a tela fica limpa para o próximo look.
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
       } else if (next is MontagemErro) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.mensagem)));
       }
@@ -117,33 +130,26 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
     );
   }
 
-  /// Ação exibida no canto do `ScreenHeader`: "Meus looks" sempre, e um
-  /// botão de voltar quando esta tela foi empurrada por cima de outra (ex:
-  /// a partir da Home) — sem isso, remover a `AppBar` perderia a navegação
-  /// de volta nesse caso.
-  Widget _acaoHeader(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (Navigator.of(context).canPop())
-          IconButton(
-            tooltip: 'Voltar',
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        IconButton(
-          tooltip: 'Meus looks',
-          icon: const Icon(Icons.collections_bookmark_outlined),
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const LooksView()),
-          ),
-        ),
-      ],
+  /// Botão de voltar no canto do `ScreenHeader` quando esta tela foi
+  /// empurrada por cima de outra (ex: a partir da Casa) — sem `AppBar`, não
+  /// haveria como voltar. Os looks salvos ficam no Armário, não aqui.
+  Widget? _acaoHeader(BuildContext context) {
+    if (!Navigator.of(context).canPop()) return null;
+    return IconButton(
+      tooltip: 'Voltar',
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => Navigator.of(context).pop(),
     );
   }
 
   Widget _buildConteudo(List<Peca> pecas, Set<String> selecao, bool enviando) {
-    final grupos = agruparPorCategoria(pecas);
+    final filtro = ref.watch(filtroMontagemProvider);
+    final grupos = agruparPorCategoria(filtrarPecas(pecas, filtro));
+    final textoSelecao = switch (selecao.length) {
+      0 => 'Toque nas peças para escolher',
+      1 => '1 peça selecionada',
+      final n => '$n peças selecionadas',
+    };
 
     return Form(
       key: _formKey,
@@ -152,67 +158,67 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _nomeController,
-                    enabled: !enviando,
-                    decoration: const InputDecoration(labelText: 'Nome do look *'),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty ? 'Dê um nome ao look' : null,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: FilterButton(
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Filtros ainda não disponíveis aqui.')),
-                    ),
-                  ),
-                ),
-              ],
+            child: TextFormField(
+              controller: _nomeController,
+              enabled: !enviando,
+              decoration: const InputDecoration(labelText: 'Nome do look *'),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? 'Dê um nome ao look' : null,
             ),
           ),
           const SizedBox(height: 8),
+          // Ocasião do look que está sendo criado (gravada nele) — não é filtro.
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 0),
+            child: Text('Ocasião do look (opcional)'),
+          ),
           _SeletorOcasiao(
             selecionadas: ref.watch(ocasioesLookProvider),
             habilitado: !enviando,
             onChanged: (valores) => ref.read(ocasioesLookProvider.notifier).state = valores,
           ),
+          BarraDeFiltros(
+            texto: textoSelecao,
+            quantidadeFiltros: filtro.quantidade,
+            onFiltros: () => abrirFiltrosDePecas(context, filtroMontagemProvider, pecas),
+          ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 16),
-              children: [
-                for (final entry in grupos.entries)
-                  CategorySection(
-                    titulo: entry.key,
-                    itemCount: entry.value.length,
-                    itemBuilder: (context, index) {
-                      final peca = entry.value[index];
-                      return ClothingCard(
-                        imagemUrl: peca.imagemUrl,
-                        selecionavel: true,
-                        selecionada: selecao.contains(peca.id),
-                        onTap: enviando
-                            ? null
-                            : () {
-                                final notifier = ref.read(selecaoLookProvider.notifier);
-                                final novaSelecao = {...notifier.state};
-                                if (novaSelecao.contains(peca.id)) {
-                                  novaSelecao.remove(peca.id);
-                                } else {
-                                  novaSelecao.add(peca.id);
-                                }
-                                notifier.state = novaSelecao;
-                              },
-                      );
-                    },
+            child: grupos.isEmpty
+                ? SemResultadoFiltro(
+                    onLimpar: () =>
+                        ref.read(filtroMontagemProvider.notifier).state = const FiltroPecas(),
+                  )
+                : ListView(
+                    key: const Key('montagem-lista-categorias'),
+                    padding: const EdgeInsets.only(top: 4, bottom: 16),
+                    children: [
+                      for (final entry in grupos.entries)
+                        CategorySection(
+                          titulo: entry.key,
+                          itemCount: entry.value.length,
+                          itemBuilder: (context, index) {
+                            final peca = entry.value[index];
+                            return ClothingCard(
+                              imagemUrl: peca.imagemUrl,
+                              selecionavel: true,
+                              selecionada: selecao.contains(peca.id),
+                              onTap: enviando
+                                  ? null
+                                  : () {
+                                      final notifier = ref.read(selecaoLookProvider.notifier);
+                                      final novaSelecao = {...notifier.state};
+                                      if (novaSelecao.contains(peca.id)) {
+                                        novaSelecao.remove(peca.id);
+                                      } else {
+                                        novaSelecao.add(peca.id);
+                                      }
+                                      notifier.state = novaSelecao;
+                                    },
+                            );
+                          },
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
         ],
       ),

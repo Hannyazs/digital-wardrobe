@@ -19,6 +19,31 @@ const categoriasFixas = [
   'Acessórios',
 ];
 
+/// "Gaveta" do armário: agrupa categorias afins na tela principal. Mesmos
+/// grupos que o motor de sugestões usa (backend `services/sugestoes/tipos.py`:
+/// partes de cima, partes de baixo, vestidos, casacos, sapatos), mais
+/// acessórios. Agrupamento só visual: a categoria gravada na peça não muda.
+class Gaveta {
+  const Gaveta(this.nome, this.categorias);
+
+  final String nome;
+  final List<String> categorias;
+}
+
+/// Na ordem de [categoriasFixas]: a montagem de look, que lista por categoria,
+/// fica na mesma sequência do armário.
+const gavetasDoArmario = [
+  Gaveta('Partes de cima', ['Camisetas', 'Camisas']),
+  Gaveta('Partes de baixo', ['Calças', 'Saias']),
+  Gaveta('Vestidos', ['Vestidos']),
+  Gaveta('Casacos', ['Casacos']),
+  Gaveta('Sapatos', ['Sapatos']),
+  Gaveta('Acessórios', ['Acessórios']),
+];
+
+/// Peças com categoria fora de [categoriasFixas] (o banco aceita texto livre).
+const gavetaOutras = Gaveta('Outras', []);
+
 /// "Outros" não é uma ocasião: é o gatilho do campo de texto. O valor
 /// digitado é o que vai para o banco (junto das ocasiões marcadas).
 const ocasiaoOutros = 'Outros';
@@ -45,9 +70,15 @@ const estilosFixos = ['Casual', 'Formal', 'Esportivo', 'Elegante', 'Streetwear',
 const sobreposicoesFixas = ['Jaqueta', 'Cardigan', 'Camisa aberta', 'Blazer', 'Colete'];
 
 /// Rótulos do nível de criatividade das sugestões (E4.F5.1), do 1 ao 5; o
-/// padrão do backend é 3. Provisórios: quando o Épico 6 definir o efeito de
-/// cada nível, ajustar o texto aqui (sem migração — o banco guarda o número).
-const niveisDeCriatividade = ['Bem seguro', 'Seguro', 'Equilibrado', 'Ousado', 'Bem ousado'];
+/// padrão do backend é 3. Cada nível é a ousadia máxima das cores do look
+/// (docs/regras-sugestoes.md, seção 1; definidos na E5.F2.1).
+const niveisDeCriatividade = [
+  'Neutros + uma cor',
+  'Tom sobre tom',
+  'Cores vizinhas',
+  'Cores contrastantes',
+  'Cores opostas',
+];
 
 const tonalidadesFixas = ['Escura', 'Clara', 'Vibrante', 'Pastel', 'Neutra'];
 

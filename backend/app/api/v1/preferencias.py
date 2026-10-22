@@ -70,7 +70,7 @@ async def atualizar_preferencias(
 
 
 # --- E4.F4.1: peças e combinações evitadas -----------------------------------
-# Restrição para o Épico 6 ("nunca me sugira"). Só peças do próprio usuário:
+# Restrição para as sugestões, Épicos 5 e 6 ("nunca me sugira"). Só peças do próprio usuário:
 # peça inexistente ou de outro usuário é 404, sem distinguir os dois casos
 # (mesma regra de `criar_look`/`atualizar_peca`).
 

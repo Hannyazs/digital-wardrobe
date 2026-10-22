@@ -287,8 +287,9 @@ void main() {
 
     await tester.tap(find.text('Armário'));
     await tester.pumpAndSettle();
+    // Armário agrupa em gavetas: a camiseta fica em "Partes de cima".
     expect(find.text('Vestidos (1)'), findsOneWidget);
-    expect(find.text('Camisetas (1)'), findsOneWidget);
+    expect(find.text('Partes de cima (1)'), findsOneWidget);
     expect(service.pecas, hasLength(2));
   });
 }

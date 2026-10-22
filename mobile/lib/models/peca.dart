@@ -1,3 +1,18 @@
+import '../core/constants/peca_opcoes.dart' show coresFixas;
+
+/// Campos que deixam a peça com cadastro incompleto (E5.F4.1), na ordem
+/// "cor", "ocasião", "estilo". Mesma regra do motor de sugestões
+/// (`backend/.../montagem.py::campos_incompletos`, regras-sugestoes.md seção 4):
+/// cor vazia ou fora da lista fixa conta como "sem cor"; estação não conta.
+List<String> camposIncompletos(Peca peca) {
+  final cor = peca.corPrincipal?.trim() ?? '';
+  return [
+    if (!coresFixas.any((c) => c.nome == cor)) 'cor',
+    if (peca.ocasioes.every((o) => o.trim().isEmpty)) 'ocasião',
+    if ((peca.estilo?.trim() ?? '').isEmpty) 'estilo',
+  ];
+}
+
 /// Espelha app/schemas/peca.py::PecaRead no backend.
 class Peca {
   final String id;

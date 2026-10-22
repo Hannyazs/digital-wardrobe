@@ -536,12 +536,12 @@ String _rotuloCriatividade(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const Key('rotulo-criatividade'))).data!;
 
 void criatividadeTests() {
-  testWidgets('Sem preferência salva, o controle aparece no nível 3 "Equilibrado"', (tester) async {
+  testWidgets('Sem preferência salva, o controle aparece no nível 3 "Cores vizinhas"', (tester) async {
     await _abrirTela(tester, _PreferenciaServiceFake());
 
     expect(find.text('Criatividade das combinações'), findsOneWidget);
     expect(_slider(tester).value, 3);
-    expect(_rotuloCriatividade(tester), 'Equilibrado');
+    expect(_rotuloCriatividade(tester), 'Cores vizinhas');
   });
 
   testWidgets('Nível salvo aparece ao abrir', (tester) async {
@@ -551,7 +551,7 @@ void criatividadeTests() {
     );
 
     expect(_slider(tester).value, 5);
-    expect(_rotuloCriatividade(tester), 'Bem ousado');
+    expect(_rotuloCriatividade(tester), 'Cores opostas');
   });
 
   testWidgets('Durante o arrasto o rótulo acompanha sem chamar o servidor; soltar salva uma vez', (
@@ -565,7 +565,7 @@ void criatividadeTests() {
     await tester.pump();
     _slider(tester).onChanged!(1);
     await tester.pump();
-    expect(_rotuloCriatividade(tester), 'Bem seguro');
+    expect(_rotuloCriatividade(tester), 'Neutros + uma cor');
     expect(service.patches, isEmpty);
 
     // Soltar: uma única gravação, com o nível final.
@@ -587,7 +587,7 @@ void criatividadeTests() {
     expect(service.patches, [
       {'criatividade': 5},
     ]);
-    expect(_rotuloCriatividade(tester), 'Bem ousado');
+    expect(_rotuloCriatividade(tester), 'Cores opostas');
   });
 
   testWidgets('Soltar no mesmo nível em que estava não grava nada', (tester) async {
@@ -614,7 +614,7 @@ void criatividadeTests() {
 
     await _abrirTela(tester, service);
     expect(_slider(tester).value, 4);
-    expect(_rotuloCriatividade(tester), 'Ousado');
+    expect(_rotuloCriatividade(tester), 'Cores contrastantes');
   });
 
   testWidgets('Falha no PATCH devolve o controle ao nível anterior e avisa', (tester) async {
@@ -631,7 +631,7 @@ void criatividadeTests() {
       findsOneWidget,
     );
     expect(_slider(tester).value, 3);
-    expect(_rotuloCriatividade(tester), 'Equilibrado');
+    expect(_rotuloCriatividade(tester), 'Cores vizinhas');
     expect(service.estado.criatividade, 3);
   });
 }

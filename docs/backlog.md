@@ -376,9 +376,42 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Estimativa**: P.
 **Dependências**: E3.F4.3.
 
+## Épico 3, Feature 5 — Edição e exclusão de looks salvos
+
+Feature completa = o usuário consegue tirar um look de Armário › Looks e trocar as peças de um look salvo, sem perder o histórico de uso. Pedida pelo usuário depois da reorganização da interface (2026-10-22). Excluir = **arquivar** (decisão do usuário): o look some da lista, mas os usos continuam no calendário e na rotação de peças.
+
+### E3.F5.1 — Excluir (arquivar) look salvo (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md](PBIs/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md).
+
+**Descrição**: migração `0011` (`looks.arquivado`), `DELETE /looks/{id}` arquiva; looks arquivados somem de `GET /looks` e das ações, mas os usos continuam no histórico. Item "Excluir" com confirmação no menu do card.
+
+**Critérios de aceite:**
+- `DELETE` → 204 e o look some da lista; outro usuário ou já arquivado → 404.
+- Usos de look arquivado continuam no calendário; `PATCH`/usos nele → 404.
+- No app, confirmação antes de excluir; cancelar não chama a API.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — migração `0011` aplicada; `DELETE /looks/{id}` arquiva (usos continuam no calendário e na rotação); item "Excluir" com confirmação. Verificado com a API real e dois usuários de teste (14/14); `pytest` 87; `flutter test` 219/219, com 5 testes novos.
+**Estimativa**: M.
+**Dependências**: E3.F1.3, E3.F4.1.
+
+### E3.F5.2 — Trocar as peças de um look salvo (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md](PBIs/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md).
+
+**Descrição**: `PATCH /looks/{id}` aceita `peca_ids`; "Editar peças" no menu do card abre uma tela com carrosséis e as peças do look marcadas.
+
+**Critérios de aceite:**
+- `PATCH` com `peca_ids` troca as peças; lista vazia, `null` ou peça de outro usuário → 422; look de outro usuário → 404.
+- No app, salvar atualiza o card; voltar sem salvar não chama a API.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — `PATCH /looks/{id}` aceita `peca_ids` (validados como no `POST`); tela "Editar peças" com carrosséis, filtros e as peças do look marcadas. Verificado com a API real e dois usuários de teste (9/9); `pytest` 91; `flutter test` 225/225, com 6 testes novos.
+**Estimativa**: M.
+**Dependências**: E3.F5.1, E5.F3.1.
+
 ## Épico 4, Feature 1 — Combinações de cores favoritas
 
-Feature completa = usuário abre a tela de preferências (hoje só um `TODO` sem caminho até ela) e cadastra pares de cores que gosta de ver juntos. Esta feature também entrega a **base de todo o Épico 4**: a tabela `preferencias` (uma linha por usuário, já prevista em [arquitetura.md](arquitetura.md)) com todos os campos simples (cores, sobreposições, estilos, criatividade), para as features seguintes serem só telas. **Não inclui** peças/combinações evitadas (Feature 4, tabelas próprias) nem o uso das preferências nas sugestões (Épico 6).
+Feature completa = usuário abre a tela de preferências (hoje só um `TODO` sem caminho até ela) e cadastra pares de cores que gosta de ver juntos. Esta feature também entrega a **base de todo o Épico 4**: a tabela `preferencias` (uma linha por usuário, já prevista em [arquitetura.md](arquitetura.md)) com todos os campos simples (cores, sobreposições, estilos, criatividade), para as features seguintes serem só telas. **Não inclui** peças/combinações evitadas (Feature 4, tabelas próprias) nem o uso das preferências nas sugestões (Épicos 5 e 6).
 
 ### E4.F1.1 — Modelo de preferências e endpoints `GET`/`PATCH` (backend)
 
@@ -415,7 +448,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épico 4, Feature 2 — Preferência por sobreposições
 
-Feature completa = usuário marca os tipos de sobreposição que gosta (jaqueta, cardigan, camisa aberta etc.). Nenhuma marcação significa "sem preferência". **Não inclui** efeito nas sugestões (Épico 6).
+Feature completa = usuário marca os tipos de sobreposição que gosta (jaqueta, cardigan, camisa aberta etc.). Nenhuma marcação significa "sem preferência". **Não inclui** efeito nas sugestões (Épicos 5 e 6).
 
 ### E4.F2.1 — Sobreposições preferidas na tela de preferências (mobile)
 
@@ -437,7 +470,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épico 4, Feature 3 — Estilos preferidos
 
-Feature completa = usuário escolhe os estilos que prefere (casual, streetwear, elegante, minimalista, esportivo etc.), usando a mesma lista do formulário de peça. **Não inclui** cruzamento com o `estilo` das peças (Épico 6).
+Feature completa = usuário escolhe os estilos que prefere (casual, streetwear, elegante, minimalista, esportivo etc.), usando a mesma lista do formulário de peça. **Não inclui** cruzamento com o `estilo` das peças (Épicos 5 e 6).
 
 ### E4.F3.1 — Estilos preferidos na tela de preferências (mobile)
 
@@ -458,7 +491,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épico 4, Feature 4 — Peças ou combinações que o usuário evita
 
-Feature completa = usuário marca peças que não quer ver sugeridas e pares de peças que não quer ver juntas. Diferente dos outros campos do épico, o Épico 6 deve tratar isto como **restrição**, não como peso ("nunca me sugira algo que eu não usaria"). Usa tabelas próprias com chave estrangeira para `pecas` (`ON DELETE CASCADE`, porque `excluir_peca` apaga fisicamente). **Não inclui** efeito em looks montados manualmente nem a aplicação da restrição nas sugestões.
+Feature completa = usuário marca peças que não quer ver sugeridas e pares de peças que não quer ver juntas. Diferente dos outros campos do épico, as sugestões (Épicos 5 e 6) devem tratar isto como **restrição**, não como peso ("nunca me sugira algo que eu não usaria"). Usa tabelas próprias com chave estrangeira para `pecas` (`ON DELETE CASCADE`, porque `excluir_peca` apaga fisicamente). **Não inclui** efeito em looks montados manualmente nem a aplicação da restrição nas sugestões.
 
 ### E4.F4.1 — Peças e combinações evitadas (backend)
 
@@ -512,7 +545,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épico 4, Feature 5 — Nível de criatividade desejado
 
-Feature completa = usuário define, de 1 a 5, o quanto aceita sair do óbvio nas combinações sugeridas. O campo já existe na API (E4.F1.1); aqui é só o controle. **Não inclui** o efeito real nas sugestões (Épico 6).
+Feature completa = usuário define, de 1 a 5, o quanto aceita sair do óbvio nas combinações sugeridas. O campo já existe na API (E4.F1.1); aqui é só o controle. **Não inclui** o efeito real nas sugestões (Épicos 5 e 6).
 
 ### E4.F5.1 — Nível de criatividade na tela de preferências (mobile)
 
@@ -528,6 +561,150 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Status**: **concluída (validação manual end-to-end pendente)** — seção "Criatividade das combinações" com `Slider` de 5 níveis (rótulos em `niveisDeCriatividade`), valor local durante o arrasto e gravação só ao soltar; em falha volta ao nível anterior. `dart analyze` limpo; `flutter test` 159/159, com 7 testes novos — um deles pegou um bug real de reversão, corrigido. Fluxo no Chrome com backend real ainda não conferido. Com ela, todas as PBIs do Épico 4 estão implementadas.
 **Estimativa**: P.
 **Dependências**: E4.F1.1, E4.F1.2.
+
+---
+
+## Épicos 5 e 6 — Sugestões de looks
+
+Escopo essencial aprovado em 2026-10-21. Regras do motor em [regras-sugestoes.md](regras-sugestoes.md) (fonte única). **Ordem de execução:** E5.F1.1 → E5.F1.2 → E6.F1.1 → E5.F2.1 → E6.F1.2 → E5.F2.2 / E5.F3.1 / E5.F4.1 — as PBIs independentes ficam por último para não atrasar o Épico 6. **Melhorias futuras (não autorizadas nesta etapa):** clima real (Open-Meteo, após confirmar condições de uso), acessórios, regra da tonalidade Clara, descarte permanente, otimizações de busca, GPS.
+
+## Épico 5, Feature 1 — Motor de combinação por regras
+
+Feature completa = backend gera, ordena e pagina looks válidos com as peças do usuário, respeitando filtros, restrições, cores e preferências, e expõe isso em `POST /sugestoes`. Sem IA.
+
+### E5.F1.1 — Motor de combinação: regras (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F1-motor-de-combinacao/E5.F1.1-regras-do-motor.md](PBIs/E5-F1-motor-de-combinacao/E5.F1.1-regras-do-motor.md).
+
+**Descrição**: funções puras em `services/sugestoes/` para cores/ousadia, estrutura do look, filtros, restrições, coringas e peça-base; primeira suíte `pytest`.
+
+**Critérios de aceite:**
+- Ousadia e ajustes de tonalidade conforme a tabela de `regras-sugestoes.md`; exemplos revisados viram testes.
+- Nenhum candidato com peça ou par evitado (exceto a peça-base), acima da ousadia máxima (exceto pares favoritos) ou com mais de 3 cores.
+- Estrutura, coringa (máx. 1) e conflito da peça-base conforme as regras.
+
+**Status**: **concluída** — pacote `app/services/sugestoes/` (cores, montagem) e primeira suíte `pytest` do projeto: 52 testes passando, incluindo os exemplos de cores revisados com a usuária.
+**Estimativa**: M.
+**Dependências**: nenhuma.
+
+### E5.F1.2 — Ordenação, páginas e `POST /sugestoes` (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F1-motor-de-combinacao/E5.F1.2-ordenacao-paginas-e-endpoint.md](PBIs/E5-F1-motor-de-combinacao/E5.F1.2-ordenacao-paginas-e-endpoint.md).
+
+**Descrição**: ordenação determinística (critérios 1–6), páginas de 3 com cada peça em no máximo 2 looks, descartes da sessão, explicações e avisos; endpoint escopado pelo usuário.
+
+**Critérios de aceite:**
+- Mesma entrada, mesma resposta; páginas de até 3 looks com a regra de diversidade.
+- 401 sem token, 404 para peça-base de outro usuário, 422 para página/descartes inválidos; lista vazia com motivo quando não há looks.
+- Armário de ~100 peças responde em até 2 s.
+
+**Status**: **concluída e validada** — ordenação, páginas, explicações/avisos e `POST /api/v1/sugestoes`. `pytest` 71/71 (100 peças em 0,62 s) e 19/19 verificações com API + Postgres reais, dois usuários.
+**Estimativa**: M.
+**Dependências**: E5.F1.1.
+
+### E5.F1.3 — Não sugerir looks já salvos (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F1-motor-de-combinacao/E5.F1.3-nao-sugerir-looks-salvos.md](PBIs/E5-F1-motor-de-combinacao/E5.F1.3-nao-sugerir-looks-salvos.md).
+
+**Descrição**: `POST /sugestoes` deixa de devolver looks com o mesmo conjunto de peças de um look salvo; na aba Sugestões, salvar tira o card da lista e completa a página. O Look do dia não muda (decisão do usuário).
+
+**Critérios de aceite:**
+- Look salvo A+B nunca volta na aba Sugestões; A+B+casaco ainda pode aparecer.
+- Salvar tira o card e ele não volta em "Ver outras" nem em nova busca; Look do dia inalterado.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — looks salvos entram como descartes em `POST /sugestoes`; salvar recarrega a página. Verificado com a API real (o look salvo do caso relatado não volta); `pytest` 87; `flutter test` 214/214.
+**Estimativa**: P.
+**Dependências**: E5.F1.2, E5.F2.1.
+
+## Épico 5, Feature 2 — Sugestões sob demanda no app
+
+### E5.F2.1 — Tela de sugestões (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F2-sugestoes-no-app/E5.F2.1-tela-de-sugestoes.md](PBIs/E5-F2-sugestoes-no-app/E5.F2.1-tela-de-sugestoes.md).
+
+**Descrição**: aba "IA" renomeada para "Sugestões"; filtros, 3 looks com explicação e avisos, "Ver outras", descartar (sessão) e salvar como "Look sugerido – dd/mm"; rótulos de criatividade atualizados.
+
+**Critérios de aceite:**
+- Sugerir, ver outras, descartar e salvar funcionam; look salvo aparece em "Meus looks".
+- Erro mostra "Tentar novamente"; lista vazia mostra o motivo.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — aba "Sugestões" com filtros, 3 looks por vez, "Ver outras", descartar (sessão) e salvar; rótulos de criatividade novos. `dart analyze` limpo; `flutter test` 168/168, com 9 testes novos.
+**Estimativa**: M.
+**Dependências**: E5.F1.2.
+
+### E5.F2.2 — Sugestões a partir de uma peça (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F2-sugestoes-no-app/E5.F2.2-sugestoes-a-partir-de-uma-peca.md](PBIs/E5-F2-sugestoes-no-app/E5.F2.2-sugestoes-a-partir-de-uma-peca.md).
+
+**Descrição**: "Montar looks com esta peça" no detalhe da peça; aviso de peça evitada; conflito com filtro mostrado com "Remover filtro".
+
+**Critérios de aceite:**
+- Todos os looks contêm a peça; peça evitada mostra aviso; conflito oferece remover o filtro.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — botão no detalhe da peça (oculto para acessórios) abre a tela de sugestões empilhada com a peça fixa e estado próprio; conflitos com "Remover filtro"; aviso de peça evitada. `dart analyze` limpo; `flutter test` 173/173, com 5 testes novos.
+**Estimativa**: P.
+**Dependências**: E5.F2.1.
+
+## Épico 5, Feature 3 — Renomear looks salvos
+
+### E5.F3.1 — Renomear look (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F3-renomear-look/E5.F3.1-renomear-look.md](PBIs/E5-F3-renomear-look/E5.F3.1-renomear-look.md).
+
+**Descrição**: `PATCH /looks/{id}` aceita `nome`; item "Renomear" no menu do card.
+
+**Critérios de aceite:**
+- Renomear persiste; nome vazio ou `null` → 422; look de outro usuário → 404.
+
+**Status**: **concluída (validação manual do diálogo no Chrome pendente)** — `LookUpdate.nome` (vazio/só espaços/`null` → 422) e item "Renomear" no menu do card em Armário › Looks. Endpoint verificado com a API real e dois usuários (200/422/404); `pytest` 84 passed; `dart analyze` limpo; `flutter test` 194/194, com 5 testes novos.
+**Estimativa**: P.
+**Dependências**: nenhuma.
+
+## Épico 5, Feature 4 — Aviso de peça com cadastro incompleto
+
+### E5.F4.1 — Aviso de cadastro incompleto no armário (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md](PBIs/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md).
+
+**Descrição**: selo na miniatura e faixa no detalhe da peça sem cor, ocasião ou estilo, com atalho para editar.
+
+**Critérios de aceite:**
+- Peça incompleta mostra selo e faixa; peça só sem estação não; corrigir faz o aviso sumir.
+
+**Status**: **concluída (validação visual no Chrome pendente)** — selo nas miniaturas do armário (tela principal e gavetas) e faixa "Cadastro incompleto: sem …" com "Editar" no detalhe; cor fora da lista fixa conta como sem cor, igual ao motor. `dart analyze` limpo; `flutter test` 203/203, com 9 testes novos.
+**Estimativa**: P.
+**Dependências**: nenhuma.
+
+## Épico 6, Feature 1 — Look do dia com rotatividade de peças
+
+Feature completa = a tela inicial mostra um look do dia sem o usuário pedir, para a ocasião lembrada (padrão Casual), priorizando peças pouco usadas ou esquecidas. Reaproveita o motor do Épico 5. **Não inclui** clima (adiado).
+
+### E6.F1.1 — Look do dia e rotatividade (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-F1-look-do-dia/E6.F1.1-look-do-dia-e-rotatividade.md](PBIs/E6-F1-look-do-dia/E6.F1.1-look-do-dia-e-rotatividade.md).
+
+**Descrição**: critério 5 em modo rotatividade (esquecidas, uso mais antigo, menor total); `POST /sugestoes/look-do-dia`; coluna `ocasiao_look_do_dia` em `preferencias` (migração `0010`).
+
+**Critérios de aceite:**
+- Peça esquecida vem antes; mesmo dia e ocasião = mesmo look; sem ocasião salva usa Casual.
+- Migração reversível; `GET /preferencias` devolve o campo.
+
+**Status**: **concluída e validada** — modo rotatividade no critério 5, `POST /api/v1/sugestoes/look-do-dia` e migração `0010`. `pytest` 78/78 e 18/18 verificações com API + Postgres reais, dois usuários.
+**Estimativa**: M.
+**Dependências**: E5.F1.2.
+
+### E6.F1.2 — Card "Look do dia" na tela inicial (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md](PBIs/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md).
+
+**Descrição**: card na aba Casa com seletor de ocasião lembrado e ações "Salvar", "Usei hoje" (reaproveita `POST /looks` e `POST /looks/{id}/usos`) e "Outra sugestão".
+
+**Critérios de aceite:**
+- Look aparece ao abrir; ocasião lembrada entre sessões; "Usei hoje" registra no histórico sem duplicar o look.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — card no topo da Casa com seletor de ocasião (gravada nas preferências), "Outra sugestão", "Salvar" e "Usei hoje" (salva uma vez só e registra o uso; o calendário logo abaixo marca o dia). Contrato conferido com o backend real; `dart analyze` limpo; `flutter test` 214/214, com 11 testes novos.
+**Estimativa**: M.
+**Dependências**: E6.F1.1, E5.F2.1.
 
 ---
 
@@ -556,6 +733,8 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E3.F4.2 | Registrar uso de um look (mobile) | Concluída (validação manual end-to-end pendente) |
 | E3.F4.3 | Tela de histórico de looks utilizados (mobile) | Concluída (validação manual end-to-end pendente) |
 | E3.F4.4 | Aviso de repetição recente nos looks (mobile) | Concluída (validação manual end-to-end pendente) |
+| E3.F5.1 | Excluir (arquivar) look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E3.F5.2 | Trocar as peças de um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
 | E4.F1.1 | Modelo de preferências e endpoints `GET`/`PATCH` (backend) | Concluída e validada (execução real contra Postgres local) |
 | E4.F1.2 | Tela de preferências e combinações de cores favoritas (mobile) | Concluída (validação manual end-to-end pendente) |
 | E4.F2.1 | Sobreposições preferidas na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
@@ -564,5 +743,14 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E4.F4.2 | Marcar peça como evitada no app (mobile) | Concluída (validação manual end-to-end pendente) |
 | E4.F4.3 | Combinações de peças evitadas no app (mobile) | Concluída (validação manual end-to-end pendente) |
 | E4.F5.1 | Nível de criatividade na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
+| E5.F1.1 | Motor de combinação: regras (backend) | Concluída (`pytest`, 52 testes) |
+| E5.F1.2 | Ordenação, páginas e `POST /sugestoes` (backend) | Concluída e validada (`pytest` + execução real contra Postgres local) |
+| E5.F1.3 | Não sugerir looks já salvos (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E5.F2.1 | Tela de sugestões (mobile) | Concluída (validação manual no Chrome pendente) |
+| E5.F2.2 | Sugestões a partir de uma peça (mobile) | Concluída (validação manual no Chrome pendente) |
+| E5.F3.1 | Renomear look (backend + mobile) | Concluída (validação manual do diálogo no Chrome pendente) |
+| E5.F4.1 | Aviso de cadastro incompleto no armário (mobile) | Concluída (validação visual no Chrome pendente) |
+| E6.F1.1 | Look do dia e rotatividade (backend) | Concluída e validada (`pytest` + execução real contra Postgres local) |
+| E6.F1.2 | Card "Look do dia" na tela inicial (mobile) | Concluída (validação manual no Chrome pendente) |
 
 E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão).

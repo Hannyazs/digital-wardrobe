@@ -7,12 +7,13 @@ import 'looks_controller.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
 import 'widgets/pecas_do_look.dart';
 
-/// Histórico de looks utilizados como calendário (E3.F4.3): grade do mês com
+/// Calendário de looks usados (E3.F4.3), exibido na Casa: grade do mês com
 /// marcação nos dias que têm uso; tocar num dia mostra os looks daquele dia,
 /// com opção de desfazer um registro. Busca só o mês visível
-/// (`GET /looks/historico?de=&ate=`).
-class HistoricoView extends ConsumerWidget {
-  const HistoricoView({super.key});
+/// (`GET /looks/historico?de=&ate=`). Não rola sozinho: entra na lista da
+/// tela que o contém (quem atualiza com "puxar" é a Casa).
+class CalendarioDeLooks extends ConsumerWidget {
+  const CalendarioDeLooks({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,43 +21,33 @@ class HistoricoView extends ConsumerWidget {
     final usosAsync = ref.watch(historicoMesProvider(mes));
     final selecionado = ref.watch(diaSelecionadoProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Histórico de looks')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(historicoMesProvider(mes));
-          await ref.read(historicoMesProvider(mes).future);
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          children: [
-            _CabecalhoDoMes(mes: mes),
-            const SizedBox(height: 8),
-            _GradeDoMes(
-              mes: mes,
-              // Durante carregamento/erro a grade aparece sem marcações.
-              usosPorDia: usosPorDia(usosAsync.valueOrNull ?? const []),
-              selecionado: selecionado,
-            ),
-            const Divider(height: 32),
-            usosAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, _) => _Erro(
-                mensagem: _mensagemDeErro(error),
-                onTentarNovamente: () => ref.invalidate(historicoMesProvider(mes)),
-              ),
-              data: (usos) => _UsosDoDia(
-                dia: selecionado,
-                usos: selecionado == null ? const [] : usosPorDia(usos)[selecionado] ?? const [],
-              ),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _CabecalhoDoMes(mes: mes),
+        const SizedBox(height: 8),
+        _GradeDoMes(
+          mes: mes,
+          // Durante carregamento/erro a grade aparece sem marcações.
+          usosPorDia: usosPorDia(usosAsync.valueOrNull ?? const []),
+          selecionado: selecionado,
         ),
-      ),
+        const Divider(height: 32),
+        usosAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => _Erro(
+            mensagem: _mensagemDeErro(error),
+            onTentarNovamente: () => ref.invalidate(historicoMesProvider(mes)),
+          ),
+          data: (usos) => _UsosDoDia(
+            dia: selecionado,
+            usos: selecionado == null ? const [] : usosPorDia(usos)[selecionado] ?? const [],
+          ),
+        ),
+      ],
     );
   }
 
@@ -281,7 +272,8 @@ class _UsosDoDia extends StatelessWidget {
             Text('Nenhum look usado — $rotulo', textAlign: TextAlign.center),
             const SizedBox(height: 8),
             const Text(
-              'No menu de um look, toque em "Usei hoje" ou "Usei em outra data…" para registrar',
+              'Em Armário › Looks, abra o menu de um look e toque em "Usei hoje" '
+              'ou "Usei em outra data…" para registrar',
               textAlign: TextAlign.center,
             ),
           ],

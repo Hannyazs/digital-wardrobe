@@ -52,6 +52,7 @@ Base de todo o resto do produto: sem peças cadastradas, nenhuma outra feature t
 - Salvar looks favoritos.
 - Organizar looks por ocasião (trabalho, faculdade, festa, academia, viagem).
 - Histórico de looks utilizados.
+- Editar e excluir looks salvos (trocar peças; excluir arquiva o look sem apagar o histórico de uso).
 
 **Histórias de usuário:**
 
@@ -65,7 +66,7 @@ A partir daqui, cada épico depende da base (Épicos 1–3) já estar implementa
 
 ### Épico 4 — Configuração de preferências de estilo
 
-Não usa IA — é um formulário de configurações. Entra neste bloco, e não na base, porque só tem utilidade real a partir do momento em que existe alguma sugestão automática (Épicos 5–7) para consumi-la; não há razão prática para construir essa tela antes disso.
+Não usa IA — é um formulário de configurações. Entra neste bloco, e não na base, porque só tem utilidade real a partir do momento em que existe alguma sugestão automática (Épicos 5–8) para consumi-la; não há razão prática para construir essa tela antes disso.
 
 **Features:**
 - Cadastro de combinações de cores favoritas.
@@ -79,7 +80,38 @@ Não usa IA — é um formulário de configurações. Entra neste bloco, e não 
 - Como Marina, quero informar meus estilos preferidos, para que as sugestões futuras combinem com meu gosto pessoal.
 - Como Marina, quero indicar peças ou combinações que evito, para que o app nunca me sugira algo que eu não usaria.
 
-### Épico 5 — Cadastro assistido por IA
+### Épico 5 — Sugestões de looks sob demanda (sem IA)
+
+Depende dos Épicos 1–4: peças para combinar, looks para salvar e preferências/restrições para respeitar. As combinações saem de um **motor de regras** determinístico (estrutura, cores, preferências, restrições) — nenhum modelo de IA é chamado. As regras estão em [regras-sugestoes.md](regras-sugestoes.md).
+
+**Features:**
+- Motor de combinação por regras, reaproveitado pelo Épico 6.
+- Sugestões sob demanda no app: filtros (estilo, estação, ocasião, cor), três looks por vez com "ver outras", explicação de por que as peças combinam, descarte durante a sessão e salvar como look (`POST /looks`); sugestões a partir de uma peça específica; looks já salvos não voltam como sugestão.
+- Renomear looks salvos (looks sugeridos nascem como "Look sugerido – dd/mm").
+- Aviso de peça com cadastro incompleto (sem cor, ocasião ou estilo).
+
+**Histórias de usuário:**
+
+- Como Marina, quero pedir sugestões de looks montadas com as minhas roupas, para não perder tempo decidindo sozinha o que vestir.
+- Como Marina, quero entender por que as peças de uma sugestão combinam, para confiar na sugestão.
+- Como Marina, quero que a sugestão nunca inclua algo que eu não tenho ou que eu disse evitar, para que eu consiga realmente usá-la.
+- Como Marina, quero saber quando uma peça está com o cadastro incompleto, para corrigi-la e receber sugestões melhores.
+
+### Épico 6 — Sugestões automáticas de looks
+
+Reaproveita o motor do Épico 5 sem duplicar a lógica de combinação; acrescenta só contexto (ocasião do dia) e rotatividade (histórico de uso).
+
+**Features:**
+- Look do dia oferecido automaticamente na tela inicial, com ocasião padrão Casual e a última ocasião escolhida lembrada.
+- Variação conforme o histórico de uso, priorizando peças pouco usadas ou esquecidas.
+- *Adiado:* clima real via serviço externo de previsão do tempo — depende de confirmar as condições de uso do provedor.
+
+**Histórias de usuário:**
+
+- Como Marina, quero receber um look pronto ao abrir o app, para começar o dia sem precisar pedir.
+- Como Marina, quero que as sugestões variem ao longo do tempo, para redescobrir peças que tenho e uso pouco, em vez de sempre ver as mesmas combinações.
+
+### Épico 7 — Cadastro assistido por IA
 
 Enriquece o Épico 1 depois de pronto: a sugestão automática de metadados que inicialmente não existia passa a estar disponível, sempre revisável antes de salvar.
 
@@ -92,24 +124,9 @@ Enriquece o Épico 1 depois de pronto: a sugestão automática de metadados que 
 - Como Marina, quero que o app sugira a categoria e a cor da peça automaticamente, para não precisar preencher tudo manualmente.
   - *Critério de aceite*: após o processamento da imagem, os campos de categoria/cor/estação/ocasião vêm pré-preenchidos, mas editáveis; se a IA falhar, os campos aparecem vazios em vez de travar o cadastro.
 
-### Épico 6 — Sugestões automáticas de looks
+### Épico 8 — Inspiração por imagem
 
-Depende do Épico 4 (preferências) já existir para gerar sugestões personalizadas, e dos Épicos 1–2 (peças, categorias) para ter o que sugerir.
-
-**Features:**
-- Sugestão automática de looks usando somente peças cadastradas.
-- Sugestão considera ocasião, clima e preferências de estilo.
-- Variação das sugestões para incentivar o uso de peças menos usadas.
-
-**Histórias de usuário:**
-
-- Como Marina, quero receber uma sugestão de look pronta para uma ocasião que eu escolher, para não perder tempo decidindo sozinha o que vestir.
-- Como Marina, quero que as sugestões variem ao longo do tempo, para redescobrir peças que tenho e uso pouco, em vez de sempre ver as mesmas combinações.
-- Como Marina, quero que a sugestão nunca inclua algo que eu não tenho, para que eu consiga realmente usar o que foi sugerido sem precisar comprar nada.
-
-### Épico 7 — Inspiração por imagem
-
-O de maior risco técnico (depende de embeddings e busca vetorial) e o último da fila — o primeiro a ser simplificado ou adiado se o prazo apertar.
+O de maior risco técnico (depende de embeddings e busca vetorial) e o último da fila — o primeiro a ser simplificado ou adiado se o prazo apertar. Reaproveita o motor de combinação do Épico 5 quando aplicável.
 
 **Features:**
 - Upload de uma imagem de referência externa (Pinterest, Instagram, TikTok, etc.).
@@ -128,6 +145,7 @@ O de maior risco técnico (depende de embeddings e busca vetorial) e o último d
 | --- | --- | --- |
 | 1 | Épico 1 + Épico 2 | Sem armário navegável, nenhuma outra tela tem o que mostrar. Cadastro 100% manual — sem dependência de Gemini. |
 | 2 | Épico 3 | Fecha a base: com looks manuais prontos, o produto já é minimamente utilizável sem nenhuma IA. |
-| 3 | Épico 4 + Épico 5 | Entrada da personalização e da primeira assistência de IA (sugestão de metadados). |
-| 4 | Épico 6 | Primeira entrega de valor de "IA" de fato — motor de regras, não modelo generativo (ver Documento de Arquitetura). |
-| 5 | Épico 7 | Só se o cronograma permitir; é aceitável entregar o MVP sem essa feature e tratá-la como fast-follow. |
+| 3 | Épico 4 | Entrada da personalização (preferências e restrições). |
+| 4 | Épico 5 + Épico 6 | Sugestões por motor de regras, não modelo generativo (ver Documento de Arquitetura): primeiro sob demanda, depois o look do dia. |
+| 5 | Épico 7 | Primeira assistência de IA generativa (sugestão de metadados com Gemini). |
+| 6 | Épico 8 | Só se o cronograma permitir; é aceitável entregar o MVP sem essa feature e tratá-la como fast-follow. |

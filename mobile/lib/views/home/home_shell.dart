@@ -8,8 +8,8 @@ import '../wardrobe/wardrobe_view.dart';
 import 'home_view.dart';
 
 /// Casca de navegação principal do app (redesign visual, Etapa 4) — 5 abas:
-/// Casa, Armário, Looks (montagem — "Meus looks" salvos fica um botão
-/// dentro dela, ver `MontarLookView`), IA (placeholder) e Referências
+/// Casa (atalhos + calendário de looks), Armário (peças e looks salvos),
+/// Looks (montagem de um look novo), Sugestões (antiga "IA", E5.F2.1) e Referências
 /// (placeholder). Cada aba mantém seu próprio `Scaffold`; esta casca só
 /// adiciona a barra inferior e preserva o estado de cada aba via
 /// `IndexedStack`.
@@ -55,7 +55,7 @@ class _HomeShellState extends State<HomeShell> {
             ),
             label: 'Looks',
           ),
-          const BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'IA'),
+          const BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'Sugestões'),
           const BottomNavigationBarItem(icon: Icon(Icons.image_outlined), label: 'Referências'),
         ],
       ),

@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/peca_opcoes.dart';
+import '../../core/widgets/painel_de_filtros.dart';
 import '../../models/look.dart';
+import '../wardrobe/widgets/filtros_de_pecas.dart' show BarraDeFiltros;
+import 'editar_pecas_look_view.dart';
 import 'looks_controller.dart';
-import 'historico_view.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
 import 'widgets/pecas_do_look.dart';
 import 'montar_look_view.dart';
 
-/// Listagem dos looks salvos (E3.F1.3). Tocar num look não faz nada ainda
-/// — detalhe/edição é uma PBI futura, sem endpoint próprio hoje.
+/// Looks salvos (E3.F1.3), exibidos na aba "Looks" do Armário — looks prontos
+/// ficam junto das peças, separados da montagem. Sem `AppBar` própria: o
+/// cabeçalho é o do Armário. O calendário de uso (E3.F4.3) fica na Casa.
+/// Tocar num look não faz nada ainda — detalhe/edição é uma PBI futura.
 class LooksView extends ConsumerWidget {
   const LooksView({super.key});
 
@@ -23,18 +27,6 @@ class LooksView extends ConsumerWidget {
     final ultimosUsos = ultimoUsoPorLook(ref.watch(historicoProvider).valueOrNull ?? const []);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Looks'),
-        actions: [
-          IconButton(
-            tooltip: 'Histórico de looks usados',
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const HistoricoView()),
-            ),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(lookListProvider);
@@ -51,9 +43,14 @@ class LooksView extends ConsumerWidget {
             if (looks.isEmpty) return const _SemLooks();
             final filtro = ref.watch(filtroLooksProvider);
             final filtrados = filtrarLooks(looks, filtro);
+            final total = looks.length == 1 ? '1 look' : '${looks.length} looks';
             return Column(
               children: [
-                _PainelFiltros(filtro: filtro),
+                BarraDeFiltros(
+                  texto: filtrados.length == looks.length ? total : '${filtrados.length} de $total',
+                  quantidadeFiltros: filtro.ocasioes.length + (filtro.somenteFavoritos ? 1 : 0),
+                  onFiltros: () => _abrirFiltros(context, looks),
+                ),
                 Expanded(
                   child: filtrados.isEmpty
                       ? _SemResultadoFiltro(
@@ -81,6 +78,42 @@ class LooksView extends ConsumerWidget {
         icon: const Icon(Icons.checkroom),
         label: const Text('Montar look'),
       ),
+    );
+  }
+
+  /// Favoritos (E3.F2.2) e ocasiões (E3.F3.3), combinados por E; entre as
+  /// ocasiões vale OU. Só aparecem ocasiões que algum look tem.
+  void _abrirFiltros(BuildContext context, List<Look> looks) {
+    abrirPainelDeFiltros(
+      context,
+      secoes: (ref) {
+        final filtro = ref.watch(filtroLooksProvider);
+        return [
+          SecaoDeFiltro(
+            titulo: 'Mostrar',
+            opcoes: const ['Favoritos'],
+            selecionada: (_) => filtro.somenteFavoritos,
+            // Lê o filtro atual (não o capturado no build): dois toques
+            // seguidos não podem partir de um estado já superado.
+            alternar: (_) => ref.read(filtroLooksProvider.notifier).update(
+                  (f) => f.copyWith(somenteFavoritos: !f.somenteFavoritos),
+                ),
+          ),
+          SecaoDeFiltro(
+            titulo: 'Ocasião',
+            opcoes: ocasioesDosLooks(looks, filtro.ocasioes),
+            selecionada: filtro.ocasioes.contains,
+            alternar: (o) =>
+                ref.read(filtroLooksProvider.notifier).update((f) => f.alternarOcasiao(o)),
+          ),
+        ];
+      },
+      ativo: (ref) => ref.watch(filtroLooksProvider).ativo,
+      limpar: (ref) => ref.read(filtroLooksProvider.notifier).state = const FiltroLooks(),
+      rotuloResultado: (ref) {
+        final total = filtrarLooks(looks, ref.watch(filtroLooksProvider)).length;
+        return total == 1 ? 'Ver 1 look' : 'Ver $total looks';
+      },
     );
   }
 
@@ -119,45 +152,6 @@ class _ListaDeLooks extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: looks.length,
       itemBuilder: (context, index) => _LookCard(look: looks[index], ultimoUso: ultimosUsos[looks[index].id]),
-    );
-  }
-}
-
-class _PainelFiltros extends ConsumerWidget {
-  const _PainelFiltros({required this.filtro});
-
-  final FiltroLooks filtro;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            FilterChip(
-              label: const Text('Favoritos'),
-              selected: filtro.somenteFavoritos,
-              // Lê o filtro atual (não o capturado no build): dois toques
-              // seguidos não podem partir de um estado já superado.
-              onSelected: (selecionado) => ref.read(filtroLooksProvider.notifier).state =
-                  ref.read(filtroLooksProvider).copyWith(somenteFavoritos: selecionado),
-            ),
-            for (final ocasiao in ocasioesFixas)
-              FilterChip(
-                label: Text(ocasiao),
-                selected: filtro.ocasioes.contains(ocasiao),
-                // Seleção múltipla: tocar de novo desmarca.
-                onSelected: (_) => ref.read(filtroLooksProvider.notifier).state =
-                    ref.read(filtroLooksProvider).alternarOcasiao(ocasiao),
-              ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -227,6 +221,72 @@ class _LookCard extends ConsumerWidget {
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text(_mensagemFavorito(error))));
     }
+  }
+
+  /// Renomear (E5.F3.1): diálogo com o nome atual. Cancelar não chama a API;
+  /// em falha, o nome anterior continua (a lista só muda quando recarrega).
+  Future<void> _renomear(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final novoNome = await showDialog<String>(
+      context: context,
+      builder: (_) => _RenomearDialog(nomeAtual: look.nome),
+    );
+    if (novoNome == null || novoNome == look.nome) return;
+    try {
+      await ref.read(lookServiceProvider).atualizarLook(look.id, {'nome': novoNome});
+      ref.invalidate(lookListProvider);
+      // O calendário da Casa mostra o nome do look nos dias de uso.
+      ref.invalidate(historicoProvider);
+      ref.invalidate(historicoMesProvider);
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(_mensagemFavorito(error))));
+    }
+  }
+
+  /// Excluir (E3.F5.1): o backend arquiva o look — os dias de uso continuam
+  /// no calendário. Cancelar não chama a API.
+  Future<void> _excluir(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir look?'),
+        content: Text(
+          '"${look.nome}" sai de Armário › Looks. '
+          'Os dias em que você o usou continuam no calendário.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true) return;
+    try {
+      await ref.read(lookServiceProvider).excluirLook(look.id);
+      ref.invalidate(lookListProvider);
+      messenger.showSnackBar(SnackBar(content: Text('Look "${look.nome}" excluído.')));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(_mensagemExclusao(error))));
+    }
+  }
+
+  String _mensagemExclusao(Object error) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      if (status == 401) return 'Sessão expirada ou inválida. Não foi possível excluir o look.';
+      if (status == 404) return 'Look não encontrado. Atualize a lista e tente novamente.';
+      if (error.type == DioExceptionType.connectionError) {
+        return 'Sem conexão com o servidor. Não foi possível excluir o look.';
+      }
+    }
+    return 'Não foi possível excluir o look. Tente novamente.';
   }
 
   Future<void> _alterarOcasiao(BuildContext context, WidgetRef ref) async {
@@ -348,12 +408,25 @@ class _LookCard extends ConsumerWidget {
                         _registrarUsoEmOutraData(context, ref);
                       case 'ocasiao':
                         _alterarOcasiao(context, ref);
+                      case 'renomear':
+                        _renomear(context, ref);
+                      case 'editar-pecas':
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => EditarPecasLookView(look: look),
+                          ),
+                        );
+                      case 'excluir':
+                        _excluir(context, ref);
                     }
                   },
                   itemBuilder: (_) => const [
                     PopupMenuItem(value: 'hoje', child: Text('Usei hoje')),
                     PopupMenuItem(value: 'outra', child: Text('Usei em outra data…')),
                     PopupMenuItem(value: 'ocasiao', child: Text('Alterar ocasião')),
+                    PopupMenuItem(value: 'renomear', child: Text('Renomear')),
+                    PopupMenuItem(value: 'editar-pecas', child: Text('Editar peças')),
+                    PopupMenuItem(value: 'excluir', child: Text('Excluir')),
                   ],
                 ),
               ],
@@ -406,6 +479,55 @@ class _RotuloDeUso extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Diálogo de renomear: devolve o nome sem espaços nas pontas, ou `null` se
+/// cancelado. "Salvar" fica desabilitado com o campo vazio (o backend também
+/// recusa nome vazio com 422).
+class _RenomearDialog extends StatefulWidget {
+  const _RenomearDialog({required this.nomeAtual});
+
+  final String nomeAtual;
+
+  @override
+  State<_RenomearDialog> createState() => _RenomearDialogState();
+}
+
+class _RenomearDialogState extends State<_RenomearDialog> {
+  late final _controller = TextEditingController(text: widget.nomeAtual);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _salvar() {
+    final nome = _controller.text.trim();
+    if (nome.isNotEmpty) Navigator.of(context).pop(nome);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Renomear look'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: 'Nome do look'),
+        textInputAction: TextInputAction.done,
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => _salvar(),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        TextButton(
+          onPressed: _controller.text.trim().isEmpty ? null : _salvar,
+          child: const Text('Salvar'),
+        ),
+      ],
     );
   }
 }

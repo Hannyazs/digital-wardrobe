@@ -20,8 +20,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:guarda_roupa_app/main.dart';
 import 'package:guarda_roupa_app/models/peca.dart';
 import 'package:guarda_roupa_app/services/peca_service.dart';
+import 'package:guarda_roupa_app/views/looks/montar_look_controller.dart' show lookServiceProvider;
 import 'package:guarda_roupa_app/views/upload/upload_controller.dart';
 import 'package:guarda_roupa_app/views/upload/upload_view.dart';
+import 'package:guarda_roupa_app/views/suggestions/suggestions_controller.dart' show sugestaoServiceProvider;
+
+import 'support/look_service_sem_historico.dart';
+import 'support/sugestao_service_sem_look_do_dia.dart';
 
 /// Substitui o [UploadPhotoController] real: começa direto com uma foto
 /// "selecionada" (via `XFile.fromData`, sem tocar nenhum canal de
@@ -109,7 +114,12 @@ void main() {
   testWidgets('App abre na Home; aba Armário mostra o guarda-roupa', (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio())],
+        overrides: [
+          pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio()),
+          // A Casa mostra o calendário de looks, que busca o histórico.
+          lookServiceProvider.overrideWithValue(LookServiceSemHistorico()),
+          sugestaoServiceProvider.overrideWithValue(SugestaoServiceSemLookDoDia()),
+        ],
         child: const GuardaRoupaApp(),
       ),
     );
@@ -130,7 +140,12 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio())],
+        overrides: [
+          pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio()),
+          // A Casa mostra o calendário de looks, que busca o histórico.
+          lookServiceProvider.overrideWithValue(LookServiceSemHistorico()),
+          sugestaoServiceProvider.overrideWithValue(SugestaoServiceSemLookDoDia()),
+        ],
         child: const GuardaRoupaApp(),
       ),
     );

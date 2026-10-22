@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_button.dart';
 import '../../models/peca.dart';
 import '../../services/peca_service.dart';
 import '../looks/looks_controller.dart';
 import '../preferences/preferences_controller.dart'
     show evitadasProvider, mensagemDeErroEvitadas, preferenciaServiceProvider;
+import '../suggestions/suggestions_view.dart';
 import '../upload/peca_form_view.dart';
 import '../upload/upload_controller.dart' show pecaServiceProvider;
 import 'wardrobe_controller.dart';
@@ -53,6 +55,13 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
     } finally {
       if (mounted) setState(() => _alternandoEvitada = false);
     }
+  }
+
+  /// Abre as sugestões com esta peça fixa (E5.F2.2), empilhadas — não troca a aba.
+  void _montarLooks() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => SuggestionsView(pecaBase: widget.peca)),
+    );
   }
 
   void _editar() {
@@ -167,6 +176,7 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
     final evitada =
         ref.watch(evitadasProvider).valueOrNull?.contemPeca(peca.id) ?? false;
     final ocupado = _excluindo || _alternandoEvitada;
+    final faltando = camposIncompletos(peca);
 
     return Scaffold(
       appBar: AppBar(
@@ -198,6 +208,10 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (faltando.isNotEmpty) ...[
+            _AvisoIncompleta(faltando: faltando, onEditar: ocupado ? null : _editar),
+            const SizedBox(height: 16),
+          ],
           Container(
             height: 240,
             decoration: BoxDecoration(
@@ -226,6 +240,15 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
           _CampoDetalhe(label: 'Estilo', valor: peca.estilo),
           _CampoDetalhe(label: 'Modelagem', valor: peca.modelagem),
           _CampoDetalhe(label: 'Ocasiões', valor: peca.ocasioes.join(', ')),
+          // Acessórios não entram nos looks sugeridos (regras-sugestoes.md).
+          if (peca.categoria != 'Acessórios') ...[
+            const SizedBox(height: 24),
+            AppButton(
+              label: 'Montar looks com esta peça',
+              icon: Icons.auto_awesome,
+              onPressed: ocupado ? null : _montarLooks,
+            ),
+          ],
         ],
       ),
     );
@@ -249,6 +272,52 @@ class _CampoDetalhe extends StatelessWidget {
             flex: 2,
             child: Text(valor == null || valor!.isEmpty ? '—' : valor!),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Faixa "Cadastro incompleto: sem cor, estilo" (E5.F4.1), com atalho para a
+/// edição já existente. Peças assim entram nas sugestões só como coringa.
+class _AvisoIncompleta extends StatelessWidget {
+  const _AvisoIncompleta({required this.faltando, required this.onEditar});
+
+  final List<String> faltando;
+  final VoidCallback? onEditar;
+
+  @override
+  Widget build(BuildContext context) {
+    final cor = Colors.orange.shade900;
+    return Container(
+      key: const ValueKey('faixa-cadastro-incompleto'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.priority_high, color: cor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cadastro incompleto: sem ${faltando.join(', ')}',
+                  style: TextStyle(color: cor, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Complete para a peça aparecer melhor nas sugestões.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          TextButton(onPressed: onEditar, child: const Text('Editar')),
         ],
       ),
     );

@@ -25,12 +25,17 @@ class Preferencia {
     this.sobreposicoes = const [],
     this.combinacoesCores = const [],
     this.criatividade = 3,
+    this.ocasiaoLookDoDia,
   });
 
   final List<String> estilos;
   final List<String> sobreposicoes;
   final List<CombinacaoCores> combinacoesCores;
   final int criatividade;
+
+  /// Ocasião escolhida no card "Look do dia" (E6.F1.2); `null` = nunca
+  /// escolhida (o backend usa "Casual").
+  final String? ocasiaoLookDoDia;
 
   /// Tolera chaves ausentes (usa os padrões do backend: listas vazias, nível 3).
   factory Preferencia.fromJson(Map<String, dynamic> json) {
@@ -41,6 +46,7 @@ class Preferencia {
           .map((par) => CombinacaoCores.fromJson(par as Map<String, dynamic>))
           .toList(),
       criatividade: json['criatividade'] as int? ?? 3,
+      ocasiaoLookDoDia: json['ocasiao_look_do_dia'] as String?,
     );
   }
 
@@ -52,12 +58,14 @@ class Preferencia {
     List<String>? sobreposicoes,
     List<CombinacaoCores>? combinacoesCores,
     int? criatividade,
+    String? ocasiaoLookDoDia,
   }) {
     return Preferencia(
       estilos: estilos ?? this.estilos,
       sobreposicoes: sobreposicoes ?? this.sobreposicoes,
       combinacoesCores: combinacoesCores ?? this.combinacoesCores,
       criatividade: criatividade ?? this.criatividade,
+      ocasiaoLookDoDia: ocasiaoLookDoDia ?? this.ocasiaoLookDoDia,
     );
   }
 }

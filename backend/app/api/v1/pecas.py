@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ImagemInvalidaError, ProcessamentoImagemError
 from app.core.security import get_current_user_id
-from app.db.models import Peca, looks_pecas
+from app.db.models import Look, Peca, looks_pecas
 from app.db.session import get_db
 from app.schemas.peca import (
     ImagemOriginalResponse,
@@ -118,8 +118,13 @@ async def excluir_peca(
     if peca is None or peca.usuario_id != usuario_id:
         raise HTTPException(status_code=404, detail="Peça não encontrada.")
 
+    # Só looks ativos contam (E3.F5.1): vínculos com looks arquivados saem
+    # junto com a peça, sem perguntar.
     total_looks = await db.scalar(
-        select(func.count()).select_from(looks_pecas).where(looks_pecas.c.peca_id == peca_id)
+        select(func.count())
+        .select_from(looks_pecas)
+        .join(Look, Look.id == looks_pecas.c.look_id)
+        .where(looks_pecas.c.peca_id == peca_id, Look.arquivado.is_(False))
     )
     if total_looks and not remover_dos_looks:
         raise HTTPException(
@@ -131,7 +136,6 @@ async def excluir_peca(
             },
         )
 
-    if total_looks:
-        await db.execute(delete(looks_pecas).where(looks_pecas.c.peca_id == peca_id))
+    await db.execute(delete(looks_pecas).where(looks_pecas.c.peca_id == peca_id))
     await db.delete(peca)
     await db.commit()

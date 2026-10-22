@@ -41,6 +41,12 @@ class LookService {
     return Look.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// `DELETE /looks/{id}` (E3.F5.1): arquiva o look. Ele some da lista, mas os
+  /// usos continuam no histórico (calendário).
+  Future<void> excluirLook(String id) async {
+    await _dio.delete('/looks/$id');
+  }
+
   /// `POST /looks/{id}/usos` (E3.F4.1): registra um uso do look na [data]
   /// (só o dia; sem horário). A resposta (uso com o look embutido) só será
   /// consumida pelo histórico (E3.F4.3), por isso retorna `void` por ora.

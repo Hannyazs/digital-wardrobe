@@ -14,17 +14,16 @@ from app.schemas.look import LookCreate, LookRead, LookUpdate, UsoLookCreate, Us
 router = APIRouter(prefix="/looks", tags=["looks"])
 
 
-@router.post("", response_model=LookRead, status_code=201)
-async def criar_look(
-    dados: LookCreate,
-    usuario_id: uuid.UUID = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
-):
-    peca_ids_unicos = set(dados.peca_ids)
+async def _pecas_do_usuario(
+    db: AsyncSession, peca_ids: list[uuid.UUID], usuario_id: uuid.UUID
+) -> list[Peca]:
+    """Peças informadas, todas do usuário — senão 422. Usado ao criar o look e
+    ao trocar as peças dele (E3.F5.2)."""
+    peca_ids_unicos = set(peca_ids)
     resultado = await db.execute(
         select(Peca).where(Peca.id.in_(peca_ids_unicos), Peca.usuario_id == usuario_id)
     )
-    pecas = resultado.scalars().all()
+    pecas = list(resultado.scalars().all())
     if len(pecas) != len(peca_ids_unicos):
         # Não distingue "peça não existe" de "peça é de outro usuário" —
         # mesma lógica de não revelar dados de outro usuário já usada em
@@ -32,6 +31,32 @@ async def criar_look(
         raise HTTPException(
             status_code=422, detail="Uma ou mais peças informadas não foram encontradas."
         )
+    return pecas
+
+
+async def _look_ativo(db: AsyncSession, look_id: uuid.UUID, usuario_id: uuid.UUID) -> Look:
+    """Look do usuário e não arquivado (E3.F5.1), senão 404 — o mesmo 404 para
+    inexistente, de outro usuário ou arquivado, sem revelar qual é o caso."""
+    resultado = await db.execute(
+        select(Look)
+        # Peças carregadas já aqui: trocá-las (E3.F5.2) num lazy-load dentro do
+        # SQLAlchemy async daria MissingGreenlet.
+        .options(selectinload(Look.pecas))
+        .where(Look.id == look_id, Look.usuario_id == usuario_id, Look.arquivado.is_(False))
+    )
+    look = resultado.scalar_one_or_none()
+    if look is None:
+        raise HTTPException(status_code=404, detail="Look não encontrado.")
+    return look
+
+
+@router.post("", response_model=LookRead, status_code=201)
+async def criar_look(
+    dados: LookCreate,
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    pecas = await _pecas_do_usuario(db, dados.peca_ids, usuario_id)
 
     look = Look(
         usuario_id=usuario_id, nome=dados.nome, ocasioes=dados.ocasioes, pecas=list(pecas)
@@ -103,11 +128,7 @@ async def registrar_uso(
     usuario_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    resultado = await db.execute(
-        select(Look).where(Look.id == look_id, Look.usuario_id == usuario_id)
-    )
-    if resultado.scalar_one_or_none() is None:
-        raise HTTPException(status_code=404, detail="Look não encontrado.")
+    await _look_ativo(db, look_id, usuario_id)
 
     uso = LookUso(look_id=look_id, usuario_id=usuario_id, usado_em=dados.usado_em)
     db.add(uso)
@@ -129,15 +150,14 @@ async def atualizar_look(
     usuario_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    resultado = await db.execute(
-        select(Look).where(Look.id == look_id, Look.usuario_id == usuario_id)
-    )
-    look = resultado.scalar_one_or_none()
-    if look is None:
-        # 404 tanto para inexistente quanto para look de outro usuário.
-        raise HTTPException(status_code=404, detail="Look não encontrado.")
+    look = await _look_ativo(db, look_id, usuario_id)
 
-    for campo, valor in dados.model_dump(exclude_unset=True).items():
+    campos = dados.model_dump(exclude_unset=True)
+    peca_ids = campos.pop("peca_ids", None)
+    if peca_ids is not None:
+        # E3.F5.2: substitui as peças do look.
+        look.pecas = await _pecas_do_usuario(db, peca_ids, usuario_id)
+    for campo, valor in campos.items():
         setattr(look, campo, valor)
     await db.commit()
 
@@ -151,6 +171,20 @@ async def atualizar_look(
     return resultado.scalar_one()
 
 
+@router.delete("/{look_id}", status_code=204)
+async def excluir_look(
+    look_id: uuid.UUID,
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Arquiva o look (E3.F5.1): some da lista e das ações, mas os usos ficam
+    no histórico (calendário) e na rotação de peças do look do dia."""
+    look = await _look_ativo(db, look_id, usuario_id)
+    look.arquivado = True
+    await db.commit()
+    return Response(status_code=204)
+
+
 @router.get("", response_model=list[LookRead])
 async def listar_looks(
     usuario_id: uuid.UUID = Depends(get_current_user_id),
@@ -159,7 +193,7 @@ async def listar_looks(
     resultado = await db.execute(
         select(Look)
         .options(selectinload(Look.pecas))
-        .where(Look.usuario_id == usuario_id)
+        .where(Look.usuario_id == usuario_id, Look.arquivado.is_(False))
         .order_by(Look.criado_em.desc())
     )
     return resultado.scalars().all()

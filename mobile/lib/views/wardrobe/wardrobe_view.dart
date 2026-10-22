@@ -2,83 +2,131 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/peca_opcoes.dart' show Gaveta;
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/category_section.dart';
 import '../../core/widgets/clothing_card.dart';
 import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
+import '../looks/looks_view.dart';
 import '../upload/upload_view.dart';
+import 'gaveta_view.dart';
 import 'peca_detail_view.dart';
 import 'wardrobe_controller.dart';
+import 'widgets/filtros_de_pecas.dart';
 
-/// Armário: listagem agrupada por categoria (E2.F1.1) com filtro por cor,
-/// estação e ocasião (E2.F2.1). Visual alinhado ao redesign (Etapa 3):
-/// carrosséis por categoria com `CategorySection`/`ClothingCard`.
+enum AbaArmario { pecas, looks }
+
+/// Aba visível do armário. Sem `autoDispose`: sobrevive à troca de aba.
+final abaArmarioProvider = StateProvider<AbaArmario>((ref) => AbaArmario.pecas);
+
+/// Armário: guarda as peças cadastradas e os looks prontos (salvos).
+///
+/// - "Peças": uma seção por gaveta (Partes de cima, Partes de baixo, …) com
+///   carrossel; tocar no nome da gaveta abre [GavetaView]. Filtros (E2.F2.1)
+///   num painel aberto pelo botão de filtros.
+/// - "Looks": a lista de looks salvos ([LooksView]), que antes ficava dentro
+///   da montagem de look.
 class WardrobeView extends ConsumerWidget {
   const WardrobeView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pecasAsync = ref.watch(pecaListProvider);
+    final aba = ref.watch(abaArmarioProvider);
 
     return Scaffold(
       body: Column(
         children: [
           const ScreenHeader(
             titulo: 'Meu Guarda-Roupa',
-            subtitulo: 'Suas peças, organizadas por categoria.',
+            subtitulo: 'Suas peças e seus looks guardados.',
           ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(pecaListProvider);
-                await ref.read(pecaListProvider.future);
-              },
-              child: pecasAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => _Erro(
-                  mensagem: _mensagemDeErro(error),
-                  onTentarNovamente: () => ref.invalidate(pecaListProvider),
-                ),
-                data: (pecas) =>
-                    pecas.isEmpty ? const _ArmarioVazio() : _ArmarioFiltravel(pecas: pecas),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<AbaArmario>(
+                segments: const [
+                  ButtonSegment(
+                    value: AbaArmario.pecas,
+                    label: Text('Peças'),
+                    icon: Icon(Icons.checkroom),
+                  ),
+                  ButtonSegment(
+                    value: AbaArmario.looks,
+                    label: Text('Looks'),
+                    icon: Icon(Icons.collections_bookmark_outlined),
+                  ),
+                ],
+                selected: {aba},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) => ref.read(abaArmarioProvider.notifier).state = s.first,
               ),
             ),
           ),
+          Expanded(
+            child: aba == AbaArmario.pecas ? const _AbaPecas() : const LooksView(),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Adicionar peça',
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const UploadView()),
-          );
-        },
-        child: const Icon(Icons.add_a_photo),
+      // O FAB de "Montar look" da aba Looks vem do próprio `LooksView`.
+      floatingActionButton: aba == AbaArmario.pecas
+          ? FloatingActionButton(
+              tooltip: 'Adicionar peça',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const UploadView()),
+                );
+              },
+              child: const Icon(Icons.add_a_photo),
+            )
+          : null,
+    );
+  }
+}
+
+class _AbaPecas extends ConsumerWidget {
+  const _AbaPecas();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pecasAsync = ref.watch(pecaListProvider);
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(pecaListProvider);
+        await ref.read(pecaListProvider.future);
+      },
+      child: pecasAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _Erro(
+          mensagem: mensagemDeErroArmario(error),
+          onTentarNovamente: () => ref.invalidate(pecaListProvider),
+        ),
+        data: (pecas) => pecas.isEmpty ? const _ArmarioVazio() : _ArmarioFiltravel(pecas: pecas),
       ),
     );
   }
+}
 
-  String _mensagemDeErro(Object error) {
-    if (error is DioException) {
-      if (error.response?.statusCode == 401) {
-        return 'Sessão expirada ou inválida. Não foi possível carregar seu armário.';
-      }
-      switch (error.type) {
-        case DioExceptionType.connectionTimeout:
-        case DioExceptionType.sendTimeout:
-        case DioExceptionType.receiveTimeout:
-          return 'A busca demorou demais. Verifique sua conexão e tente novamente.';
-        case DioExceptionType.connectionError:
-          return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
-        default:
-          return 'Não foi possível carregar seu armário. Tente novamente.';
-      }
+String mensagemDeErroArmario(Object error) {
+  if (error is DioException) {
+    if (error.response?.statusCode == 401) {
+      return 'Sessão expirada ou inválida. Não foi possível carregar seu armário.';
     }
-    return 'Não foi possível carregar seu armário. Tente novamente.';
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'A busca demorou demais. Verifique sua conexão e tente novamente.';
+      case DioExceptionType.connectionError:
+        return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
+      default:
+        return 'Não foi possível carregar seu armário. Tente novamente.';
+    }
   }
+  return 'Não foi possível carregar seu armário. Tente novamente.';
 }
 
 class _ArmarioFiltravel extends ConsumerWidget {
@@ -93,178 +141,61 @@ class _ArmarioFiltravel extends ConsumerWidget {
 
     return Column(
       children: [
-        _PainelFiltros(pecas: pecas, filtro: filtro),
+        BarraDeFiltros(
+          texto: rotuloQuantidadePecas(filtrados.length, pecas.length),
+          quantidadeFiltros: filtro.quantidade,
+          onFiltros: () => abrirFiltrosDePecas(context, filtroArmarioProvider, pecas),
+        ),
         Expanded(
           child: filtrados.isEmpty
-              ? _SemResultadoFiltro(
+              ? SemResultadoFiltro(
                   onLimpar: () =>
-                      ref.read(filtroArmarioProvider.notifier).state = const FiltroArmario(),
+                      ref.read(filtroArmarioProvider.notifier).state = const FiltroPecas(),
                 )
-              : _ArmarioComPecas(grupos: agruparPorCategoria(filtrados)),
+              : _Gavetas(grupos: agruparPorGaveta(filtrados)),
         ),
       ],
     );
   }
 }
 
-class _PainelFiltros extends ConsumerWidget {
-  const _PainelFiltros({required this.pecas, required this.filtro});
+class _Gavetas extends StatelessWidget {
+  const _Gavetas({required this.grupos});
 
-  final List<Peca> pecas;
-  final FiltroArmario filtro;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cores = coresDisponiveis(pecas);
-    final estacoes = estacoesDisponiveis(pecas);
-    final notifier = ref.read(filtroArmarioProvider.notifier);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (cores.isNotEmpty)
-            _LinhaFiltro(
-              rotulo: 'Cor',
-              opcoes: cores,
-              selecionado: filtro.corPrincipal,
-              onSelecionar: (valor) => notifier.state = filtro.copyWith(
-                corPrincipal: () => filtro.corPrincipal == valor ? null : valor,
-              ),
-            ),
-          if (estacoes.isNotEmpty)
-            _LinhaFiltro(
-              rotulo: 'Estação',
-              opcoes: estacoes,
-              selecionado: filtro.estacao,
-              onSelecionar: (valor) => notifier.state = filtro.copyWith(
-                estacao: () => filtro.estacao == valor ? null : valor,
-              ),
-            ),
-          _LinhaFiltro(
-            rotulo: 'Ocasião',
-            opcoes: ocasioesDisponiveis(pecas),
-            selecionado: filtro.ocasiao,
-            onSelecionar: (valor) => notifier.state = filtro.copyWith(
-              ocasiao: () => filtro.ocasiao == valor ? null : valor,
-            ),
-          ),
-          if (filtro.ativo)
-            Align(
-              alignment: Alignment.centerRight,
-              child: AppButton(
-                label: 'Limpar filtros',
-                variant: AppButtonVariant.text,
-                onPressed: () => notifier.state = const FiltroArmario(),
-              ),
-            ),
-          const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
-}
-
-class _LinhaFiltro extends StatelessWidget {
-  const _LinhaFiltro({
-    required this.rotulo,
-    required this.opcoes,
-    required this.selecionado,
-    required this.onSelecionar,
-  });
-
-  final String rotulo;
-  final List<String> opcoes;
-  final String? selecionado;
-  final ValueChanged<String> onSelecionar;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 8,
-        runSpacing: 4,
-        children: [
-          Text('$rotulo:', style: AppTextStyles.labelCategoria()),
-          for (final opcao in opcoes)
-            FilterChip(
-              label: Text(opcao),
-              selected: selecionado == opcao,
-              onSelected: (_) => onSelecionar(opcao),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SemResultadoFiltro extends StatelessWidget {
-  const _SemResultadoFiltro({required this.onLimpar});
-
-  final VoidCallback onLimpar;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(
-          height: 300,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.filter_alt_off, size: 48, color: AppColors.textSecondary),
-                const SizedBox(height: 16),
-                const Text('Nenhuma peça encontrada com esses filtros'),
-                const SizedBox(height: 8),
-                AppButton(
-                  label: 'Limpar filtros',
-                  variant: AppButtonVariant.text,
-                  onPressed: onLimpar,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ArmarioComPecas extends StatelessWidget {
-  const _ArmarioComPecas({required this.grupos});
-
-  final Map<String, List<Peca>> grupos;
+  final Map<Gaveta, List<Peca>> grupos;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       key: const Key('armario-lista-categorias'),
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      padding: const EdgeInsets.only(top: 4, bottom: 88),
       children: [
         for (final entry in grupos.entries)
           CategorySection(
-            titulo: entry.key,
+            titulo: entry.key.nome,
             contagem: entry.value.length,
             itemCount: entry.value.length,
-            itemBuilder: (context, index) {
-              final peca = entry.value[index];
-              return ClothingCard(
-                imagemUrl: peca.imagemUrl,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => PecaDetailView(peca: peca)),
-                ),
-              );
-            },
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => GavetaView(gaveta: entry.key)),
+            ),
+            itemBuilder: (context, index) => cardDaPeca(context, entry.value[index]),
           ),
       ],
     );
   }
+}
+
+/// Card de peça do armário (tela principal e gavetas): tocar abre o detalhe;
+/// peça com cadastro incompleto ganha o selo (E5.F4.1).
+Widget cardDaPeca(BuildContext context, Peca peca) {
+  return ClothingCard(
+    imagemUrl: peca.imagemUrl,
+    incompleta: camposIncompletos(peca).isNotEmpty,
+    onTap: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => PecaDetailView(peca: peca)),
+    ),
+  );
 }
 
 class _ArmarioVazio extends StatelessWidget {

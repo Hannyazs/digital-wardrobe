@@ -37,6 +37,7 @@ class PreferenciaRead(BaseModel):
     sobreposicoes: list[str]
     combinacoes_cores: list[CombinacaoCores]
     criatividade: int
+    ocasiao_look_do_dia: str | None = None
 
 
 def preferencia_padrao() -> PreferenciaRead:
@@ -62,12 +63,28 @@ class PreferenciaUpdate(BaseModel):
     sobreposicoes: list[str] | None = None
     combinacoes_cores: list[CombinacaoCores] | None = None
     criatividade: int | None = Field(default=None, ge=1, le=5)
+    ocasiao_look_do_dia: str | None = None
 
-    @field_validator("estilos", "sobreposicoes", "combinacoes_cores", "criatividade", mode="before")
+    @field_validator(
+        "estilos",
+        "sobreposicoes",
+        "combinacoes_cores",
+        "criatividade",
+        "ocasiao_look_do_dia",
+        mode="before",
+    )
     @classmethod
     def _nao_nulo(cls, valor):
         if valor is None:
             raise ValueError("O campo não pode ser nulo.")
+        return valor
+
+    @field_validator("ocasiao_look_do_dia")
+    @classmethod
+    def _ocasiao_nao_vazia(cls, valor: str) -> str:
+        valor = valor.strip()
+        if not valor:
+            raise ValueError("A ocasião não pode ser vazia.")
         return valor
 
     @field_validator("estilos", "sobreposicoes")

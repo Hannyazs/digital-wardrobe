@@ -23,6 +23,9 @@ final _peca = Peca(
   subcategoria: 'Longo',
   corPrincipal: 'Azul',
   estacao: 'Verão',
+  // Com estilo, a peça fica completa: sem a faixa de cadastro incompleto
+  // (E5.F4.1, testada em cadastro_incompleto_test.dart) no topo do detalhe.
+  estilo: 'Elegante',
   ocasioes: ['Festa'],
 );
 

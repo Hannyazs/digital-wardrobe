@@ -1,5 +1,6 @@
 // Testes do histórico de looks utilizados, em formato de calendário (E3.F4.3).
-// Mesmo padrão dos demais: LookService falso, nunca bate numa API real.
+// O calendário fica na Casa (reorganização da interface): os testes abrem a
+// `HomeView`, onde ele é exibido. LookService falso, nunca bate numa API real.
 // Ver docs/PBIs/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md.
 
 import 'package:dio/dio.dart';
@@ -8,13 +9,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:guarda_roupa_app/models/look.dart';
-import 'package:guarda_roupa_app/models/peca.dart';
 import 'package:guarda_roupa_app/models/uso_look.dart';
 import 'package:guarda_roupa_app/services/look_service.dart';
-import 'package:guarda_roupa_app/views/looks/historico_view.dart';
+import 'package:guarda_roupa_app/models/peca.dart' show Peca;
+import 'package:guarda_roupa_app/services/peca_service.dart';
+import 'package:guarda_roupa_app/views/home/home_shell.dart';
+import 'package:guarda_roupa_app/views/home/home_view.dart';
 import 'package:guarda_roupa_app/views/looks/looks_controller.dart';
-import 'package:guarda_roupa_app/views/looks/looks_view.dart';
 import 'package:guarda_roupa_app/views/looks/montar_look_controller.dart' show lookServiceProvider;
+import 'package:guarda_roupa_app/views/upload/upload_controller.dart' show pecaServiceProvider;
+import 'package:guarda_roupa_app/views/suggestions/suggestions_controller.dart' show sugestaoServiceProvider;
+import 'support/sugestao_service_sem_look_do_dia.dart';
 
 Look _look(String id, String nome) => Look(
       id: id,
@@ -66,6 +71,11 @@ class _LookServiceHistorico extends LookService {
   }
 }
 
+class _PecaServiceVazio extends PecaService {
+  @override
+  Future<List<Peca>> listarPecas() async => [];
+}
+
 class _LentoHistorico extends LookService {
   @override
   Future<List<UsoLook>> listarHistorico({DateTime? de, DateTime? ate, int? limite}) async {
@@ -86,8 +96,11 @@ Future<void> _abrirHistorico(WidgetTester tester, LookService service) async {
   _telaGrande(tester);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [lookServiceProvider.overrideWithValue(service)],
-      child: const MaterialApp(home: HistoricoView()),
+      overrides: [
+        lookServiceProvider.overrideWithValue(service),
+        sugestaoServiceProvider.overrideWithValue(SugestaoServiceSemLookDoDia()),
+      ],
+      child: const MaterialApp(home: HomeView()),
     ),
   );
   await tester.pumpAndSettle();
@@ -149,8 +162,11 @@ void main() {
     _telaGrande(tester);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [lookServiceProvider.overrideWithValue(_LentoHistorico())],
-        child: const MaterialApp(home: HistoricoView()),
+        overrides: [
+          lookServiceProvider.overrideWithValue(_LentoHistorico()),
+          sugestaoServiceProvider.overrideWithValue(SugestaoServiceSemLookDoDia()),
+        ],
+        child: const MaterialApp(home: HomeView()),
       ),
     );
     await tester.pump();
@@ -328,29 +344,37 @@ void main() {
     expect(find.text('Look A'), findsOneWidget);
   });
 
-  testWidgets('Ícone da AppBar de Looks abre o calendário com o uso recém-registrado', (
-    tester,
-  ) async {
+  testWidgets('Uso registrado em Armário › Looks aparece no calendário da Casa', (tester) async {
     _telaGrande(tester);
     final service = _LookServiceHistorico([]);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [lookServiceProvider.overrideWithValue(service)],
-        child: const MaterialApp(home: LooksView()),
+        overrides: [
+          lookServiceProvider.overrideWithValue(service),
+          pecaServiceProvider.overrideWithValue(_PecaServiceVazio()),
+          sugestaoServiceProvider.overrideWithValue(SugestaoServiceSemLookDoDia()),
+        ],
+        child: const MaterialApp(home: HomeShell()),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Registra "Usei hoje" pelo menu do card (E3.F4.2).
+    // Casa abre com o calendário, ainda sem marcação.
+    expect(find.text('Calendário de looks'), findsOneWidget);
+    expect(find.byKey(ValueKey('marca-${hojeDia.day}')), findsNothing);
+
+    // Armário › Looks › menu do card › "Usei hoje" (E3.F4.2).
+    await tester.tap(find.text('Armário'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Looks').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Usei hoje'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.history));
+    await tester.tap(find.text('Casa'));
     await tester.pumpAndSettle();
-
-    expect(find.text('Histórico de looks'), findsOneWidget);
     expect(find.text(rotuloDoMes(mesAtual)), findsOneWidget);
     expect(find.text('Hoje'), findsOneWidget);
     expect(find.byKey(ValueKey('marca-${hojeDia.day}')), findsOneWidget);

@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Storage local (MVP)
     upload_dir: str = "uploads"
 
+    # Sugestões (E5.F1.2): máximo de looks candidatos avaliados por pedido.
+    sugestoes_max_candidatos: int = 20000
+
     # CORS — lista separada por vírgula
     cors_origins: str = "http://localhost:3000"
 

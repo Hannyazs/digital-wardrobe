@@ -81,6 +81,12 @@ class Look(Base):
         ARRAY(String), nullable=False, server_default=text("'{}'::varchar[]")
     )
 
+    # E3.F5.1 — "excluir" um look arquiva: some da lista e das ações, mas os
+    # usos (`looks_usos`) continuam no histórico e na rotação de peças.
+    arquivado: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=expression.false()
+    )
+
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     pecas: Mapped[list[Peca]] = relationship(secondary=looks_pecas)
@@ -88,7 +94,7 @@ class Look(Base):
 
 class LookUso(Base):
     """Um registro por uso de um look (E3.F4.1) — não um contador no look: o
-    histórico precisa do *quando*, e a recomendação (Épico 6) lê recência e
+    histórico precisa do *quando*, e as sugestões (Épicos 5 e 6) leem recência e
     frequência daqui."""
 
     __tablename__ = "looks_usos"
@@ -129,6 +135,8 @@ class Preferencia(Base):
     )
     # 1 (combinações seguras) a 5 (ousadas); 3 = equilibrado.
     criatividade: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="3")
+    # E6.F1.1 — última ocasião escolhida no look do dia; NULL = "Casual".
+    ocasiao_look_do_dia: Mapped[str | None] = mapped_column(String, nullable=True)
 
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(
@@ -136,7 +144,7 @@ class Preferencia(Base):
     )
 
 
-# E4.F4.1 — peças e pares de peças que o usuário evita. Para o Épico 6 são
+# E4.F4.1 — peças e pares de peças que o usuário evita. Para as sugestões (Épicos 5 e 6) são
 # RESTRIÇÃO ("nunca me sugira"), não peso. FKs com ON DELETE CASCADE: a peça
 # é apagada fisicamente (`excluir_peca`, E1.F3.1) e estas linhas vão junto,
 # pelo banco — sem `relationship` do lado de `Peca`.

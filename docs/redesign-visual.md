@@ -22,6 +22,7 @@ Plano de adaptação do app Flutter pra seguir a identidade visual do Figma "VIR
 | 4 | `HomeShell` com 5 abas (Casa, Armário, Looks, IA, Referências) + `HomeView`/`SuggestionsView`/`ReferencesView` novos + "Meus looks" como botão dentro da aba Looks | ✅ Concluída |
 | 5 | Restyle de `UploadView`/`PecaFormView`/`PecaDetailView` | ✅ Concluída |
 | 6 | ~~Remover `CatalogoLookMockView` e o atalho temporário em `LooksView`~~ | ✅ Concluída (antecipada) |
+| 7 | Reorganização: gavetas no armário, looks salvos no Armário, calendário na Casa, filtros múltiplos em painel | ✅ Concluída (validação visual pendente) — ver seção própria abaixo |
 
 **Pendente**: validação manual visual no Chrome/emulador (comparar com o Figma na prática) — não executável nesta sessão, requer interação humana num navegador/dispositivo real.
 
@@ -39,6 +40,33 @@ Plano de adaptação do app Flutter pra seguir a identidade visual do Figma "VIR
 - **Bug real corrigido no caminho**: `google_fonts` tentava baixar fontes pela rede durante os testes, causando flakiness entre arquivos quando rodados em paralelo (ex: timers pendentes derrubando `pumpAndSettle` em testes sem relação nenhuma com o redesign). Corrigido com `test/flutter_test_config.dart`, desabilitando `GoogleFonts.config.allowRuntimeFetching` nos testes — fix padrão documentado pelo próprio pacote, não um workaround improvisado.
 - **App agora abre na aba "Casa"**, não mais direto no armário — mudança de comportamento intencional pedida pelo usuário ("CASA - tela inicial/Home"). Vários testes que assumiam o armário como tela inicial do `HomeShell` foram ajustados para navegar até a aba Armário explicitamente antes de verificar.
 - **Ajustes pós-entrega (pedido do usuário)**: título da Home trocado de "Morning, Mo!" para "Welcome!"; `ScreenHeader` ganhou um parâmetro `acao` opcional (ícone no canto superior direito do próprio degradê) e `MontarLookView` perdeu a `AppBar` separada — "Meus looks" virou essa `acao`, junto com um botão de voltar condicional (`Navigator.canPop`) pra não perder a navegação quando a tela é empurrada a partir da Home. Isso resolveu o degradê sendo empurrado pra baixo por uma barra vazia. `WardrobeView` também passou a usar `ScreenHeader` no lugar da `AppBar` simples, pra herdar a tipografia/degradê que faltava nela.
+
+## Etapa 7 — Reorganização da navegação e dos filtros (2026-10-22)
+
+Pedido do usuário, feito antes das PBIs pendentes dos Épicos 5 e 6 (E5.F3.1, E5.F4.1, E6.F1.2), que não dependem dela nem a bloqueiam. Substitui as decisões acima sobre "Meus looks" dentro da montagem e sobre o filtro do armário sempre visível.
+
+**Navegação**
+- **Casa**: atalhos + **calendário de looks usados** (`CalendarioDeLooks`, antes a tela `HistoricoView` aberta pelos looks salvos; `historico_view.dart` → `calendario_de_looks.dart`, mesmas funções). O card "Look do dia" (E6.F1.2) entra no topo, acima dos atalhos.
+- **Armário**: seletor **Peças | Looks**. "Looks" é a mesma `LooksView` de antes, sem `AppBar` própria nem atalho de histórico — looks prontos ficam junto das peças.
+- **Looks (aba central)**: só a montagem de um look novo; o botão "Meus looks" saiu.
+
+**Gavetas do armário** (decisão do usuário: agrupar as categorias atuais, sem criar novas)
+- Partes de cima (Camisetas, Camisas), Partes de baixo (Calças, Saias), Vestidos, Casacos, Sapatos, Acessórios, e "Outras" para categoria fora da lista. Mesmos grupos do motor de sugestões (`backend/.../tipos.py`). Definidas em `gavetasDoArmario` (`peca_opcoes.dart`).
+- Tela principal: uma seção por gaveta com carrossel; tocar no nome abre `GavetaView`, com um carrossel por categoria ou, na gaveta de uma categoria só, por subcategoria (campo livre do cadastro; sem subcategoria → seção com o nome da categoria).
+- Montagem: um carrossel por categoria direto na tela (sem gavetas), na mesma ordem.
+
+**Carrosséis**: `CategorySection` acrescenta cards brancos esmaecidos depois dos itens até passar da largura da tela, para a fileira ter cara de carrossel mesmo com uma ou duas peças.
+
+**Filtros** (decisão do usuário: OU dentro do mesmo critério, E entre critérios; "Todas as estações" aparece em qualquer estação filtrada, como no motor de sugestões)
+- Painel por baixo (`abrirPainelDeFiltros`, `core/widgets/painel_de_filtros.dart`) aberto pelo `FilterButton` — agora um ícone de linhas com selo da quantidade marcada. Cada toque aplica na hora; "Limpar tudo"; botão "Ver N peças/looks" fecha.
+- Armário e gavetas: cor, estação e ocasião com seleção múltipla (`FiltroPecas`, compartilhado entre armário e gavetas). Opções só com valores que existem nas peças (antes a ocasião listava todas as fixas) — valores marcados sempre aparecem, para poderem ser desmarcados.
+- Montagem: mesmo filtro, estado próprio (`filtroMontagemProvider`); peças selecionadas continuam selecionadas mesmo que um filtro as esconda. Antes o botão só mostrava "ainda não disponível". O seletor de ocasião da montagem ganhou o rótulo "Ocasião do look (opcional)" para não ser confundido com filtro.
+- Looks salvos: favoritos + ocasiões (já eram múltiplos) foram para o mesmo painel; ocasiões só as que algum look tem.
+- Sugestões: filtros continuam de seleção única (dropdowns) — o `POST /sugestoes` aceita um valor por critério; múltiplos exigiriam mudar o backend e o motor, fora do escopo.
+
+**Bugs pré-existentes corrigidos no caminho (montagem como aba)**: salvar chamava `Navigator.pop()` mesmo sem tela por baixo, e nome/seleção não eram limpos depois de salvar. Agora volta só quando aberta por cima de outra tela; como aba, limpa nome, peças, ocasiões e filtros. Com a montagem aberta pela Casa por cima da aba, só a tela visível reage ao salvar (antes a mensagem saía duas vezes).
+
+**Verificação**: `dart analyze` limpo; `flutter test` 189/189 (eram 173; testes de armário, looks, montagem, calendário e cadastro ajustados à navegação nova, mais testes novos de filtros múltiplos, gavetas, espaços do carrossel e salvar pela aba). Validação visual no Chrome pendente.
 
 ## Aviso permanente
 

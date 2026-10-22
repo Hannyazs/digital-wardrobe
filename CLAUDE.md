@@ -78,6 +78,8 @@ Supabase Auth emite o JWT; a API **valida** o token e deriva o `user_id` dele. O
 
 O motor de looks é determinístico o suficiente para ser testável: dado um armário fixo, uma ocasião e um conjunto de preferências, o resultado deve ser reproduzível. A variação ("incentivar peças menos usadas") é um parâmetro explícito de entrada — frequência de uso e recência entram na pontuação —, não aleatoriedade solta no meio do código.
 
+As regras aprovadas (cores/ousadia, estrutura do look, filtros, coringas, ordenação, páginas) estão em [docs/regras-sugestoes.md](docs/regras-sugestoes.md) — fonte única; não duplique as regras em outro lugar. Numeração dos épicos: 5 = sugestões sob demanda (motor de regras, sem IA), 6 = look do dia (reaproveita o motor), 7 = cadastro assistido por Gemini, 8 = inspiração por imagem.
+
 ## Estrutura de diretórios
 
 ```
@@ -113,7 +115,15 @@ uvicorn app.main:app --reload     # sobe a API em localhost:8000
 alembic revision -m "mensagem"    # nova migração manual
 ```
 
-Ainda não há suíte de testes nem linter configurados — ao adicionar (pytest, ruff), documentar aqui como rodar um teste único.
+Testes (dentro de `backend/`, com o venv ativado; desde a E5.F1.1):
+
+```bash
+pip install -r requirements-dev.txt                                   # pytest
+pytest                                                                # suíte inteira (tests/)
+pytest tests/test_sugestoes_cores.py::test_mesma_cor_vale_0           # um teste único
+```
+
+Os testes atuais cobrem o motor de sugestões (funções puras, sem banco). Ainda não há linter configurado.
 
 Mobile (dentro de `mobile/`):
 

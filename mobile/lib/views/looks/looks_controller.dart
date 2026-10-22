@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/peca_opcoes.dart' show ocasioesFixas;
 import '../../models/look.dart';
 import '../../models/uso_look.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
@@ -50,6 +51,15 @@ List<Look> filtrarLooks(List<Look> looks, FiltroLooks filtro) {
     if (filtro.ocasioes.isNotEmpty && !look.ocasioes.any(filtro.ocasioes.contains)) return false;
     return true;
   }).toList();
+}
+
+/// Opções de ocasião do filtro de looks: as que algum look tem (na ordem de
+/// `ocasioesFixas`, depois as personalizadas), mais as já marcadas, para
+/// poderem ser desmarcadas.
+List<String> ocasioesDosLooks(List<Look> looks, Set<String> marcadas) {
+  final existentes = {...looks.expand((l) => l.ocasioes), ...marcadas};
+  final extras = existentes.where((o) => !ocasioesFixas.contains(o)).toList()..sort();
+  return [...ocasioesFixas.where(existentes.contains), ...extras];
 }
 
 /// Histórico de usos (E3.F4.3). `autoDispose`: rebusca ao abrir a tela, então

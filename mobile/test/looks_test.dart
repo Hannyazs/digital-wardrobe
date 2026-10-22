@@ -197,6 +197,7 @@ void main() {
     ]);
     await _abrir(tester, service);
 
+    await _abrirFiltros(tester);
     await tester.tap(find.widgetWithText(FilterChip, 'Favoritos'));
     await tester.pumpAndSettle();
     expect(find.text('Look de sexta'), findsOneWidget);
@@ -215,8 +216,10 @@ void main() {
     ]);
     await _abrir(tester, service);
 
+    await _abrirFiltros(tester);
     await tester.tap(find.widgetWithText(FilterChip, 'Favoritos'));
     await tester.pumpAndSettle();
+    await _fecharFiltros(tester);
 
     expect(find.text('Nenhum look favorito ainda'), findsOneWidget);
     expect(find.text('Você ainda não tem nenhum look salvo'), findsNothing);
@@ -277,6 +280,17 @@ class _LookServiceFavoritos extends LookServiceSemHistorico {
     looks = [for (final l in looks) l.id == id ? novo : l];
     return novo;
   }
+}
+
+Future<void> _abrirFiltros(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Filtros'));
+  await tester.pumpAndSettle();
+}
+
+/// Fecha o painel de filtros pelo botão "Ver N looks".
+Future<void> _fecharFiltros(WidgetTester tester) async {
+  await tester.tap(find.textContaining(RegExp(r'^Ver \d+ looks?$')));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _abrir(WidgetTester tester, LookService service) async {
@@ -422,6 +436,7 @@ void filtroOcasiaoTests() {
     _telaGrande(tester);
     await _abrir(tester, _LookServiceOcasiao(todos));
 
+    await _abrirFiltros(tester);
     await tester.tap(find.widgetWithText(FilterChip, 'Trabalho'));
     await tester.pumpAndSettle();
     expect(find.text('Look de trabalho'), findsOneWidget);
@@ -453,6 +468,7 @@ void filtroOcasiaoTests() {
     _telaGrande(tester);
     await _abrir(tester, _LookServiceOcasiao(todos));
 
+    await _abrirFiltros(tester);
     // Sem `pump()` entre os toques: o segundo não pode partir do filtro antigo.
     await tester.tap(find.widgetWithText(FilterChip, 'Favoritos'));
     await tester.tap(find.widgetWithText(FilterChip, 'Festa'));
@@ -470,14 +486,14 @@ void filtroOcasiaoTests() {
     _telaGrande(tester);
     await _abrir(tester, _LookServiceOcasiao(todos));
 
+    await _abrirFiltros(tester);
+    // Só aparecem ocasiões que algum look tem.
+    expect(find.widgetWithText(FilterChip, 'Praia'), findsNothing);
     await tester.tap(find.widgetWithText(FilterChip, 'Favoritos'));
     await tester.tap(find.widgetWithText(FilterChip, 'Trabalho'));
     await tester.pumpAndSettle();
     expect(find.text('Nenhum look favorito da ocasião "Trabalho"'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(FilterChip, 'Praia'));
-    await tester.pumpAndSettle();
-    expect(find.text('Nenhum look favorito das ocasiões "Trabalho", "Praia"'), findsOneWidget);
+    await _fecharFiltros(tester);
 
     await tester.tap(find.text('Limpar filtros'));
     await tester.pumpAndSettle();

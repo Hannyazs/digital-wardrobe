@@ -15,7 +15,9 @@ import 'package:guarda_roupa_app/models/peca.dart';
 import 'support/look_service_sem_historico.dart';
 import 'package:guarda_roupa_app/services/peca_service.dart';
 import 'package:guarda_roupa_app/views/looks/looks_view.dart';
+import 'package:guarda_roupa_app/services/look_service.dart';
 import 'package:guarda_roupa_app/views/looks/montar_look_controller.dart';
+import 'package:guarda_roupa_app/views/looks/montar_look_view.dart';
 import 'package:guarda_roupa_app/views/upload/upload_controller.dart' show pecaServiceProvider;
 
 Peca _peca(String id, String categoria) =>
@@ -24,6 +26,21 @@ Peca _peca(String id, String categoria) =>
 class _PecaServiceVazio extends PecaService {
   @override
   Future<List<Peca>> listarPecas() async => [];
+}
+
+class _PecaServiceColorido extends PecaService {
+  @override
+  Future<List<Peca>> listarPecas() async => [
+        Peca(id: '1', imagemUrl: '/1.png', categoria: 'Camisetas', corPrincipal: 'Azul'),
+        Peca(id: '2', imagemUrl: '/2.png', categoria: 'Camisetas', corPrincipal: 'Preto'),
+        Peca(
+          id: '3',
+          imagemUrl: '/3.png',
+          categoria: 'Calças',
+          corPrincipal: 'Preto',
+          estacao: 'Inverno',
+        ),
+      ];
 }
 
 class _PecaServiceComDuasPecas extends PecaService {
@@ -168,7 +185,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Look "Look de sexta" salvo.'), findsOneWidget);
-    expect(find.text('Looks'), findsOneWidget);
+    // Voltou para a lista de looks salvos (aberta por cima, então "volta").
+    expect(find.text('Salvar look'), findsNothing);
     expect(find.text('Montar look'), findsOneWidget);
   });
 
@@ -199,9 +217,9 @@ void main() {
       find.text('Sem conexão com o servidor. Verifique sua internet e tente novamente.'),
       findsOneWidget,
     );
-    // Continua na tela de montagem (não voltou para "Looks"), com o nome
-    // já digitado preservado.
-    expect(find.text('Looks'), findsNothing);
+    // Continua na tela de montagem (não voltou para os looks salvos), com o
+    // nome já digitado preservado.
+    expect(find.text('Salvar look'), findsOneWidget);
     expect(find.text('Look de sexta'), findsOneWidget);
   });
 
@@ -277,5 +295,96 @@ void main() {
       tester.widget<FilterChip>(find.widgetWithText(FilterChip, 'Festa')).selected,
       isTrue,
     );
+  });
+
+  // --- Reorganização da interface: carrosséis com filtros na montagem ---
+
+  Future<void> abrirMontagemComoAba(WidgetTester tester, LookService servico) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          pecaServiceProvider.overrideWithValue(_PecaServiceColorido()),
+          lookServiceProvider.overrideWithValue(servico),
+        ],
+        child: const MaterialApp(home: MontarLookView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('Filtros da montagem combinam e não perdem a peça já selecionada', (tester) async {
+    await abrirMontagemComoAba(tester, _LookServiceComSucesso());
+
+    expect(find.text('Camisetas'), findsOneWidget);
+    expect(find.text('Calças'), findsOneWidget);
+    // Seleciona a camiseta azul (primeiro card).
+    await tester.tap(find.byType(ClothingCard).first);
+    await tester.pump();
+    expect(find.text('1 peça selecionada'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Filtros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilterChip, 'Preto'));
+    await tester.tap(find.widgetWithText(FilterChip, 'Inverno'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ver 1 peça'), findsOneWidget);
+    await tester.tap(find.text('Ver 1 peça'));
+    await tester.pumpAndSettle();
+
+    // Só a calça preta de inverno aparece; a camiseta azul continua escolhida.
+    expect(find.text('Camisetas'), findsNothing);
+    expect(find.text('Calças'), findsOneWidget);
+    expect(find.text('1 peça selecionada'), findsOneWidget);
+
+    await tester.tap(find.byType(ClothingCard).first);
+    await tester.pump();
+    expect(find.text('2 peças selecionadas'), findsOneWidget);
+  });
+
+  testWidgets('Filtro sem resultado na montagem oferece limpar', (tester) async {
+    await abrirMontagemComoAba(tester, _LookServiceComSucesso());
+
+    await tester.tap(find.byTooltip('Filtros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilterChip, 'Azul'));
+    await tester.tap(find.widgetWithText(FilterChip, 'Inverno'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ver 0 peças'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nenhuma peça encontrada com esses filtros'), findsOneWidget);
+    await tester.tap(find.text('Limpar filtros'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ClothingCard), findsNWidgets(3));
+  });
+
+  testWidgets('Salvar pela aba (sem tela por baixo) limpa a montagem em vez de voltar', (
+    tester,
+  ) async {
+    final servico = _LookServiceComSucesso();
+    await abrirMontagemComoAba(tester, servico);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Nome do look *'), 'Look de sexta');
+    await tester.tap(find.byType(ClothingCard).first);
+    await tester.tap(find.widgetWithText(FilterChip, 'Festa'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Salvar look'));
+    await tester.pumpAndSettle();
+
+    expect(servico.criados.single.$1, 'Look de sexta');
+    expect(find.text('Look "Look de sexta" salvo.'), findsOneWidget);
+    // Continua na montagem, pronta para o próximo look.
+    expect(find.text('Monte seu look'), findsOneWidget);
+    expect(find.text('Toque nas peças para escolher'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Look de sexta'), findsNothing);
+    expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, 'Festa')).selected, isFalse);
+  });
+
+  testWidgets('A montagem não tem mais atalho para os looks salvos', (tester) async {
+    await abrirMontagemComoAba(tester, _LookServiceComSucesso());
+    expect(find.byTooltip('Meus looks'), findsNothing);
   });
 }

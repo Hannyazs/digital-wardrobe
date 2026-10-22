@@ -17,7 +17,7 @@ class CombinacaoEvitada {
 }
 
 /// Espelha app/schemas/preferencia.py::EvitadasRead (E4.F4.1): peças e pares
-/// de peças que as sugestões (Épico 6) nunca devem usar. Já traz as
+/// de peças que as sugestões (Épicos 5 e 6) nunca devem usar. Já traz as
 /// combinações, para a E4.F4.3 não mexer no modelo.
 class Evitadas {
   const Evitadas({this.pecas = const [], this.combinacoes = const []});
