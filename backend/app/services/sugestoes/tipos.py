@@ -7,9 +7,9 @@ from datetime import date
 
 # Categorias por nome, iguais a `categoriasFixas` do app. Acessórios e
 # categorias fora destas listas não entram nos looks.
-PARTES_DE_CIMA = frozenset({"Camisetas", "Camisas"})
-PARTES_DE_BAIXO = frozenset({"Calças", "Saias"})
-VESTIDOS = frozenset({"Vestidos"})
+PARTES_DE_CIMA = frozenset({"Camisetas", "Camisas", "Blusas", "Regatas", "Suéteres"})
+PARTES_DE_BAIXO = frozenset({"Calças", "Shorts", "Saias"})
+VESTIDOS = frozenset({"Vestidos", "Macacões"})
 SAPATOS = frozenset({"Sapatos"})
 CASACOS = frozenset({"Casacos"})
 
@@ -23,9 +23,12 @@ class PecaMotor:
     categoria: str
     cor: str | None = None
     tonalidade: str | None = None
-    estilo: str | None = None
-    estacao: str | None = None
+    estilos: tuple[str, ...] = ()
+    estacoes: tuple[str, ...] = ()
     ocasioes: tuple[str, ...] = ()
+    # Peça multicolorida: as demais cores além de `cor` (a predominante).
+    # Conta como uma peça de cada uma delas (ver `expandir_multicoloridas`).
+    cores_extras: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

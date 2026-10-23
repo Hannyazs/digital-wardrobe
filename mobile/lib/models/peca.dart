@@ -9,9 +9,22 @@ List<String> camposIncompletos(Peca peca) {
   return [
     if (!coresFixas.any((c) => c.nome == cor)) 'cor',
     if (peca.ocasioes.every((o) => o.trim().isEmpty)) 'ocasião',
-    if ((peca.estilo?.trim() ?? '').isEmpty) 'estilo',
+    if (peca.estilos.every((e) => e.trim().isEmpty)) 'estilo',
   ];
 }
+
+/// Todas as cores da peça: a predominante e as secundárias (multicolorida).
+List<String> coresDaPeca(Peca peca) => [
+      if (peca.corPrincipal?.trim().isNotEmpty ?? false) peca.corPrincipal!.trim(),
+      ...peca.coresSecundarias,
+    ];
+
+/// Descrição curta da peça para leitores de tela: "Calças, jeans, preto".
+String descricaoPeca(Peca peca) => [
+      peca.categoria,
+      if (peca.subcategoria?.trim().isNotEmpty ?? false) peca.subcategoria!.trim(),
+      if (peca.corPrincipal?.trim().isNotEmpty ?? false) peca.corPrincipal!.trim().toLowerCase(),
+    ].join(', ');
 
 /// Espelha app/schemas/peca.py::PecaRead no backend.
 class Peca {
@@ -21,8 +34,11 @@ class Peca {
   final String? subcategoria;
   final String? corPrincipal;
   final String? tonalidadeCor;
-  final String? estacao;
-  final String? estilo;
+  final List<String> estacoes;
+
+  /// Peça multicolorida: as demais cores; a predominante é [corPrincipal].
+  final List<String> coresSecundarias;
+  final List<String> estilos;
   final String? modelagem;
   final List<String> ocasioes;
 
@@ -33,8 +49,9 @@ class Peca {
     this.subcategoria,
     this.corPrincipal,
     this.tonalidadeCor,
-    this.estacao,
-    this.estilo,
+    this.estacoes = const [],
+    this.coresSecundarias = const [],
+    this.estilos = const [],
     this.modelagem,
     this.ocasioes = const [],
   });
@@ -47,8 +64,9 @@ class Peca {
       subcategoria: json['subcategoria'] as String?,
       corPrincipal: json['cor_principal'] as String?,
       tonalidadeCor: json['tonalidade_cor'] as String?,
-      estacao: json['estacao'] as String?,
-      estilo: json['estilo'] as String?,
+      estacoes: (json['estacoes'] as List?)?.cast<String>() ?? const [],
+      coresSecundarias: (json['cores_secundarias'] as List?)?.cast<String>() ?? const [],
+      estilos: (json['estilos'] as List?)?.cast<String>() ?? const [],
       modelagem: json['modelagem'] as String?,
       ocasioes: (json['ocasioes'] as List?)?.cast<String>() ?? const [],
     );
@@ -61,8 +79,9 @@ class Peca {
       'subcategoria': subcategoria,
       'cor_principal': corPrincipal,
       'tonalidade_cor': tonalidadeCor,
-      'estacao': estacao,
-      'estilo': estilo,
+      'estacoes': estacoes,
+      'cores_secundarias': coresSecundarias,
+      'estilos': estilos,
       'modelagem': modelagem,
       'ocasioes': ocasioes,
     };

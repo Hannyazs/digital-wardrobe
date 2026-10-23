@@ -10,6 +10,7 @@ import '../wardrobe/wardrobe_controller.dart';
 import '../wardrobe/widgets/filtros_de_pecas.dart';
 import 'looks_controller.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
+import '../../models/peca.dart';
 
 /// Trocar as peças de um look salvo (E3.F5.2): mesmos carrosséis por
 /// categoria e filtros da montagem, com as peças do look já marcadas.
@@ -142,6 +143,7 @@ class _EditarPecasLookViewState extends ConsumerState<EditarPecasLookView> {
                                 final peca = entry.value[index];
                                 return ClothingCard(
                                   imagemUrl: peca.imagemUrl,
+                                  rotulo: descricaoPeca(peca),
                                   selecionavel: true,
                                   selecionada: _selecao.contains(peca.id),
                                   onTap: _salvando ? null : () => _alternar(peca.id),

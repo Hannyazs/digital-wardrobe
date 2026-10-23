@@ -3,6 +3,7 @@
 Ver `docs/regras-sugestoes.md`, seção 1.
 """
 
+from dataclasses import replace
 from itertools import combinations
 
 from app.services.sugestoes.tipos import PecaMotor, PreferenciasMotor
@@ -49,6 +50,29 @@ def cor_reconhecida(peca: PecaMotor) -> str | None:
     """Nome da cor se estiver na lista fixa; texto livre ou vazio = sem cor."""
     cor = (peca.cor or "").strip()
     return cor if cor in NEUTROS or cor in FAMILIA else None
+
+
+def expandir_multicoloridas(pecas: list[PecaMotor]) -> list[PecaMotor]:
+    """Peça multicolorida conta como uma peça de cada uma das suas cores (a
+    predominante e as extras): vira uma variante por cor reconhecida, com o mesmo
+    id. A tonalidade informada vale só para a predominante; nas outras vale a
+    padrão da cor. Peça de uma cor só passa sem mudar."""
+    expandidas = []
+    for peca in pecas:
+        if not peca.cores_extras:
+            expandidas.append(peca)
+            continue
+        vistas: set[str] = set()
+        for cor in (peca.cor, *peca.cores_extras):
+            cor = (cor or "").strip()
+            if cor in vistas or not (cor in NEUTROS or cor in FAMILIA):
+                continue
+            vistas.add(cor)
+            tonalidade = peca.tonalidade if cor == (peca.cor or "").strip() else None
+            expandidas.append(replace(peca, cor=cor, tonalidade=tonalidade, cores_extras=()))
+        if not vistas:
+            expandidas.append(replace(peca, cores_extras=()))
+    return expandidas
 
 
 def tonalidade_efetiva(peca: PecaMotor) -> str | None:

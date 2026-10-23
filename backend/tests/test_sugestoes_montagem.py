@@ -234,3 +234,53 @@ def test_sem_parte_de_baixo_nem_vestido_informa_o_que_falta():
     resultado = gerar([peca("Camisetas", "Branco"), peca("Sapatos", "Preto")])
     assert resultado.candidatos == []
     assert "parte de baixo" in resultado.motivo
+
+
+def test_varias_estacoes_basta_uma_bater_com_a_pedida():
+    pecas = [
+        peca("Camisetas", "Branco"),
+        peca("Calças", "Preto", estacoes=("Outono", "Inverno")),
+        peca("Sapatos", "Preto"),
+    ]
+    assert gerar(pecas, filtros=Filtros(estacao="Inverno")).candidatos
+    assert gerar(pecas, filtros=Filtros(estacao="Outono")).candidatos
+    assert not gerar(pecas, filtros=Filtros(estacao="Verão")).candidatos
+
+
+def test_peca_multicolorida_conta_como_cada_uma_das_cores():
+    # Rosa com Azul-claro é ousadia 2; a variante Azul fecha em 1 (criatividade 2).
+    multicolor = peca("Camisetas", "Rosa", cores_extras=("Azul",))
+    pecas = [multicolor, peca("Calças", "Azul-claro"), peca("Sapatos", "Preto")]
+    resultado = gerar(pecas, prefs=PreferenciasMotor(criatividade=2))
+    assert len(resultado.candidatos) == 1
+    assert {p.cor for p in resultado.candidatos[0].pecas if p.id == multicolor.id} == {"Azul"}
+
+
+def test_peca_multicolorida_atende_filtro_por_cor_secundaria():
+    pecas = [
+        peca("Camisetas", "Rosa", cores_extras=("Branco",)),
+        peca("Calças", "Preto"),
+        peca("Sapatos", "Preto"),
+    ]
+    assert gerar(pecas, filtros=Filtros(cor="Branco")).candidatos
+    assert not gerar(pecas, filtros=Filtros(cor="Verde")).candidatos
+
+
+def test_peca_multicolorida_nao_duplica_o_look():
+    pecas = [
+        peca("Camisetas", "Rosa", cores_extras=("Branco", "Azul")),
+        peca("Calças", "Preto"),
+        peca("Sapatos", "Preto"),
+    ]
+    assert len(gerar(pecas).candidatos) == 1
+
+
+def test_varios_estilos_basta_um_bater_com_o_filtro():
+    pecas = [
+        peca("Camisetas", "Branco", estilos=("Elegante", "Casual")),
+        peca("Calças", "Preto", estilos=("Casual", "Elegante")),
+        peca("Sapatos", "Preto", estilos=("Casual", "Elegante")),
+    ]
+    assert gerar(pecas, filtros=Filtros(estilo="Casual")).candidatos
+    assert gerar(pecas, filtros=Filtros(estilo="Elegante")).candidatos
+    assert not gerar(pecas, filtros=Filtros(estilo="Formal")).candidatos

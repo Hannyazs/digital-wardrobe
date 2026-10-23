@@ -64,15 +64,28 @@ class CategorySection extends StatelessWidget {
           if (onTap == null)
             Padding(padding: const EdgeInsets.symmetric(horizontal: _margem), child: rotulo)
           else
-            InkWell(
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(_margem, 4, 12, 4),
-                child: Row(
-                  children: [
-                    Expanded(child: rotulo),
-                    const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                  ],
+            Semantics(
+              button: true,
+              label: 'Abrir $titulo',
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: onTap,
+                // Área de toque de pelo menos 48 px (antes ~24 px, só o texto).
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(_margem, 4, 12, 4),
+                    child: Row(
+                      children: [
+                        Expanded(child: rotulo),
+                        Text(
+                          'Ver tudo',
+                          style: AppTextStyles.labelCategoria(color: AppColors.textSecondary),
+                        ),
+                        const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -112,18 +125,21 @@ class _EspacoVazio extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: Opacity(
-        key: const ValueKey('carrossel-espaco-vazio'),
-        opacity: opacidade,
-        child: Container(
-          width: largura,
-          height: largura,
-          decoration: BoxDecoration(
-            color: AppColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+    // Decorativo: o leitor de tela não anuncia os espaços vazios.
+    return ExcludeSemantics(
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Opacity(
+          key: const ValueKey('carrossel-espaco-vazio'),
+          opacity: opacidade,
+          child: Container(
+            width: largura,
+            height: largura,
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+            ),
           ),
         ),
       ),

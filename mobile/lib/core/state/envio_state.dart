@@ -15,12 +15,15 @@ class Enviando extends EnvioState {
 }
 
 class EnvioSucesso extends EnvioState {
-  const EnvioSucesso(this.imagemUrl, {this.semRemocaoDeFundo = false});
+  const EnvioSucesso(this.imagemUrl, {this.semRemocaoDeFundo = false, this.sugestao});
 
   final String imagemUrl;
   // true quando veio do fallback do E1.F1.4 (upload sem rembg), não do
   // caminho normal de processamento.
   final bool semRemocaoDeFundo;
+  // Metadados sugeridos pela IA (E7.F1) em `POST /pecas/processar-imagem`.
+  // Map em vez de modelo novo para não duplicar o PecaBase por quatro campos.
+  final Map<String, dynamic>? sugestao;
 }
 
 class EnvioErro extends EnvioState {

@@ -376,80 +376,108 @@ class _LookCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    // Tocar no card abre o mesmo menu do "⋮" — o card parecia tocável mas
+    // não fazia nada.
+    return _AbreMenuAoTocar(
+      builder: (menuKey, abrirMenu) => Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: abrirMenu,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    look.nome,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  tooltip: look.favorito ? 'Remover dos favoritos' : 'Favoritar',
-                  icon: Icon(look.favorito ? Icons.favorite : Icons.favorite_border),
-                  color: look.favorito ? Colors.redAccent : null,
-                  onPressed: () => _alternarFavorito(context, ref),
-                ),
-                PopupMenuButton<String>(
-                  tooltip: 'Mais opções',
-                  onSelected: (acao) {
-                    switch (acao) {
-                      case 'hoje':
-                        _registrarUso(context, ref, DateTime.now(), descricaoData: 'para hoje');
-                      case 'outra':
-                        _registrarUsoEmOutraData(context, ref);
-                      case 'ocasiao':
-                        _alterarOcasiao(context, ref);
-                      case 'renomear':
-                        _renomear(context, ref);
-                      case 'editar-pecas':
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => EditarPecasLookView(look: look),
-                          ),
-                        );
-                      case 'excluir':
-                        _excluir(context, ref);
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'hoje', child: Text('Usei hoje')),
-                    PopupMenuItem(value: 'outra', child: Text('Usei em outra data…')),
-                    PopupMenuItem(value: 'ocasiao', child: Text('Alterar ocasião')),
-                    PopupMenuItem(value: 'renomear', child: Text('Renomear')),
-                    PopupMenuItem(value: 'editar-pecas', child: Text('Editar peças')),
-                    PopupMenuItem(value: 'excluir', child: Text('Excluir')),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        look.nome,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: look.favorito ? 'Remover dos favoritos' : 'Favoritar',
+                      icon: Icon(look.favorito ? Icons.favorite : Icons.favorite_border),
+                      color: look.favorito ? Colors.redAccent : null,
+                      onPressed: () => _alternarFavorito(context, ref),
+                    ),
+                    PopupMenuButton<String>(
+                      key: menuKey,
+                      tooltip: 'Mais opções',
+                      onSelected: (acao) {
+                        switch (acao) {
+                          case 'hoje':
+                            _registrarUso(context, ref, DateTime.now(), descricaoData: 'para hoje');
+                          case 'outra':
+                            _registrarUsoEmOutraData(context, ref);
+                          case 'ocasiao':
+                            _alterarOcasiao(context, ref);
+                          case 'renomear':
+                            _renomear(context, ref);
+                          case 'editar-pecas':
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => EditarPecasLookView(look: look),
+                              ),
+                            );
+                          case 'excluir':
+                            _excluir(context, ref);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'hoje', child: Text('Usei hoje')),
+                        PopupMenuItem(value: 'outra', child: Text('Usei em outra data…')),
+                        PopupMenuItem(value: 'ocasiao', child: Text('Alterar ocasião')),
+                        PopupMenuItem(value: 'renomear', child: Text('Renomear')),
+                        PopupMenuItem(value: 'editar-pecas', child: Text('Editar peças')),
+                        PopupMenuItem(value: 'excluir', child: Text('Excluir')),
+                      ],
+                    ),
                   ],
                 ),
+                if (look.ocasioes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Wrap(
+                      spacing: 6,
+                      children: [
+                        for (final ocasiao in look.ocasioes)
+                          Chip(label: Text(ocasiao), visualDensity: VisualDensity.compact),
+                      ],
+                    ),
+                  ),
+                if (ultimoUso != null) _RotuloDeUso(ultimoUso: ultimoUso!),
+                const SizedBox(height: 8),
+                PecasDoLook(pecas: look.pecas),
               ],
             ),
-            if (look.ocasioes.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Wrap(
-                  spacing: 6,
-                  children: [
-                    for (final ocasiao in look.ocasioes)
-                      Chip(label: Text(ocasiao), visualDensity: VisualDensity.compact),
-                  ],
-                ),
-              ),
-            if (ultimoUso != null) _RotuloDeUso(ultimoUso: ultimoUso!),
-            const SizedBox(height: 8),
-            PecasDoLook(pecas: look.pecas),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Guarda a chave do `PopupMenuButton` do card para o toque no card abri-lo.
+class _AbreMenuAoTocar extends StatefulWidget {
+  const _AbreMenuAoTocar({required this.builder});
+
+  final Widget Function(GlobalKey<PopupMenuButtonState<String>> menuKey, VoidCallback abrirMenu)
+      builder;
+
+  @override
+  State<_AbreMenuAoTocar> createState() => _AbreMenuAoTocarState();
+}
+
+class _AbreMenuAoTocarState extends State<_AbreMenuAoTocar> {
+  final _menuKey = GlobalKey<PopupMenuButtonState<String>>();
+
+  @override
+  Widget build(BuildContext context) =>
+      widget.builder(_menuKey, () => _menuKey.currentState?.showButtonMenu());
 }
 
 /// "Usado há N dias"; em cor de aviso quando o último uso é recente

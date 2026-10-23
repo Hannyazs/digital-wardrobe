@@ -6,6 +6,7 @@ import '../../models/uso_look.dart';
 import 'looks_controller.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
 import 'widgets/pecas_do_look.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Calendário de looks usados (E3.F4.3), exibido na Casa: grade do mês com
 /// marcação nos dias que têm uso; tocar num dia mostra os looks daquele dia,
@@ -199,11 +200,12 @@ class _CelulaDoDia extends StatelessWidget {
     return Semantics(
       label: temUso ? 'Dia ${dia.day}, com looks usados' : 'Dia ${dia.day}',
       button: true,
+      selected: selecionado,
       child: InkWell(
         onTap: habilitado ? onTap : null,
         borderRadius: BorderRadius.circular(24),
-        child: SizedBox(
-          height: 48,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
           child: Center(
             child: Container(
               width: 40,
@@ -211,32 +213,43 @@ class _CelulaDoDia extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: selecionado ? cores.primary : null,
-                border: eHoje && !selecionado ? Border.all(color: cores.primary) : null,
+                // Anel de "hoje" com contraste 3:1 (o sage claro fica em ~2:1).
+                border: eHoje && !selecionado
+                    ? Border.all(color: AppColors.sageEscuro, width: 1.5)
+                    : null,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${dia.day}',
-                    style: TextStyle(
-                      color: selecionado
-                          ? cores.onPrimary
-                          : habilitado
-                              ? null
-                              : Theme.of(context).disabledColor,
+              // Com fonte grande, o número encolhe dentro do círculo em vez de
+              // estourar.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${dia.day}',
+                      style: TextStyle(
+                        color: selecionado
+                            ? cores.onPrimary
+                            : habilitado
+                                ? null
+                                : Theme.of(context).disabledColor,
+                      ),
                     ),
-                  ),
-                  // Marcação de "tem uso neste dia".
-                  Container(
-                    key: temUso ? ValueKey('marca-${dia.day}') : null,
-                    width: 5,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: temUso ? (selecionado ? cores.onPrimary : cores.primary) : Colors.transparent,
+                    // Marcação de "tem uso neste dia".
+                    Container(
+                      key: temUso ? ValueKey('marca-${dia.day}') : null,
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: temUso
+                            ? (selecionado ? cores.onPrimary : AppColors.sageEscuro)
+                            : Colors.transparent,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

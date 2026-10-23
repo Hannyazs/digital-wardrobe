@@ -41,6 +41,14 @@ class LookDoDiaState {
 
   Sugestao? get look => resultado?.valueOrNull?.look;
 
+  /// Id do look já salvo para o look atual: salvo nesta sessão ou, desde a
+  /// E6.F1.3, um look que já existia em Armário › Looks.
+  String? get idSalvo {
+    final atual = look;
+    if (atual == null) return null;
+    return salvos[atual.chave] ?? resultado?.valueOrNull?.lookSalvoId;
+  }
+
   LookDoDiaState copyWith({
     String? ocasiao,
     AsyncValue<LookDoDia>? resultado,
@@ -106,7 +114,8 @@ class LookDoDiaController extends Notifier<LookDoDiaState> {
   /// "Salvar": cria o look "Look sugerido – dd/mm". Devolve o erro ou `null`.
   Future<String?> salvar() async {
     final look = state.look;
-    if (look == null || state.ocupado) return null;
+    // Já salvo (nesta sessão ou antes): não cria outro look igual (E6.F1.3).
+    if (look == null || state.ocupado || state.idSalvo != null) return null;
     state = state.copyWith(ocupado: true);
     try {
       await _garantirSalvo(look);
@@ -139,7 +148,7 @@ class LookDoDiaController extends Notifier<LookDoDiaState> {
   }
 
   Future<String> _garantirSalvo(Sugestao look) async {
-    final existente = state.salvos[look.chave];
+    final existente = state.idSalvo;
     if (existente != null) return existente;
     final criado = await ref.read(lookServiceProvider).criarLook(
           nome: nomeLookSugerido(_hoje),

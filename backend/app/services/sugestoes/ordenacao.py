@@ -37,8 +37,13 @@ ROTULO_OUSADIA = {
 }
 
 
-def _estilo(peca) -> str:
-    return (peca.estilo or "").strip()
+def _estilos_distintos(pecas) -> int:
+    """Peças com um estilo em comum contam como um só; sem estilo em comum,
+    conta os estilos diferentes que aparecem."""
+    com_estilo = [set(p.estilos) for p in pecas if p.estilos]
+    if not com_estilo:
+        return 0
+    return 1 if set.intersection(*com_estilo) else len(set.union(*com_estilo))
 
 
 def ids_do_look(candidato: Candidato) -> frozenset[uuid.UUID]:
@@ -77,8 +82,8 @@ def chave_ordenacao(
     return (
         -len(candidato.pares_favoritos),  # 1. pares favoritos
         sum(1 for p in pecas if campos_incompletos(p)),  # 2. peças incompletas
-        -sum(1 for p in pecas if _estilo(p) in prefs.estilos),  # 3. estilos preferidos
-        len({_estilo(p) for p in pecas if _estilo(p)}),  # 4. estilos distintos
+        -sum(1 for p in pecas if prefs.estilos.intersection(p.estilos)),  # 3. estilos preferidos
+        _estilos_distintos(pecas),  # 4. estilos distintos
         _criterio_uso(pecas, usos, contexto),  # 5. uso (total ou rotatividade)
         ousadia_maxima(prefs.criatividade) - candidato.ousadia,  # 6. distância da ousadia
         tuple(sorted(str(p.id) for p in pecas)),  # desempate final
@@ -148,11 +153,11 @@ def explicar(candidato: Candidato, prefs: PreferenciasMotor, filtros: Filtros) -
     # Peças coringa não são tratadas como compatíveis: só afirma o que todas têm.
     if filtros.ocasiao and all(filtros.ocasiao in p.ocasioes for p in pecas):
         frases.append(f"Todas as peças servem para {filtros.ocasiao}.")
-    estilos = {_estilo(p) for p in pecas}
-    if len(estilos) == 1 and "" not in estilos:
-        frases.append(f"Todas as peças são do estilo {estilos.pop()}.")
+    comuns = set.intersection(*(set(p.estilos) for p in pecas)) if pecas else set()
+    if comuns:
+        frases.append(f"Todas as peças são do estilo {', '.join(sorted(comuns))}.")
     else:
-        preferidos = sorted({_estilo(p) for p in pecas if _estilo(p) in prefs.estilos})
+        preferidos = sorted({e for p in pecas for e in p.estilos if e in prefs.estilos})
         if preferidos:
             frases.append(f"Peças no seu estilo preferido: {', '.join(preferidos)}.")
     return frases

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado atual
 
-Scaffold criado (backend FastAPI + mobile Flutter, ver "Estrutura de diretórios"). Endpoints e telas são esqueletos/placeholders — a lógica de negócio real (regras de recomendação, telas funcionais, chamada real ao Gemini) ainda não foi implementada. Atualize este arquivo quando decisões reais divergirem do plano.
+Scaffold criado (backend FastAPI + mobile Flutter, ver "Estrutura de diretórios"). Endpoints e telas são esqueletos/placeholders — a lógica de negócio real (regras de recomendação, telas funcionais, chamada real ao Gemma 3 via Ollama) ainda não foi implementada. Atualize este arquivo quando decisões reais divergirem do plano.
 
 Este arquivo é o resumo **operacional** — o que basta saber para trabalhar no código. Os documentos completos, com o racional por trás das decisões, estão em `docs/`: [visão](docs/visao.md) (objetivo, público-alvo, persona, não-objetivos), [arquitetura](docs/arquitetura.md) (diagrama, stack com justificativa, trade-offs) e [requisitos](docs/requisitos.md) (épicos, features, histórias de usuário, ordem de implementação). Quando este arquivo e os documentos completos divergirem sobre o "porquê" de uma decisão, os documentos em `docs/` são a fonte de verdade — atualize ambos juntos quando possível.
 
@@ -31,7 +31,7 @@ Essa restrição é a regra central do produto: **nenhuma feature de IA pode sug
 | Banco | PostgreSQL + `pgvector` |
 | ORM / migrações | SQLAlchemy 2.0 + Alembic |
 | Auth | Supabase Auth (JWT validado na API) |
-| Visão computacional | `rembg` (remoção de fundo) + Gemini Vision (extração de metadados) |
+| Visão computacional | `rembg` (remoção de fundo) + Gemma 3 4B via Ollama local (extração de metadados; decisão de 2026-10-23, substituiu Gemini/Llama) |
 | Storage | S3 ou Supabase Storage |
 | Dev local | Docker Compose (Postgres com `pgvector`) |
 
@@ -44,7 +44,7 @@ O caminho crítico do produto, e o que mais exige cuidado ao alterar:
 1. App captura/seleciona foto → upload para a API.
 2. API envia a imagem para `rembg` → PNG com fundo transparente.
 3. Imagem processada vai para o Cloud Storage; a URL pública é persistida.
-4. Gemini Vision analisa a imagem recortada e retorna metadados estruturados (categoria, cores dominantes, tecido aparente, estação, formalidade).
+4. O Gemma 3 4B (via Ollama) analisa a imagem recortada e retorna metadados estruturados (categoria, cores dominantes, tecido aparente, estação, formalidade).
 5. Um embedding de estilo da peça é gravado em coluna `vector` do `pgvector`.
 6. Usuário revisa e corrige os metadados antes de salvar — **a extração da IA é sempre sugestão, nunca verdade final.**
 
@@ -56,12 +56,12 @@ Os passos 2–5 são lentos e devem rodar fora do request HTTP (background task 
 
 ### Camadas do backend
 
-Mantenha a orquestração de IA isolada das rotas. Regra prática: um router FastAPI não chama `rembg` nem Gemini diretamente — chama um serviço, que chama os adaptadores. Isso mantém trocáveis o provedor de visão e o de storage, que são as peças mais propensas a mudar.
+Mantenha a orquestração de IA isolada das rotas. Regra prática: um router FastAPI não chama `rembg` nem o modelo de IA diretamente — chama um serviço, que chama os adaptadores. Isso mantém trocáveis o provedor de visão e o de storage, que são as peças mais propensas a mudar.
 
 ```
 routers/   → HTTP, validação Pydantic, dependência de auth
 services/  → regras de negócio (montagem de look, rotação de peças, matching de inspiração)
-adapters/  → rembg, Gemini, storage, clima — cada um atrás de uma interface
+adapters/  → rembg, Ollama (Gemma 3), storage, clima — cada um atrás de uma interface
 models/    → SQLAlchemy 2.0 (mapped_column, tipagem explícita)
 schemas/   → Pydantic, separados dos models
 ```
@@ -78,7 +78,7 @@ Supabase Auth emite o JWT; a API **valida** o token e deriva o `user_id` dele. O
 
 O motor de looks é determinístico o suficiente para ser testável: dado um armário fixo, uma ocasião e um conjunto de preferências, o resultado deve ser reproduzível. A variação ("incentivar peças menos usadas") é um parâmetro explícito de entrada — frequência de uso e recência entram na pontuação —, não aleatoriedade solta no meio do código.
 
-As regras aprovadas (cores/ousadia, estrutura do look, filtros, coringas, ordenação, páginas) estão em [docs/regras-sugestoes.md](docs/regras-sugestoes.md) — fonte única; não duplique as regras em outro lugar. Numeração dos épicos: 5 = sugestões sob demanda (motor de regras, sem IA), 6 = look do dia (reaproveita o motor), 7 = cadastro assistido por Gemini, 8 = inspiração por imagem.
+As regras aprovadas (cores/ousadia, estrutura do look, filtros, coringas, ordenação, páginas) estão em [docs/regras-sugestoes.md](docs/regras-sugestoes.md) — fonte única; não duplique as regras em outro lugar. Numeração dos épicos: 5 = sugestões sob demanda (motor de regras, sem IA), 6 = look do dia (reaproveita o motor), 7 = cadastro assistido por IA (Gemma 3 via Ollama), 8 = inspiração por imagem (1ª etapa: mural de referências, na versão inicial; 2ª: análise automatizada, futuro).
 
 ## Estrutura de diretórios
 
@@ -89,7 +89,7 @@ backend/
     db/         session.py (engine/SessionLocal/Base), models.py
     schemas/    Pydantic, separados dos models
     services/   orquestra os adapters (ex: image_service.py)
-    adapters/   rembg_adapter, storage_adapter (local por ora), gemini_adapter (stub)
+    adapters/   rembg_adapter, storage_adapter (local por ora), ollama_adapter (Gemma 3 via Ollama; falha vira sugestão vazia)
     api/v1/     router.py + um módulo por recurso (ex: pecas.py)
   alembic/      migrações — a 0001 já habilita a extensão pgvector
   uploads/      imagens salvas localmente em dev (gitignored, exceto .gitkeep)
@@ -148,5 +148,5 @@ Aprendizado contínuo de estilo, análise de gaps do armário e social ficam par
 ## Convenções
 
 - Português no domínio voltado ao usuário (labels, mensagens de erro, conteúdo). Inglês em código, nomes de tabela e API.
-- Nada de chamada de IA sem timeout e fallback: se o Gemini falhar, a peça é salva com os metadados que o usuário informar manualmente.
+- Nada de chamada de IA sem timeout e fallback: se o modelo de IA falhar, a peça é salva com os metadados que o usuário informar manualmente.
 - Migrações sempre via Alembic — nunca alterar o esquema direto no banco, nem confiar em `create_all`.

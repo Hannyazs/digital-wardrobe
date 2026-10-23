@@ -39,7 +39,7 @@ Peca _peca(
       imagemUrl: '/uploads/$id.png',
       categoria: categoria,
       corPrincipal: corPrincipal,
-      estacao: estacao,
+      estacoes: estacao == null ? const [] : [estacao],
       ocasioes: ocasiao == null ? const [] : [ocasiao],
     );
 
@@ -262,7 +262,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Seu armário está vazio'), findsOneWidget);
-    expect(find.text('Toque em + para adicionar sua primeira peça'), findsOneWidget);
+    expect(find.text('Toque no botão de câmera para adicionar sua primeira peça'), findsOneWidget);
   });
 
   testWidgets('Mostra peças agrupadas por categoria, incluindo grupo Outras', (
@@ -512,18 +512,17 @@ void main() {
     await tester.pumpAndSettle();
 
     // Aba inicial: Casa.
-    expect(find.text('Welcome!'), findsOneWidget);
+    expect(find.text('Olá!'), findsOneWidget);
 
     // Calendário de looks usados fica na Casa.
     expect(find.text('Calendário de looks'), findsOneWidget);
 
     await tester.tap(find.text('Armário'));
     await tester.pumpAndSettle();
-    expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
+    expect(find.text('Meu Armário'), findsOneWidget);
 
-    // A aba "Looks" é só a montagem; os looks salvos ficam no Armário.
-    // (`.last`: o seletor "Peças | Looks" do Armário também tem um "Looks".)
-    await tester.tap(find.text('Looks').last);
+    // A aba "Montar" é só a montagem; os looks salvos ficam em Armário › Looks.
+    await tester.tap(find.text('Montar'));
     await tester.pumpAndSettle();
     // Armário vazio neste teste (`_PecaServiceVazio`) — MontarLookView
     // mostra a orientação pra cadastrar peça primeiro, não a grade.
@@ -531,14 +530,14 @@ void main() {
 
     await tester.tap(find.text('Sugestões'));
     await tester.pumpAndSettle();
-    expect(find.text('Your suggestions'), findsOneWidget);
+    expect(find.text('Suas sugestões'), findsOneWidget);
 
     await tester.tap(find.text('Referências'));
     await tester.pumpAndSettle();
-    expect(find.text('Find your inspiration'), findsOneWidget);
+    expect(find.text('Inspirações'), findsOneWidget);
 
     await tester.tap(find.text('Casa'));
     await tester.pumpAndSettle();
-    expect(find.text('Welcome!'), findsOneWidget);
+    expect(find.text('Olá!'), findsOneWidget);
   });
 }

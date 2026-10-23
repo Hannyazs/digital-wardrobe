@@ -48,20 +48,21 @@ Tabela resultante entre cores não neutras:
 - No máximo **3 cores não neutras** por look, contadas por nome (cor repetida conta uma vez), em qualquer criatividade.
 - **Par de cores favorito** (preferências): pode passar da ousadia máxima. Não libera o limite de 3 cores, nem peças ou pares evitados.
 - Cor fora da lista fixa (texto livre antigo) é tratada como peça sem cor.
+- **Peça multicolorida** (cor predominante em `cor_principal` + `cores_secundarias`): conta como uma peça de cada uma das suas cores. O motor avalia cada cor (regras de ousadia, limite de 3 cores e filtro de cor valem para a cor avaliada) e o mesmo look sai uma só vez, com a cor que dá a menor ousadia. Decisão de 2026-10-23.
 
 **Rótulos da criatividade:** 1 Neutros + uma cor · 2 Tom sobre tom · 3 Cores vizinhas · 4 Cores contrastantes · 5 Cores opostas.
 
 ## 2. Estrutura do look
 
-- Parte de cima (Camisetas ou Camisas) + parte de baixo (Calças ou Saias) + Sapatos; **ou** Vestidos + Sapatos.
+- Parte de cima (Camisetas, Camisas, Blusas, Regatas ou Suéteres) + parte de baixo (Calças, Shorts ou Saias) + Sapatos; **ou** Vestido/Macacão + Sapatos.
 - Se nenhum sapato é compatível com a base, o look sai sem sapato e com o aviso "falta calçado".
 - Casaco (Casacos) entra só com filtro de estação Outono/Inverno ou com alguma sobreposição preferida marcada.
 - Acessórios não entram.
 
 ## 3. Filtros e restrições
 
-- **Ocasião / estilo:** a peça precisa ter o valor escolhido; sem o campo, entra como coringa.
-- **Estação:** a peça precisa ter a estação escolhida, "Todas as estações" ou estação vazia (estação vazia nunca é penalizada).
+- **Ocasião / estilo:** a peça precisa ter o valor escolhido (ocasiões e estilos aceitam vários valores; basta um bater); sem o campo, entra como coringa.
+- **Estação:** a peça pode ter várias estações; basta uma delas ser a escolhida. "Todas as estações" ou nenhuma estação marcada servem para qualquer pedido (estação vazia nunca é penalizada).
 - **Cor:** pelo menos uma peça do look tem a cor escolhida.
 - **Peças e pares evitados** nunca entram. Única exceção: a **peça-base** escolhida pelo usuário, se estiver evitada, entra com aviso — a exceção não vale para outras peças nem para pares evitados.
 - **Peça-base:** está em todos os looks. Se ela tem o campo preenchido com valor diferente de um filtro ativo (ocasião, estilo ou estação), não há looks: a resposta informa o conflito e o app oferece remover o filtro.
@@ -80,8 +81,8 @@ Comparação critério a critério; o seguinte só desempata o anterior.
 | --- | --- | --- | --- |
 | 1 | Par de cores favorito | Pares favoritos distintos presentes | Maior |
 | 2 | Cadastro completo | Peças incompletas | Menor |
-| 3 | Estilos preferidos | Peças com estilo preferido | Maior |
-| 4 | Coerência de estilo | Estilos distintos entre as peças | Menor |
+| 3 | Estilos preferidos | Peças com algum estilo preferido | Maior |
+| 4 | Coerência de estilo | Estilos distintos entre as peças (1 se todas compartilham um estilo) | Menor |
 | 5 | Menor uso | Total de usos das peças (Épico 6: peças esquecidas e uso mais antigo primeiro) | Menor |
 | 6 | Ousadia | Distância até a ousadia máxima | Menor |
 | — | Desempate final | IDs das peças em ordem | Menor |
@@ -92,7 +93,7 @@ Comparação critério a critério; o seguinte só desempata o anterior.
 
 - 3 looks por página; cada peça aparece em no máximo 2 looks da mesma página. Looks pulados por essa regra ficam para as próximas páginas.
 - Looks descartados valem só durante a sessão: o app os envia no pedido e eles ficam de fora.
-- **Looks já salvos não voltam nas sugestões sob demanda** (E5.F1.3): look com exatamente as mesmas peças de um look salvo do usuário fica de fora, como um descarte permanente. O mesmo look com uma peça a mais (ex.: + casaco) ainda pode aparecer. Não vale para o look do dia, que pode trazer um look salvo (a rotatividade já evita repetição recente).
+- **Looks já salvos não voltam nas sugestões sob demanda** (E5.F1.3): look com exatamente as mesmas peças de um look salvo do usuário fica de fora, como um descarte permanente. O mesmo look com uma peça a mais (ex.: + casaco) ainda pode aparecer. Não vale para o look do dia, que pode trazer um look salvo (a rotatividade já evita repetição recente) — mas aí o app mostra que ele já está salvo e não deixa salvar de novo (E6.F1.3). Lista vazia só por causa de looks salvos tem mensagem própria.
 - O motor avalia no máximo 20.000 looks candidatos por pedido (configurável), descartando combinações inválidas enquanto monta. Para armários do tamanho esperado (dezenas de peças) o limite não é atingido; acima dele, algumas combinações podem não ser avaliadas.
 
 ## 7. Fora desta versão

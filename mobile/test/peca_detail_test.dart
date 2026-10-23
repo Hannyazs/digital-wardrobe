@@ -22,10 +22,10 @@ final _peca = Peca(
   categoria: 'Vestidos',
   subcategoria: 'Longo',
   corPrincipal: 'Azul',
-  estacao: 'Verão',
+  estacoes: ['Verão'],
   // Com estilo, a peça fica completa: sem a faixa de cadastro incompleto
   // (E5.F4.1, testada em cadastro_incompleto_test.dart) no topo do detalhe.
-  estilo: 'Elegante',
+  estilos: ['Elegante'],
   ocasioes: ['Festa'],
 );
 
@@ -40,8 +40,9 @@ class _PecaServiceComSucesso extends PecaService {
     String? subcategoria,
     String? corPrincipal,
     String? tonalidadeCor,
-    String? estacao,
-    String? estilo,
+    List<String> coresSecundarias = const [],
+    List<String> estacoes = const [],
+    List<String> estilos = const [],
     String? modelagem,
     List<String> ocasioes = const [],
   }) async =>
@@ -118,6 +119,9 @@ class _TelaInicialFake extends StatelessWidget {
 
 void main() {
   testWidgets('Mostra imagem e metadados da peça', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [preferenciaServiceProvider.overrideWithValue(PreferenciaServiceSemEvitadas())],

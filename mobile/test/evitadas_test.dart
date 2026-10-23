@@ -86,6 +86,12 @@ class _PecaServiceExclui extends PecaService {
 }
 
 Future<void> _abrirDetalhe(WidgetTester tester, _PreferenciaServiceEvitadas service) async {
+  // Tela alta: o botão "Evitar nas sugestões" fica no fim do detalhe (Etapa 8
+  // do redesign) e o `ListView` só constrói o que cabe na tela.
+  tester.view.physicalSize = const Size(800, 2000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [preferenciaServiceProvider.overrideWithValue(service)],
@@ -118,12 +124,13 @@ void main() {
       await _abrirDetalhe(tester, service);
 
       expect(find.text('Evitada nas sugestões'), findsNothing);
-      await tester.tap(find.byTooltip('Evitar nas sugestões'));
+      await tester.ensureVisible(find.text('Evitar nas sugestões'));
+      await tester.tap(find.text('Evitar nas sugestões'));
       await tester.pumpAndSettle();
 
       expect(service.pecas.map((p) => p.id), ['peca-1']);
       expect(find.text('Evitada nas sugestões'), findsOneWidget);
-      expect(find.byTooltip('Parar de evitar'), findsOneWidget);
+      expect(find.text('Parar de evitar'), findsOneWidget);
       expect(find.text('Peça marcada para não aparecer nas sugestões.'), findsOneWidget);
     });
 
@@ -132,12 +139,13 @@ void main() {
       await _abrirDetalhe(tester, service);
 
       expect(find.text('Evitada nas sugestões'), findsOneWidget);
-      await tester.tap(find.byTooltip('Parar de evitar'));
+      await tester.ensureVisible(find.text('Parar de evitar'));
+      await tester.tap(find.text('Parar de evitar'));
       await tester.pumpAndSettle();
 
       expect(service.pecas, isEmpty);
       expect(find.text('Evitada nas sugestões'), findsNothing);
-      expect(find.byTooltip('Evitar nas sugestões'), findsOneWidget);
+      expect(find.text('Evitar nas sugestões'), findsOneWidget);
       expect(find.text('A peça voltou a poder aparecer nas sugestões.'), findsOneWidget);
     });
 
@@ -146,7 +154,8 @@ void main() {
         ..erroAoAlterar = _erro('/preferencias/pecas-evitadas');
       await _abrirDetalhe(tester, service);
 
-      await tester.tap(find.byTooltip('Evitar nas sugestões'));
+      await tester.ensureVisible(find.text('Evitar nas sugestões'));
+      await tester.tap(find.text('Evitar nas sugestões'));
       await tester.pumpAndSettle();
 
       expect(
@@ -154,7 +163,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Evitada nas sugestões'), findsNothing);
-      expect(find.byTooltip('Evitar nas sugestões'), findsOneWidget);
+      expect(find.text('Evitar nas sugestões'), findsOneWidget);
     });
 
     testWidgets('401 e 404 têm mensagens próprias', (tester) async {
@@ -162,7 +171,8 @@ void main() {
         ..erroAoAlterar = _erro('/preferencias/pecas-evitadas/peca-1', status: 404);
       await _abrirDetalhe(tester, service);
 
-      await tester.tap(find.byTooltip('Parar de evitar'));
+      await tester.ensureVisible(find.text('Parar de evitar'));
+      await tester.tap(find.text('Parar de evitar'));
       await tester.pumpAndSettle();
       expect(find.text('Peça não encontrada. Ela pode ter sido excluída.'), findsOneWidget);
       expect(find.text('Evitada nas sugestões'), findsOneWidget);
@@ -171,7 +181,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
       service.erroAoAlterar = _erro('/preferencias/pecas-evitadas/peca-1', status: 401);
-      await tester.tap(find.byTooltip('Parar de evitar'));
+      await tester.ensureVisible(find.text('Parar de evitar'));
+      await tester.tap(find.text('Parar de evitar'));
       await tester.pumpAndSettle();
       expect(
         find.text('Sessão expirada ou inválida. Não foi possível atualizar a peça.'),
@@ -188,8 +199,9 @@ void main() {
 
       expect(find.text('Vestidos'), findsOneWidget);
       expect(find.text('Evitada nas sugestões'), findsNothing);
-      final botao = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.do_not_disturb_on_outlined),
+      // Botão com texto no corpo do detalhe (antes, ícone na barra).
+      final botao = tester.widget<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, 'Evitar nas sugestões'),
       );
       expect(botao.onPressed, isNotNull);
     });

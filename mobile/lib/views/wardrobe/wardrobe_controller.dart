@@ -57,23 +57,41 @@ Map<String, List<Peca>> secoesDaGaveta(Gaveta gaveta, List<Peca> pecas) {
   final daGaveta = pecasDaGaveta(gaveta, pecas);
   if (gaveta.categorias.length != 1) return agruparPorCategoria(daGaveta);
 
+  // "Midi" e "midi" são a mesma seção; vale a grafia da primeira peça.
   final porSubcategoria = <String, List<Peca>>{};
+  final nomeDaChave = <String, String>{};
   final semSubcategoria = <Peca>[];
   for (final peca in daGaveta) {
     final sub = peca.subcategoria?.trim() ?? '';
     if (sub.isEmpty) {
       semSubcategoria.add(peca);
     } else {
-      porSubcategoria.putIfAbsent(sub, () => []).add(peca);
+      final chave = sub.toLowerCase();
+      nomeDaChave.putIfAbsent(chave, () => sub);
+      porSubcategoria.putIfAbsent(chave, () => []).add(peca);
     }
   }
-  final nomes = porSubcategoria.keys.toList()
-    ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  final chaves = porSubcategoria.keys.toList()..sort();
   return {
-    for (final nome in nomes) nome: porSubcategoria[nome]!,
+    for (final chave in chaves) nomeDaChave[chave]!: porSubcategoria[chave]!,
     if (semSubcategoria.isNotEmpty)
       porSubcategoria.isEmpty ? gaveta.categorias.single : 'Sem subcategoria': semSubcategoria,
   };
+}
+
+/// Subcategorias já usadas em peças da [categoria] (sem repetir por maiúsculas,
+/// na grafia da primeira peça, em ordem alfabética), menos a já digitada em
+/// [atual]. Atalhos do formulário de cadastro.
+List<String> subcategoriasUsadas(List<Peca> pecas, String? categoria, {String atual = ''}) {
+  if (categoria == null) return const [];
+  final porChave = <String, String>{};
+  for (final peca in pecas.where((p) => p.categoria == categoria)) {
+    final sub = peca.subcategoria?.trim() ?? '';
+    if (sub.isNotEmpty) porChave.putIfAbsent(sub.toLowerCase(), () => sub);
+  }
+  porChave.remove(atual.trim().toLowerCase());
+  final chaves = porChave.keys.toList()..sort();
+  return [for (final c in chaves) porChave[c]!];
 }
 
 /// Filtro de peças, usado no armário e na montagem de look. Cada critério
@@ -135,12 +153,13 @@ final filtroEdicaoLookProvider = StateProvider<FiltroPecas>((ref) => const Filtr
 /// como no motor de sugestões.
 List<Peca> filtrarPecas(List<Peca> pecas, FiltroPecas filtro) {
   return pecas.where((peca) {
-    if (filtro.cores.isNotEmpty && !filtro.cores.contains(peca.corPrincipal)) {
+    // Peça multicolorida aparece no filtro de qualquer uma das suas cores.
+    if (filtro.cores.isNotEmpty && !coresDaPeca(peca).any(filtro.cores.contains)) {
       return false;
     }
     if (filtro.estacoes.isNotEmpty &&
-        !filtro.estacoes.contains(peca.estacao) &&
-        peca.estacao != _todasAsEstacoes) {
+        !peca.estacoes.any(filtro.estacoes.contains) &&
+        !peca.estacoes.contains(_todasAsEstacoes)) {
       return false;
     }
     if (filtro.ocasioes.isNotEmpty && !peca.ocasioes.any(filtro.ocasioes.contains)) {
@@ -160,13 +179,13 @@ List<String> _opcoes(Iterable<String> existentes, List<String> ordem, Set<String
 }
 
 List<String> coresDisponiveis(List<Peca> pecas, [Set<String> selecionadas = const {}]) => _opcoes(
-      pecas.map((p) => p.corPrincipal).whereType<String>(),
+      pecas.expand(coresDaPeca),
       [for (final c in coresFixas) c.nome],
       selecionadas,
     );
 
 List<String> estacoesDisponiveis(List<Peca> pecas, [Set<String> selecionadas = const {}]) =>
-    _opcoes(pecas.map((p) => p.estacao).whereType<String>(), estacoesFixas, selecionadas);
+    _opcoes(pecas.expand((p) => p.estacoes), estacoesFixas, selecionadas);
 
 List<String> ocasioesDisponiveis(List<Peca> pecas, [Set<String> selecionadas = const {}]) =>
     _opcoes(pecas.expand((p) => p.ocasioes), ocasioesFixas, selecionadas);

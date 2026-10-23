@@ -17,8 +17,10 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_key: str = ""
 
-    # Gemini Vision
-    gemini_api_key: str = ""
+    # Ollama (Gemma 3) — sugestão de metadados da peça (E7.F1.1)
+    ollama_url: str = "http://localhost:11434"
+    ollama_modelo: str = "gemma3:4b"
+    ollama_timeout_s: float = 30.0
 
     # Storage local (MVP)
     upload_dir: str = "uploads"

@@ -23,6 +23,10 @@ from app.services.sugestoes.tipos import (
 )
 
 MOTIVO_SEM_MAIS = "Não há mais sugestões com esses filtros."
+MOTIVO_TODOS_SALVOS = (
+    "Todas as combinações possíveis já estão nos seus looks salvos. "
+    "Cadastre mais peças ou mude os filtros."
+)
 OCASIAO_PADRAO_LOOK_DO_DIA = "Casual"
 
 _DESCRICAO_CONFLITO = {
@@ -54,16 +58,20 @@ def mensagem_conflito(conflito: Conflito) -> str:
     )
 
 
-def conjuntos_por_look(
+def looks_por_conjunto(
     linhas: Iterable[tuple[uuid.UUID, uuid.UUID]],
-) -> list[frozenset[uuid.UUID]]:
-    """Linhas (look_id, peca_id) → conjunto de peças de cada look. Usado para
-    tratar looks já salvos como descartados (E5.F1.3): só conjunto idêntico
-    conta; o mesmo look com uma peça a mais continua podendo ser sugerido."""
+) -> dict[frozenset[uuid.UUID], uuid.UUID]:
+    """Linhas (look_id, peca_id) → {conjunto de peças: id do look}. Os conjuntos
+    são os looks salvos que a aba Sugestões não repete (E5.F1.3; só conjunto
+    idêntico conta) e o id diz ao look do dia qual look já existe (E6.F1.3).
+    Se dois looks tiverem as mesmas peças, fica o primeiro das linhas."""
     por_look: dict[uuid.UUID, set[uuid.UUID]] = {}
     for look_id, peca_id in linhas:
         por_look.setdefault(look_id, set()).add(peca_id)
-    return [frozenset(ids) for ids in por_look.values()]
+    resultado: dict[frozenset[uuid.UUID], uuid.UUID] = {}
+    for look_id, ids in por_look.items():
+        resultado.setdefault(frozenset(ids), look_id)
+    return resultado
 
 
 def sugerir(
@@ -76,22 +84,27 @@ def sugerir(
     descartados: Iterable[frozenset[uuid.UUID]] = (),
     peca_base_id: uuid.UUID | None = None,
     limite: int = LIMITE_PADRAO,
+    salvos: Iterable[frozenset[uuid.UUID]] = (),
 ) -> ResultadoSugestoes:
+    """`salvos` (looks já salvos, E5.F1.3) ficam de fora como os descartes; a
+    diferença é só a mensagem quando eles são o motivo da lista vazia."""
     montagem = gerar_candidatos(pecas, filtros, prefs, restricoes, peca_base_id, limite)
     if not montagem.candidatos:
         return ResultadoSugestoes(
             pagina=pagina, motivo=montagem.motivo, conflitos=montagem.conflitos
         )
 
+    descartados, salvos = list(descartados), list(salvos)
     ordenados = ordenar(montagem.candidatos, prefs, usos)
-    escolhidos, tem_mais = paginar(ordenados, pagina, descartados)
+    escolhidos, tem_mais = paginar(ordenados, pagina, descartados + salvos)
     looks = [LookSugerido(c, explicar(c, prefs, filtros), avisos(c)) for c in escolhidos]
-    return ResultadoSugestoes(
-        looks=looks,
-        pagina=pagina,
-        tem_mais=tem_mais,
-        motivo=None if looks else MOTIVO_SEM_MAIS,
-    )
+    motivo = None
+    if not looks:
+        # Na 1ª página, se só os looks salvos esvaziaram a lista, diz isso em
+        # vez de "não há mais" (que parece que algo já foi mostrado).
+        so_salvos = pagina == 1 and salvos and paginar(ordenados, 1, descartados)[0]
+        motivo = MOTIVO_TODOS_SALVOS if so_salvos else MOTIVO_SEM_MAIS
+    return ResultadoSugestoes(looks=looks, pagina=pagina, tem_mais=tem_mais, motivo=motivo)
 
 
 def sugerir_look_do_dia(

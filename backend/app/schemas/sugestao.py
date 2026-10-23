@@ -68,6 +68,8 @@ class LookDoDiaPedido(BaseModel):
 
 class LookDoDiaRead(BaseModel):
     look: LookSugeridoRead | None
+    # E6.F1.3: id do look salvo com exatamente as mesmas peças, se existir.
+    look_salvo_id: uuid.UUID | None = None
     ocasiao: str
     tem_mais: bool
     motivo: str | None

@@ -12,32 +12,39 @@ class PecasDoLook extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 64,
-      child: Row(
-        children: [
-          for (final peca in pecas)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                // Só ilustrativa — sem InkWell/ripple: tocar aqui não leva a
-                // lugar nenhum ainda (sem detalhe de peça dentro de um look).
-                child: Image.network(
-                  AppConstants.resolveMediaUrl(peca.imagemUrl),
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Icon(Icons.broken_image_outlined),
+    // Uma frase para o leitor de tela no lugar de várias fotos sem nome.
+    return Semantics(
+      label: 'Peças: ${pecas.map(descricaoPeca).join('; ')}',
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: 64,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final peca in pecas)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    // Só ilustrativa — sem InkWell/ripple: tocar aqui não leva a
+                    // lugar nenhum ainda (sem detalhe de peça dentro de um look).
+                    child: Image.network(
+                      AppConstants.resolveMediaUrl(peca.imagemUrl),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

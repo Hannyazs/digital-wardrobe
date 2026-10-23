@@ -36,8 +36,8 @@ class HomeView extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             const ScreenHeader(
-              titulo: 'Welcome!',
-              subtitulo: "Let's get started.",
+              titulo: 'Olá!',
+              subtitulo: 'Vamos escolher o que vestir.',
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),

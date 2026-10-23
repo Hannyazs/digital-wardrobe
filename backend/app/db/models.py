@@ -37,11 +37,21 @@ class Peca(Base):
     categoria: Mapped[str] = mapped_column(String, nullable=False)
     subcategoria: Mapped[str | None] = mapped_column(String, nullable=True)
     cor_principal: Mapped[str | None] = mapped_column(String, nullable=True)
-    estacao: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Uma peça pode servir a várias estações ("Todas as estações" é uma delas).
+    estacoes: Mapped[list[str]] = mapped_column(
+        ARRAY(String), nullable=False, server_default=text("'{}'::varchar[]")
+    )
+    # Peça multicolorida: as demais cores; a predominante fica em `cor_principal`.
+    cores_secundarias: Mapped[list[str]] = mapped_column(
+        ARRAY(String), nullable=False, server_default=text("'{}'::varchar[]")
+    )
     # Cor e tonalidade são informações distintas (ex.: azul-marinho / escura) —
     # a tonalidade ajuda a combinar peças na recomendação de looks.
     tonalidade_cor: Mapped[str | None] = mapped_column(String, nullable=True)
-    estilo: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Uma peça pode ter vários estilos (festa e casual, por exemplo).
+    estilos: Mapped[list[str]] = mapped_column(
+        ARRAY(String), nullable=False, server_default=text("'{}'::varchar[]")
+    )
     modelagem: Mapped[str | None] = mapped_column(String, nullable=True)
     # Uma peça pode servir a várias ocasiões; "Outros" guarda o texto digitado.
     ocasioes: Mapped[list[str]] = mapped_column(

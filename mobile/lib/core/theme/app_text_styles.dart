@@ -35,6 +35,12 @@ class AppTextStyles {
   static TextStyle secundario({Color color = AppColors.textSecondary}) =>
       GoogleFonts.caveat(fontSize: 20, color: color);
 
+  /// Texto de apoio funcional (dicas de campo, "Usado há N dias", avisos
+  /// curtos): mesma fonte do corpo, menor e em cinza — legível, ao contrário
+  /// da cursiva de [secundario].
+  static TextStyle legenda({Color color = AppColors.textSecondary}) =>
+      TextStyle(fontSize: 12.5, color: color, height: 1.35);
+
   /// Label de categoria (ex: "ACESSÓRIOS", "TOPS") — monoespaçada, caixa
   /// alta, mesma família do subtítulo/botões.
   static TextStyle labelCategoria({Color color = AppColors.textPrimary}) =>

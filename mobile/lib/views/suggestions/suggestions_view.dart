@@ -60,8 +60,8 @@ class _SuggestionsViewState extends ConsumerState<SuggestionsView> {
         children: [
           if (pecaBase == null)
             const ScreenHeader(
-              titulo: 'Your suggestions',
-              subtitulo: "Let's find a look for you.",
+              titulo: 'Suas sugestões',
+              subtitulo: 'Looks montados só com as suas peças.',
             )
           else
             _CabecalhoPecaBase(peca: pecaBase),

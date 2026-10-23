@@ -49,7 +49,9 @@ class AppTheme {
         titleMedium: AppTextStyles.labelCategoria(),
         bodyLarge: AppTextStyles.corpo(),
         bodyMedium: AppTextStyles.corpo(),
-        bodySmall: AppTextStyles.secundario(),
+        // Texto de apoio legível (dicas, rótulos de uso). A cursiva fica para
+        // as frases decorativas (`AppTextStyles.secundario`).
+        bodySmall: AppTextStyles.legenda(),
         labelLarge: AppTextStyles.botao(),
         labelMedium: AppTextStyles.labelCategoria(),
       ),
@@ -94,17 +96,19 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.backgroundSecondary,
         labelStyle: AppTextStyles.corpo(color: AppColors.textSecondary),
+        // Contorno com contraste 3:1 (antes: sage 40%, ~1,3:1 — campo quase
+        // invisível). Foco = mesma cor, mais grossa.
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(raioPadrao),
-          borderSide: BorderSide(color: AppColors.sage.withValues(alpha: 0.4)),
+          borderSide: const BorderSide(color: AppColors.sageEscuro),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(raioPadrao),
-          borderSide: BorderSide(color: AppColors.sage.withValues(alpha: 0.4)),
+          borderSide: const BorderSide(color: AppColors.sageEscuro),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(raioPadrao),
-          borderSide: const BorderSide(color: AppColors.sage, width: 2),
+          borderSide: const BorderSide(color: AppColors.sageEscuro, width: 2.5),
         ),
       ),
 

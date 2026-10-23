@@ -93,12 +93,29 @@ class CardLookDoDia extends ConsumerWidget {
                       texto: dia.motivo ?? 'Nenhum look disponível para hoje.',
                     );
                   }
-                  final salvo = estado.salvos.containsKey(look.chave);
+                  final jaExistia = dia.lookSalvoId != null;
+                  final salvo = estado.idSalvo != null;
                   final usado = estado.usados.contains(look.chave);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ConteudoSugestao(sugestao: look),
+                      if (jaExistia)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.bookmark, size: 18, color: AppColors.textSecondary),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Este look já está em Armário › Looks.',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 12),
                       Wrap(
                         alignment: WrapAlignment.end,
@@ -112,7 +129,7 @@ class CardLookDoDia extends ConsumerWidget {
                                 dia.temMais && !estado.ocupado ? controller.outraSugestao : null,
                           ),
                           AppButton(
-                            label: salvo ? 'Salvo' : 'Salvar',
+                            label: jaExistia ? 'Já salvo' : (salvo ? 'Salvo' : 'Salvar'),
                             icon: salvo ? Icons.check : Icons.bookmark_add_outlined,
                             variant: AppButtonVariant.secondary,
                             onPressed: salvo || estado.ocupado

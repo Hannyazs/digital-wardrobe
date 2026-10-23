@@ -127,12 +127,12 @@ void main() {
 
     // Redesign visual (Etapa 4): a aba inicial agora é "Casa", não o
     // armário diretamente.
-    expect(find.text('Welcome!'), findsOneWidget);
+    expect(find.text('Olá!'), findsOneWidget);
 
     await tester.tap(find.text('Armário'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
+    expect(find.text('Meu Armário'), findsOneWidget);
   });
 
   testWidgets('FAB do armário navega para a tela de adicionar peça (E1.F1.1)', (
@@ -159,7 +159,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.add_a_photo));
     await tester.pumpAndSettle();
 
-    expect(find.text('Adicionar Peça'), findsOneWidget);
+    expect(find.text('Adicionar peça'), findsOneWidget);
     expect(find.text('Adicione uma foto da peça'), findsOneWidget);
     expect(find.text('Tirar foto'), findsOneWidget);
     expect(find.text('Escolher da galeria'), findsOneWidget);
@@ -210,7 +210,7 @@ void main() {
     await tester.tap(find.text('Continuar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Detalhes da peça'), findsOneWidget);
+    expect(find.text('Dados da peça'), findsOneWidget);
   });
 
   testWidgets('Falha no envio mostra mensagem de erro com opção de tentar novamente (E1.F1.3)', (
@@ -270,7 +270,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Continuando sem remoção de fundo — você pode ajustar isso depois.'),
+        find.text('A peça será salva com o fundo original da foto.'),
         findsOneWidget,
       );
     },

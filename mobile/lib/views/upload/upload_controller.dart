@@ -80,6 +80,7 @@ class UploadSubmissionController extends Notifier<EnvioState> {
       final resultado = await ref.read(pecaServiceProvider).processarImagem(foto);
       state = EnvioSucesso(
         AppConstants.resolveMediaUrl(resultado['imagem_url'] as String),
+        sugestao: resultado['sugestao'] as Map<String, dynamic>?,
       );
     } on DioException catch (e) {
       state = EnvioErro(_mensagemDeErro(e));

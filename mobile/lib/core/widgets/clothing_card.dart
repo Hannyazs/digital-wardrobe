@@ -19,6 +19,7 @@ class ClothingCard extends StatelessWidget {
     this.selecionavel = false,
     this.selecionada = false,
     this.incompleta = false,
+    this.rotulo,
     this.onTap,
   });
 
@@ -34,6 +35,10 @@ class ClothingCard extends StatelessWidget {
   /// Selo de "cadastro incompleto" (E5.F4.1). Só o armário liga; a montagem
   /// de look e as miniaturas de look não mostram.
   final bool incompleta;
+
+  /// O que o leitor de tela anuncia (ex.: "Calças, jeans, preto"). Sem ele
+  /// a foto não diz nada para quem usa TalkBack/VoiceOver.
+  final String? rotulo;
   final VoidCallback? onTap;
 
   @override
@@ -94,7 +99,17 @@ class ClothingCard extends StatelessWidget {
       ],
     );
 
-    if (onTap == null) return conteudo;
-    return InkWell(borderRadius: BorderRadius.circular(12), onTap: onTap, child: conteudo);
+    final card = onTap == null
+        ? conteudo
+        : InkWell(borderRadius: BorderRadius.circular(12), onTap: onTap, child: conteudo);
+    return MergeSemantics(
+      child: Semantics(
+        label: rotulo,
+        button: onTap != null,
+        // Na montagem: "selecionada" ou não, além do selo visual.
+        selected: selecionavel ? selecionada : null,
+        child: card,
+      ),
+    );
   }
 }

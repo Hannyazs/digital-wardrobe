@@ -706,6 +706,165 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Estimativa**: M.
 **Dependências**: E6.F1.1, E5.F2.1.
 
+### E6.F1.3 — Look do dia que já é um look salvo (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-F1-look-do-dia/E6.F1.3-look-do-dia-ja-salvo.md](PBIs/E6-F1-look-do-dia/E6.F1.3-look-do-dia-ja-salvo.md).
+
+**Descrição**: o look do dia continua podendo trazer um look salvo, mas o card mostra "Já salvo" (sem salvar de novo) e "Usei hoje" registra o uso no look existente. Pedido do usuário depois de salvar o mesmo look duas vezes.
+
+**Critérios de aceite:**
+- Look do dia igual a um salvo: "Já salvo" desabilitado e aviso; "Usei hoje" usa o look existente, sem criar outro.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — `look_salvo_id` em `POST /sugestoes/look-do-dia`; card com "Já salvo". Conferido com a API real; `pytest` 93; `flutter test` 242/242.
+**Estimativa**: P.
+**Dependências**: E6.F1.2, E5.F1.3, E3.F5.1.
+
+---
+
+## Épico 7, Feature 1 — Sugestão automática de metadados por IA (Gemma 3 via Ollama)
+
+Primeira assistência de IA do cadastro: o Gemma 3 4B, rodando localmente via Ollama, olha a foto já sem fundo e sugere atributos; o usuário sempre revisa antes de salvar. Substitui os planos anteriores com Gemini e Llama (decisão de 2026-10-23; o Llama 4 Scout não cabe na memória do notebook).
+
+### E7.F1.1 — Adaptador do Ollama (Gemma 3) e sugestão no processamento da foto (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E7-F1-metadados-por-ia/E7.F1.1-adaptador-ollama-backend.md](PBIs/E7-F1-metadados-por-ia/E7.F1.1-adaptador-ollama-backend.md).
+
+**Descrição**: trocar o `gemini_adapter` (stub) por um `ollama_adapter` que chama o Gemma 3 no Ollama local e devolve categoria, subcategoria, cor e tonalidade sugeridas em `POST /pecas/processar-imagem`, com tempo limite e sugestão vazia em qualquer falha.
+
+**Critérios de aceite:**
+- Com o Ollama rodando, a resposta traz `sugestao` preenchida só com valores das listas fixas.
+- Com o Ollama parado, lento ou respondendo lixo, a resposta continua 200, com `sugestao` vazia.
+
+**Status**: **concluída (rota ponta a ponta ainda não exercitada)** — `ollama_adapter` no lugar do stub do Gemini; sugestão vazia em qualquer falha. `pytest` 104; testado com o Ollama real (7–13 s por foto).
+**Estimativa**: M.
+**Dependências**: E1.F1.2.
+
+### E7.F1.2 — Formulário pré-preenchido com a sugestão da IA (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E7-F1-metadados-por-ia/E7.F1.2-formulario-pre-preenchido.md](PBIs/E7-F1-metadados-por-ia/E7.F1.2-formulario-pre-preenchido.md).
+
+**Descrição**: levar a `sugestao` do processamento até o `PecaFormView`, pré-preencher os campos e avisar que foram sugeridos pela IA e devem ser revisados.
+
+**Critérios de aceite:**
+- Com sugestão, os campos vêm preenchidos e editáveis, com aviso "Sugerido pela IA — revise antes de salvar".
+- Sem sugestão (IA falhou ou fallback sem remoção de fundo), o formulário abre vazio como hoje, sem aviso.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — `sugestao` levada até o `PecaFormView`, que pré-preenche os campos e mostra o aviso da IA. `flutter test` 247; `flutter analyze` limpo.
+**Estimativa**: P.
+**Dependências**: E7.F1.1, E1.F2.1.
+
+---
+
+## Épico 8 — Mural de referências (primeira etapa)
+
+Decisões de 2026-10-23: o mural guarda imagens da galeria (sem `rembg`), mostradas numa grade e separáveis em coleções criadas pelo usuário; cada imagem tem nota opcional e pode ser ligada a um look salvo; o Gemma 3 (Ollama) sugere etiquetas das peças visíveis, só como texto. Sem link de origem. A comparação automática com o armário continua como evolução futura.
+
+### Épico 8, Feature 1 — Mural básico
+
+### E8.F1.1 — Referências do mural: tabela, upload e rotas (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F1-mural-basico/E8.F1.1-referencias-backend.md](PBIs/E8-F1-mural-basico/E8.F1.1-referencias-backend.md).
+
+**Descrição**: tabela `referencias` por usuário e rotas para enviar a imagem da galeria, listar, editar a nota e excluir (apagando o arquivo).
+
+**Critérios de aceite:**
+- Imagem válida enviada aparece na listagem; arquivo inválido ou acima de 10 MB responde 422.
+- Cada usuário vê, edita e exclui só as suas referências.
+
+**Status**: não iniciado.
+**Estimativa**: M.
+**Dependências**: Auth JWT e `storage_adapter` existentes.
+
+### E8.F1.2 — Grade do mural e adicionar da galeria (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F1-mural-basico/E8.F1.2-grade-e-adicionar-da-galeria.md](PBIs/E8-F1-mural-basico/E8.F1.2-grade-e-adicionar-da-galeria.md).
+
+**Descrição**: a aba Referências vira uma grade em duas colunas, com botão para adicionar da galeria (nota opcional) e visualização grande.
+
+**Critérios de aceite:**
+- Foto escolhida da galeria aparece no topo da grade.
+- Mural vazio mostra mensagem e o botão Adicionar.
+
+**Status**: não iniciado.
+**Estimativa**: M.
+**Dependências**: E8.F1.1.
+
+### E8.F1.3 — Nota e exclusão da referência (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F1-mural-basico/E8.F1.3-nota-e-exclusao.md](PBIs/E8-F1-mural-basico/E8.F1.3-nota-e-exclusao.md).
+
+**Descrição**: editar a nota e excluir a referência (com confirmação) na visualização.
+
+**Critérios de aceite:**
+- Nota editada persiste ao reabrir.
+- Exclusão confirmada remove a imagem da grade.
+
+**Status**: não iniciado.
+**Estimativa**: P.
+**Dependências**: E8.F1.1, E8.F1.2.
+
+### Épico 8, Feature 2 — Coleções
+
+### E8.F2.1 — Coleções de referências (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F2-colecoes/E8.F2.1-colecoes-backend.md](PBIs/E8-F2-colecoes/E8.F2.1-colecoes-backend.md).
+
+**Descrição**: tabela `colecoes` com CRUD; cada referência em no máximo uma coleção; filtro por coleção na listagem.
+
+**Critérios de aceite:**
+- Nome repetido (sem diferenciar caixa) responde 409.
+- Excluir a coleção mantém as referências, sem coleção.
+
+**Status**: não iniciado.
+**Estimativa**: M.
+**Dependências**: E8.F1.1.
+
+### E8.F2.2 — Aba de coleções no mural (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F2-colecoes/E8.F2.2-colecoes-no-mural.md](PBIs/E8-F2-colecoes/E8.F2.2-colecoes-no-mural.md).
+
+**Descrição**: abas Todas/Coleções no mural, criar/renomear/excluir coleção, escolher a coleção ao adicionar e mover imagens.
+
+**Critérios de aceite:**
+- Imagem adicionada numa coleção aparece na grade dela e em Todas.
+- Excluir a coleção não apaga as imagens.
+
+**Status**: não iniciado.
+**Estimativa**: M.
+**Dependências**: E8.F2.1, E8.F1.3.
+
+### Épico 8, Feature 3 — Ligação a um look
+
+### E8.F3.1 — Ligar a referência a um look salvo (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F3-ligar-a-look/E8.F3.1-ligar-referencia-a-look.md](PBIs/E8-F3-ligar-a-look/E8.F3.1-ligar-referencia-a-look.md).
+
+**Descrição**: uma referência pode ser ligada a um look salvo; a visualização mostra o look e a grade um selo.
+
+**Critérios de aceite:**
+- Referência ligada mostra nome e peças do look.
+- Look arquivado não aparece como ligado.
+
+**Status**: não iniciado.
+**Estimativa**: M.
+**Dependências**: E8.F1.3, E3.F1.1.
+
+### Épico 8, Feature 4 — Etiquetas por IA
+
+### E8.F4.1 — Etiquetas das peças da referência por IA (backend + mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F4-etiquetas-por-ia/E8.F4.1-etiquetas-das-pecas-por-ia.md](PBIs/E8-F4-etiquetas-por-ia/E8.F4.1-etiquetas-das-pecas-por-ia.md).
+
+**Descrição**: o Gemma 3 lista as peças visíveis na referência como etiquetas de texto editáveis, sem casar com o armário.
+
+**Critérios de aceite:**
+- Com o Ollama rodando, a referência nasce com etiquetas editáveis.
+- Com o Ollama parado, a referência é salva sem etiquetas.
+
+**Status**: não iniciado.
+**Estimativa**: M.
+**Dependências**: E8.F1.3, E7.F1.1.
+
 ---
 
 ## Resumo do estado atual
@@ -752,5 +911,15 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E5.F4.1 | Aviso de cadastro incompleto no armário (mobile) | Concluída (validação visual no Chrome pendente) |
 | E6.F1.1 | Look do dia e rotatividade (backend) | Concluída e validada (`pytest` + execução real contra Postgres local) |
 | E6.F1.2 | Card "Look do dia" na tela inicial (mobile) | Concluída (validação manual no Chrome pendente) |
+| E6.F1.3 | Look do dia que já é um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E7.F1.1 | Adaptador do Ollama (Gemma 3) e sugestão no processamento da foto (backend) | Concluída (rota ponta a ponta não exercitada) |
+| E7.F1.2 | Formulário pré-preenchido com a sugestão da IA (mobile) | Concluída (validação manual pendente) |
+| E8.F1.1 | Referências do mural: tabela, upload e rotas (backend) | Não iniciado |
+| E8.F1.2 | Grade do mural e adicionar da galeria (mobile) | Não iniciado |
+| E8.F1.3 | Nota e exclusão da referência (mobile) | Não iniciado |
+| E8.F2.1 | Coleções de referências (backend) | Não iniciado |
+| E8.F2.2 | Aba de coleções no mural (mobile) | Não iniciado |
+| E8.F3.1 | Ligar a referência a um look salvo (backend + mobile) | Não iniciado |
+| E8.F4.1 | Etiquetas das peças da referência por IA (backend + mobile) | Não iniciado |
 
 E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão).

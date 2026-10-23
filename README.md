@@ -13,7 +13,7 @@ Arquitetura, decisões de stack e convenções detalhadas estão em [CLAUDE.md](
 | Banco | PostgreSQL + extensão `pgvector` |
 | ORM / migrações | SQLAlchemy 2.0 + Alembic |
 | Auth | Supabase Auth (JWT) |
-| Visão computacional | `rembg` (remoção de fundo) + Gemini Vision (metadados) |
+| Visão computacional | `rembg` (remoção de fundo) + Gemma 3 via Ollama local (metadados) |
 
 ## Estrutura
 
@@ -188,7 +188,7 @@ Alternativas equivalentes: [DBeaver](https://dbeaver.io/) (gratuito, suporta vá
 | `ALEMBIC_DATABASE_URL` | Conexão do Alembic com o Postgres (driver síncrono `psycopg2`, exigido pelas migrações) |
 | `SUPABASE_JWT_SECRET` | Valida o token JWT emitido pelo Supabase Auth |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | Credenciais do projeto Supabase (auth/storage) — preencher quando o projeto Supabase for criado |
-| `GEMINI_API_KEY` | Chave da API do Gemini Vision — preencher quando a extração de metadados por IA for implementada |
+| `OLLAMA_URL` / `OLLAMA_MODELO` / `OLLAMA_TIMEOUT_S` | Ollama local (padrão `http://localhost:11434`, `gemma3:4b`, 30 s) — sugestão de metadados da peça; sem ele a sugestão vem vazia |
 | `UPLOAD_DIR` | Pasta local onde as imagens processadas são salvas (MVP; será trocado por S3/Supabase Storage) |
 | `CORS_ORIGINS` | Origens permitidas a chamar a API, separadas por vírgula |
 

@@ -10,6 +10,7 @@ import uuid
 from app.services.sugestoes.cores import (
     MAX_CORES_NAO_NEUTRAS,
     avaliar_cores,
+    expandir_multicoloridas,
     cor_reconhecida,
     cores_nao_neutras,
     par_permitido,
@@ -45,7 +46,7 @@ def campos_incompletos(peca: PecaMotor) -> list[str]:
         faltando.append("cor")
     if not peca.ocasioes:
         faltando.append("ocasião")
-    if not (peca.estilo or "").strip():
+    if not peca.estilos:
         faltando.append("estilo")
     return faltando
 
@@ -56,39 +57,34 @@ def eh_coringa(peca: PecaMotor, filtros: Filtros) -> bool:
         return True
     if filtros.ocasiao and not peca.ocasioes:
         return True
-    if filtros.estilo and not (peca.estilo or "").strip():
+    if filtros.estilo and not peca.estilos:
         return True
     return False
+
+
+def _serve_na_estacao(estacoes: tuple[str, ...], pedida: str | None) -> bool:
+    """Sem estação marcada ou com "Todas as estações" serve para qualquer uma;
+    senão basta uma das marcadas ser a pedida."""
+    return not (pedida and estacoes and ESTACAO_TODAS not in estacoes and pedida not in estacoes)
 
 
 def _atende_filtros(peca: PecaMotor, filtros: Filtros) -> bool:
     """Filtros por peça. Campo vazio passa (vira coringa ou estação livre)."""
     if filtros.ocasiao and peca.ocasioes and filtros.ocasiao not in peca.ocasioes:
         return False
-    estilo = (peca.estilo or "").strip()
-    if filtros.estilo and estilo and estilo != filtros.estilo:
+    if filtros.estilo and peca.estilos and filtros.estilo not in peca.estilos:
         return False
-    estacao = (peca.estacao or "").strip()
-    if (
-        filtros.estacao
-        and estacao
-        and estacao != ESTACAO_TODAS
-        and estacao != filtros.estacao
-    ):
-        return False
-    return True
+    return _serve_na_estacao(peca.estacoes, filtros.estacao)
 
 
 def conflitos_da_base(base: PecaMotor, filtros: Filtros) -> list[Conflito]:
     conflitos = []
     if filtros.ocasiao and base.ocasioes and filtros.ocasiao not in base.ocasioes:
         conflitos.append(Conflito("ocasiao", filtros.ocasiao, ", ".join(base.ocasioes)))
-    estilo = (base.estilo or "").strip()
-    if filtros.estilo and estilo and estilo != filtros.estilo:
-        conflitos.append(Conflito("estilo", filtros.estilo, estilo))
-    estacao = (base.estacao or "").strip()
-    if filtros.estacao and estacao and estacao not in (ESTACAO_TODAS, filtros.estacao):
-        conflitos.append(Conflito("estacao", filtros.estacao, estacao))
+    if filtros.estilo and base.estilos and filtros.estilo not in base.estilos:
+        conflitos.append(Conflito("estilo", filtros.estilo, ", ".join(base.estilos)))
+    if not _serve_na_estacao(base.estacoes, filtros.estacao):
+        conflitos.append(Conflito("estacao", filtros.estacao, ", ".join(base.estacoes)))
     return conflitos
 
 
@@ -125,6 +121,7 @@ def gerar_candidatos(
 ) -> ResultadoMontagem:
     if not pecas:
         return ResultadoMontagem(motivo=MOTIVO_ARMARIO_VAZIO)
+    pecas = expandir_multicoloridas(pecas)
 
     base: PecaMotor | None = None
     if peca_base_id is not None:
@@ -140,7 +137,7 @@ def gerar_candidatos(
 
     def elegiveis(categorias: frozenset[str]) -> list[PecaMotor]:
         if base is not None and base.categoria in categorias:
-            return [base]
+            return [p for p in pecas if p.id == base.id]
         return _ordenadas(
             [
                 p
@@ -217,15 +214,28 @@ def gerar_candidatos(
 
         for look, sem_sapato in completos:
             if not base_casaco and not registrar(look, sem_sapato):
-                return resultado
+                return _sem_duplicadas(resultado)
             if incluir_casaco:
                 for casaco in casacos:
                     if _pode_adicionar(look, casaco, filtros, prefs, restricoes):
                         if not registrar(look + (casaco,), sem_sapato):
-                            return resultado
+                            return _sem_duplicadas(resultado)
 
     if not resultado.candidatos:
         resultado.motivo = _motivo_sem_candidatos(cimas, baixos, vestidos)
+    return _sem_duplicadas(resultado)
+
+
+def _sem_duplicadas(resultado: ResultadoMontagem) -> ResultadoMontagem:
+    """Peça multicolorida gera um candidato por cor; o mesmo look sai uma vez,
+    com a cor que dá a menor ousadia."""
+    melhores: dict[tuple[frozenset[uuid.UUID], bool], Candidato] = {}
+    for candidato in resultado.candidatos:
+        chave = (frozenset(p.id for p in candidato.pecas), candidato.sem_sapato)
+        atual = melhores.get(chave)
+        if atual is None or candidato.ousadia < atual.ousadia:
+            melhores[chave] = candidato
+    resultado.candidatos = list(melhores.values())
     return resultado
 
 

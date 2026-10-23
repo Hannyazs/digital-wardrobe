@@ -31,7 +31,7 @@ from app.schemas.sugestao import (
 from app.services.sugestoes.servico import (
     OCASIAO_PADRAO_LOOK_DO_DIA,
     LookSugerido,
-    conjuntos_por_look,
+    looks_por_conjunto,
     mensagem_conflito,
     sugerir,
     sugerir_look_do_dia,
@@ -53,8 +53,9 @@ def _para_motor(peca: Peca) -> PecaMotor:
         categoria=peca.categoria,
         cor=peca.cor_principal,
         tonalidade=peca.tonalidade_cor,
-        estilo=peca.estilo,
-        estacao=peca.estacao,
+        estilos=tuple(peca.estilos or ()),
+        estacoes=tuple(peca.estacoes or ()),
+        cores_extras=tuple(peca.cores_secundarias or ()),
         ocasioes=tuple(peca.ocasioes or ()),
     )
 
@@ -129,17 +130,21 @@ async def _carregar(
     )
 
 
-async def _looks_salvos(db: AsyncSession, usuario_id: uuid.UUID) -> list[frozenset[uuid.UUID]]:
-    """Conjunto de peças de cada look salvo do usuário (E5.F1.3). Looks
-    arquivados (E3.F5.1) não contam: o usuário os excluiu."""
+async def _looks_salvos(
+    db: AsyncSession, usuario_id: uuid.UUID
+) -> dict[frozenset[uuid.UUID], uuid.UUID]:
+    """Conjunto de peças → id de cada look salvo do usuário (E5.F1.3, E6.F1.3).
+    Looks arquivados (E3.F5.1) não contam: o usuário os excluiu. Mais recentes
+    primeiro, para o mais novo ganhar se dois looks tiverem as mesmas peças."""
     linhas = (
         await db.execute(
             select(looks_pecas.c.look_id, looks_pecas.c.peca_id)
             .join(Look, Look.id == looks_pecas.c.look_id)
             .where(Look.usuario_id == usuario_id, Look.arquivado.is_(False))
+            .order_by(Look.criado_em.desc())
         )
     ).all()
-    return conjuntos_por_look(linhas)
+    return looks_por_conjunto(linhas)
 
 
 def _look_read(look: LookSugerido, pecas_por_id: dict[uuid.UUID, Peca]) -> LookSugeridoRead:
@@ -171,10 +176,10 @@ async def sugerir_looks(
         restricoes=dados.restricoes,
         usos=dados.usos,
         pagina=pedido.pagina,
-        # Looks já salvos contam como descartados: a aba Sugestões não os
-        # repete (E5.F1.3). O look do dia não faz isso (decisão do usuário).
-        descartados=[frozenset(ids) for ids in pedido.descartados]
-        + await _looks_salvos(db, usuario_id),
+        descartados=[frozenset(ids) for ids in pedido.descartados],
+        # Looks já salvos ficam de fora da aba Sugestões (E5.F1.3). O look do
+        # dia pode trazê-los (decisão do usuário), mas avisa (E6.F1.3).
+        salvos=list(await _looks_salvos(db, usuario_id)),
         peca_base_id=pedido.peca_base_id,
         limite=settings.sugestoes_max_candidatos,
     )
@@ -220,8 +225,16 @@ async def look_do_dia(
     )
 
     pecas_por_id = {p.id: p for p in dados.pecas}
+    look = resultado.looks[0] if resultado.looks else None
+    # E6.F1.3: se o look do dia já é um look salvo, o app não oferece salvar
+    # de novo e registra "Usei hoje" nesse look existente.
+    look_salvo_id = None
+    if look is not None:
+        conjunto = frozenset(p.id for p in look.candidato.pecas)
+        look_salvo_id = (await _looks_salvos(db, usuario_id)).get(conjunto)
     return LookDoDiaRead(
-        look=_look_read(resultado.looks[0], pecas_por_id) if resultado.looks else None,
+        look=_look_read(look, pecas_por_id) if look else None,
+        look_salvo_id=look_salvo_id,
         ocasiao=ocasiao,
         tem_mais=resultado.tem_mais,
         motivo=resultado.motivo,

@@ -183,11 +183,6 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
         title: const Text('Detalhe da peça'),
         actions: [
           IconButton(
-            tooltip: evitada ? 'Parar de evitar' : 'Evitar nas sugestões',
-            icon: Icon(evitada ? Icons.do_not_disturb_on : Icons.do_not_disturb_on_outlined),
-            onPressed: ocupado ? null : () => _alternarEvitada(evitada),
-          ),
-          IconButton(
             tooltip: 'Editar',
             icon: const Icon(Icons.edit),
             onPressed: ocupado ? null : _editar,
@@ -235,20 +230,31 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
           _CampoDetalhe(label: 'Categoria', valor: peca.categoria),
           _CampoDetalhe(label: 'Subcategoria', valor: peca.subcategoria),
           _CampoDetalhe(label: 'Cor principal', valor: peca.corPrincipal),
+          _CampoDetalhe(label: 'Outras cores', valor: peca.coresSecundarias.join(', ')),
           _CampoDetalhe(label: 'Tonalidade da cor', valor: peca.tonalidadeCor),
-          _CampoDetalhe(label: 'Estação', valor: peca.estacao),
-          _CampoDetalhe(label: 'Estilo', valor: peca.estilo),
+          _CampoDetalhe(label: 'Estações', valor: peca.estacoes.join(', ')),
+          _CampoDetalhe(label: 'Estilos', valor: peca.estilos.join(', ')),
           _CampoDetalhe(label: 'Modelagem', valor: peca.modelagem),
           _CampoDetalhe(label: 'Ocasiões', valor: peca.ocasioes.join(', ')),
+          const SizedBox(height: 24),
           // Acessórios não entram nos looks sugeridos (regras-sugestoes.md).
           if (peca.categoria != 'Acessórios') ...[
-            const SizedBox(height: 24),
             AppButton(
               label: 'Montar looks com esta peça',
               icon: Icons.auto_awesome,
               onPressed: ocupado ? null : _montarLooks,
             ),
+            const SizedBox(height: 12),
           ],
+          // Antes era só um ícone na barra (círculo cortado), difícil de
+          // entender sem a dica do toque longo.
+          AppButton(
+            label: evitada ? 'Parar de evitar' : 'Evitar nas sugestões',
+            icon: evitada ? Icons.do_not_disturb_on : Icons.do_not_disturb_on_outlined,
+            variant: AppButtonVariant.secondary,
+            loading: _alternandoEvitada,
+            onPressed: ocupado ? null : () => _alternarEvitada(evitada),
+          ),
         ],
       ),
     );

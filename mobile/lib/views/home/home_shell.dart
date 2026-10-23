@@ -53,7 +53,8 @@ class _HomeShellState extends State<HomeShell> {
               ),
               child: const Icon(Icons.auto_fix_high, color: AppColors.textPrimary, size: 20),
             ),
-            label: 'Looks',
+            // "Montar", não "Looks": os looks salvos ficam em Armário › Looks.
+            label: 'Montar',
           ),
           const BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'Sugestões'),
           const BottomNavigationBarItem(icon: Icon(Icons.image_outlined), label: 'Referências'),

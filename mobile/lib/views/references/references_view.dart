@@ -14,8 +14,8 @@ class ReferencesView extends StatelessWidget {
       body: ListView(
         children: const [
           ScreenHeader(
-            titulo: 'Find your inspiration',
-            subtitulo: 'Save looks you want to recreate.',
+            titulo: 'Inspirações',
+            subtitulo: 'Em breve',
           ),
           Padding(
             padding: EdgeInsets.all(40),

@@ -1,18 +1,32 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class PecaBase(BaseModel):
     categoria: str
     subcategoria: str | None = None
     cor_principal: str | None = None
-    estacao: str | None = None
+    cores_secundarias: list[str] = []
+    estacoes: list[str] = []
     tonalidade_cor: str | None = None
-    estilo: str | None = None
+    estilos: list[str] = []
     modelagem: str | None = None
     ocasioes: list[str] = []
+
+    @model_validator(mode="after")
+    def _limpar_cores_secundarias(self):
+        # Sem cor predominante não há secundárias; repetidas e a própria
+        # predominante saem.
+        vistas = {self.cor_principal} if self.cor_principal else set()
+        limpas = []
+        for cor in self.cores_secundarias if self.cor_principal else []:
+            if cor and cor not in vistas:
+                vistas.add(cor)
+                limpas.append(cor)
+        self.cores_secundarias = limpas
+        return self
 
 
 class PecaCreate(PecaBase):

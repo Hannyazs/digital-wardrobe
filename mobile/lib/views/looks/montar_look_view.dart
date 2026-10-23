@@ -14,6 +14,7 @@ import '../wardrobe/wardrobe_controller.dart';
 import '../wardrobe/widgets/filtros_de_pecas.dart';
 import 'looks_controller.dart';
 import 'montar_look_controller.dart';
+import 'widgets/pecas_do_look.dart';
 
 /// Tela de montagem manual de um look (E3.F1.2): seleciona peças do
 /// armário, nomeia e confirma. Ao salvar, invalida `lookListProvider`
@@ -117,17 +118,50 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
       bottomNavigationBar: pecasAsync.maybeWhen(
         data: (pecas) => pecas.isEmpty
             ? null
-            : Padding(
-                padding: const EdgeInsets.all(16),
-                child: AppButton(
-                  label: 'Salvar look',
-                  onPressed: podeConfirmar ? _salvar : null,
-                  loading: enviando,
+            : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Conferir o que já foi escolhido sem rolar os carrosséis
+                      // (inclui peças escondidas por um filtro).
+                      if (selecao.isNotEmpty) ...[
+                        PecasDoLook(
+                          pecas: pecas.where((p) => selecao.contains(p.id)).toList(),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (!podeConfirmar && !enviando) ...[
+                        Text(
+                          _oQueFalta(selecao),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      AppButton(
+                        label: 'Salvar look',
+                        onPressed: podeConfirmar ? _salvar : null,
+                        loading: enviando,
+                      ),
+                    ],
+                  ),
                 ),
               ),
         orElse: () => null,
       ),
     );
+  }
+
+  /// Por que "Salvar look" está desabilitado — botão desabilitado sem motivo
+  /// deixa o usuário sem saber o próximo passo.
+  String _oQueFalta(Set<String> selecao) {
+    final semNome = _nomeController.text.trim().isEmpty;
+    if (selecao.isEmpty && semNome) return 'Escolha as peças e dê um nome ao look.';
+    if (selecao.isEmpty) return 'Escolha pelo menos uma peça.';
+    return 'Dê um nome ao look (campo no topo).';
   }
 
   /// Botão de voltar no canto do `ScreenHeader` quando esta tela foi
@@ -200,6 +234,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
                             final peca = entry.value[index];
                             return ClothingCard(
                               imagemUrl: peca.imagemUrl,
+                              rotulo: descricaoPeca(peca),
                               selecionavel: true,
                               selecionada: selecao.contains(peca.id),
                               onTap: enviando
@@ -248,11 +283,12 @@ class _SeletorOcasiao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+    // Sem altura fixa: com fonte grande do sistema, os chips crescem em vez
+    // de serem cortados.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Row(
         children: [
           for (final ocasiao in ocasioesFixas)
             Padding(

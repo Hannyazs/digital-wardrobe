@@ -12,8 +12,11 @@ def peca(
     cor: str | None = None,
     tonalidade: str | None = None,
     estilo: str | None = "Casual",
+    estilos: tuple[str, ...] = (),
     estacao: str | None = None,
     ocasioes: tuple[str, ...] = ("Casual",),
+    estacoes: tuple[str, ...] = (),
+    cores_extras: tuple[str, ...] = (),
 ) -> PecaMotor:
     """Peça completa por padrão (com estilo e ocasião); ids crescentes e estáveis."""
     global _contador
@@ -23,7 +26,8 @@ def peca(
         categoria=categoria,
         cor=cor,
         tonalidade=tonalidade,
-        estilo=estilo,
-        estacao=estacao,
+        estilos=estilos or ((estilo,) if estilo else ()),
+        estacoes=estacoes or ((estacao,) if estacao else ()),
+        cores_extras=cores_extras,
         ocasioes=ocasioes,
     )

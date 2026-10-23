@@ -23,6 +23,7 @@ Plano de adaptação do app Flutter pra seguir a identidade visual do Figma "VIR
 | 5 | Restyle de `UploadView`/`PecaFormView`/`PecaDetailView` | ✅ Concluída |
 | 6 | ~~Remover `CatalogoLookMockView` e o atalho temporário em `LooksView`~~ | ✅ Concluída (antecipada) |
 | 7 | Reorganização: gavetas no armário, looks salvos no Armário, calendário na Casa, filtros múltiplos em painel | ✅ Concluída (validação visual pendente) — ver seção própria abaixo |
+| 8 | Revisão de UX e acessibilidade (textos, leitor de tela, contraste, área de toque, formulário, montagem) | ✅ Concluída (validação visual pendente) — ver seção própria abaixo |
 
 **Pendente**: validação manual visual no Chrome/emulador (comparar com o Figma na prática) — não executável nesta sessão, requer interação humana num navegador/dispositivo real.
 
@@ -51,7 +52,7 @@ Pedido do usuário, feito antes das PBIs pendentes dos Épicos 5 e 6 (E5.F3.1, E
 - **Looks (aba central)**: só a montagem de um look novo; o botão "Meus looks" saiu.
 
 **Gavetas do armário** (decisão do usuário: agrupar as categorias atuais, sem criar novas)
-- Partes de cima (Camisetas, Camisas), Partes de baixo (Calças, Saias), Vestidos, Casacos, Sapatos, Acessórios, e "Outras" para categoria fora da lista. Mesmos grupos do motor de sugestões (`backend/.../tipos.py`). Definidas em `gavetasDoArmario` (`peca_opcoes.dart`).
+- Partes de cima (Camisetas, Camisas, Blusas, Regatas, Suéteres), Partes de baixo (Calças, Shorts, Saias), Vestidos, Macacões, Casacos, Sapatos, Acessórios, e "Outras" para categoria fora da lista. Mesmos grupos do motor de sugestões (`backend/.../tipos.py`). Definidas em `gavetasDoArmario` (`peca_opcoes.dart`).
 - Tela principal: uma seção por gaveta com carrossel; tocar no nome abre `GavetaView`, com um carrossel por categoria ou, na gaveta de uma categoria só, por subcategoria (campo livre do cadastro; sem subcategoria → seção com o nome da categoria).
 - Montagem: um carrossel por categoria direto na tela (sem gavetas), na mesma ordem.
 
@@ -67,6 +68,41 @@ Pedido do usuário, feito antes das PBIs pendentes dos Épicos 5 e 6 (E5.F3.1, E
 **Bugs pré-existentes corrigidos no caminho (montagem como aba)**: salvar chamava `Navigator.pop()` mesmo sem tela por baixo, e nome/seleção não eram limpos depois de salvar. Agora volta só quando aberta por cima de outra tela; como aba, limpa nome, peças, ocasiões e filtros. Com a montagem aberta pela Casa por cima da aba, só a tela visível reage ao salvar (antes a mensagem saía duas vezes).
 
 **Verificação**: `dart analyze` limpo; `flutter test` 189/189 (eram 173; testes de armário, looks, montagem, calendário e cadastro ajustados à navegação nova, mais testes novos de filtros múltiplos, gavetas, espaços do carrossel e salvar pela aba). Validação visual no Chrome pendente.
+
+## Etapa 8 — Revisão de UX e acessibilidade (2026-10-22)
+
+Revisão de UI/UX pedida pelo usuário, sem mudar a identidade visual (paleta, fontes e componentes mantidos); recomendações aprovadas e implementadas em três lotes. Itens numerados conforme a revisão.
+
+**Lote 1 — textos e rótulos**
+- (1) Aba central "Looks" → **"Montar"** (os looks salvos são Armário › Looks; dois "Looks" confundiam).
+- (2) Títulos em português: Casa "Olá! / Vamos escolher o que vestir.", Sugestões "Suas sugestões / Looks montados só com as suas peças.", Referências "Inspirações / Em breve" (também cobre o item 21).
+- (8) Cadastro: "Cor" → **"Cor principal"** com a dica "A cor que mais aparece na peça." — o modelo e o motor têm uma cor só; peças com mais de uma cor seriam uma PBI nova (não feita).
+- (11) Resultado sem remoção de fundo: "você pode ajustar isso depois" (promessa falsa — a foto é imutável) → "A peça será salva com o fundo original da foto."
+- (13) Aba Sugestões vazia só por looks salvos: mensagem própria (ver E6.F1.3).
+- (18) Armário vazio: "Toque em +" → "Toque no botão de câmera…" (o botão mostra uma câmera).
+- (19) Título do formulário de cadastro "Detalhes da peça" → "Dados da peça" (quase igual ao "Detalhe da peça" de leitura); "Adicionar Peça" → "Adicionar peça".
+- (20) Cabeçalho "Meu Guarda-Roupa" → "Meu Armário" (mesmo nome da aba).
+
+**Lote 2 — acessibilidade**
+- (3) `ClothingCard.rotulo`: o leitor de tela anuncia a peça ("Calças, jeans, preto", via `descricaoPeca`) e, na montagem/edição, se está selecionada. `PecasDoLook` vira uma frase só ("Peças: …"). Espaços vazios do carrossel ficam fora da leitura.
+- (5) Título da gaveta com área de toque mínima de 48 px (antes ~24) e "Ver tudo" ao lado da seta.
+- (6) `AppColors.sageEscuro` (#619385, o mesmo verde mais escuro): borda dos campos 3,5:1 (antes 1,3:1) e foco mais grosso; anel de "hoje" e marcação do calendário também.
+- (7) Texto de apoio (`bodySmall`) passa de cursiva (Caveat) para `AppTextStyles.legenda` (fonte de corpo, 12,5, cinza). A cursiva continua nas frases decorativas do cabeçalho.
+- (14) `FilterButton` com ícone **e** texto "Filtros" (+ selo); leitor de tela: "Filtros, N marcados".
+- (17) Fonte grande do sistema: fileira de ocasiões da montagem sem altura fixa; célula do calendário com altura mínima e número que encolhe dentro do círculo. Testes com texto 2× sem estouro.
+
+**Lote 3 — fluxos**
+- (4) Cadastro: tocar "Salvar peça" com erro rola até o campo e mostra "Revise o campo destacado.".
+- (9) Cadastro: linha "Cor, ocasião e estilo ajudam nas sugestões de looks." e dicas "Sugerida pela cor; você pode trocar." / "Pode marcar várias.".
+- (10) Cadastro: subcategorias já usadas na categoria aparecem como atalhos; na gaveta, "Midi" e "midi" viram uma seção só.
+- (12) Montagem: fileira com as miniaturas escolhidas e o motivo do "Salvar look" desabilitado ("Escolha as peças e dê um nome ao look." etc.).
+- (15) Detalhe da peça: "Evitar nas sugestões" / "Parar de evitar" virou botão com texto no corpo (antes, ícone na barra).
+- (16) Card de look salvo: tocar no card abre o mesmo menu do "⋮".
+- `PecasDoLook` rola na horizontal (looks com muitas peças não estouram a largura).
+
+**Não feito:** (22) nome do look depois das peças na montagem — opcional; o campo no rodapé ficaria escondido pelo teclado. Peças com várias cores — exige PBI própria (banco + motor).
+
+**Verificação**: `dart analyze` limpo; `flutter test` **242/242** (14 testes novos em `acessibilidade_e_ux_test.dart`: rótulos do leitor de tela, selecionada/não, botão de filtros, área de toque ≥ 48, subcategorias, texto 2× em Casa/Armário/Montar/Montagem/Looks, formulário, montagem, toque no card, textos). Testes antigos ajustados aos textos novos. Validação visual no Chrome pendente.
 
 ## Aviso permanente
 

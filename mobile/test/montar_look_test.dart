@@ -38,7 +38,7 @@ class _PecaServiceColorido extends PecaService {
           imagemUrl: '/3.png',
           categoria: 'Calças',
           corPrincipal: 'Preto',
-          estacao: 'Inverno',
+          estacoes: ['Inverno'],
         ),
       ];
 }

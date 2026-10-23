@@ -16,7 +16,7 @@ pillow
 
 # IA / visão computacional
 rembg[cpu]
-google-generativeai
+httpx
 
 # Faz o Python confiar nos certificados raiz instalados no Windows (necessário
 # quando antivírus/proxy corporativo faz inspeção SSL) — sem isso, downloads

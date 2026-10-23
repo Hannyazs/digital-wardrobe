@@ -10,7 +10,7 @@ flowchart LR
     API --> DB[(Postgres + pgvector)]
     API --> Storage[(Storage de imagens)]
     API --> Rembg[rembg\nremoção de fundo]
-    API --> Gemini[Gemini Vision\nextração de metadados]
+    API --> Gemma[Gemma 3 4B via Ollama\nextração de metadados]
     Mobile -->|login| Auth[Supabase Auth]
     API -->|valida JWT| Auth
 ```
@@ -26,7 +26,7 @@ Três peças se comunicam: o **app Flutter** (cliente), a **API FastAPI** (toda 
 | Banco | PostgreSQL + `pgvector` | Postgres é relacional maduro e já resolve 90% do domínio (peças, looks, preferências). `pgvector` evita introduzir um banco vetorial separado (Pinecone, Weaviate) só para a feature de inspiração por imagem — um banco a menos para operar. |
 | ORM / migrações | SQLAlchemy 2.0 + Alembic | Tipagem explícita (`Mapped`/`mapped_column`) e migrações versionadas — mudança de schema nunca é feita à mão no banco. |
 | Auth | Supabase Auth | Gerenciar senha, recuperação de conta e sessão é um domínio inteiro por si só; terceirizar isso deixa a equipe focada no produto. Ver "Banco em produção" abaixo — o mesmo projeto Supabase também hospeda o Postgres de produção. |
-| Visão computacional | `rembg` + Gemini Vision | `rembg` remove fundo localmente, sem custo de API por imagem. Gemini Vision faz o trabalho mais caro (entender a peça e sugerir metadados), mas a sugestão é sempre revisável pelo usuário antes de salvar — nunca é verdade final. |
+| Visão computacional | `rembg` + Gemma 3 4B via Ollama | `rembg` remove fundo localmente, sem custo de API por imagem. O Gemma 3 4B, executado localmente pelo Ollama (decisão de 2026-10-23, depois de descartar o Gemini e o Llama — o Llama 4 Scout não cabe na memória do notebook de desenvolvimento), faz o trabalho mais caro (entender a peça e sugerir metadados), mas a sugestão é sempre revisável pelo usuário antes de salvar — nunca é verdade final. |
 | Storage de imagens | Local (MVP) → S3/Supabase Storage (produção) | Ver seção "Storage" abaixo. |
 | Ambiente local | Docker Compose | Sobe Postgres com `pgvector` idêntico ao que existe em produção, sem exigir instalação nativa do Postgres na máquina de cada dev. |
 
@@ -35,12 +35,12 @@ Três peças se comunicam: o **app Flutter** (cliente), a **API FastAPI** (toda 
 ```
 routers/   (app/api/v1/)  → HTTP, validação Pydantic, dependência de auth
 services/                 → regras de negócio (orquestra os adapters)
-adapters/                 → rembg, Gemini, storage — cada um atrás de uma interface própria
+adapters/                 → rembg, Ollama (Gemma 3), storage — cada um atrás de uma interface própria
 models/    (app/db/)      → SQLAlchemy 2.0
 schemas/                  → Pydantic, separados dos models
 ```
 
-Regra estrita: **um router nunca chama `rembg` ou Gemini diretamente** — sempre chama um service, que por sua vez chama os adapters. Isso existe porque os adapters são as peças com maior chance de troca (ex: sair do storage local para S3, trocar Gemini por outro modelo de visão) e a troca não deve exigir tocar em nenhuma rota.
+Regra estrita: **um router nunca chama `rembg` ou o modelo de IA diretamente** — sempre chama um service, que por sua vez chama os adapters. Isso existe porque os adapters são as peças com maior chance de troca (ex: sair do storage local para S3, trocar o modelo de visão por outro) e a troca não deve exigir tocar em nenhuma rota.
 
 ## Fluxos principais
 
@@ -49,7 +49,7 @@ Regra estrita: **um router nunca chama `rembg` ou Gemini diretamente** — sempr
 1. App envia a foto para `POST /pecas/processar-imagem`.
 2. API chama `rembg` para remover o fundo.
 3. Imagem processada é salva no storage; a URL é devolvida.
-4. Gemini Vision analisa a imagem e sugere metadados (categoria, cor, estação, ocasião).
+4. O Gemma 3 4B (via Ollama) analisa a imagem e sugere metadados (categoria, cor, estação, ocasião).
 5. Usuário revisa/corrige a sugestão no app e confirma com `POST /pecas` — a sugestão da IA nunca é salva sem revisão humana.
 
 O passo 4 é entregue depois dos demais, de propósito: por decisão de produto, o cadastro nasce puramente manual (Épico 1 do [Documento de Requisitos](requisitos.md)) e só ganha a sugestão automática mais adiante (Épico 7), depois que a base do app já estiver funcionando sem depender de nenhuma IA.
@@ -96,4 +96,4 @@ O código da aplicação não muda entre os dois ambientes — só o valor das v
 - **Supabase para Auth *e* banco de produção, não dois provedores separados** — reduz a superfície operacional (um único projeto/dashboard cuidando de autenticação, banco e storage) às custas de um vendor lock-in leve, mitigado pelo fato de ser Postgres puro por baixo (dá pra migrar o banco pra outro provedor sem reescrever nada).
 - **`pgvector` em vez de um banco vetorial dedicado** — suficiente para o volume de dados esperado no MVP; revisitar só se a escala de busca por similaridade justificar um banco especializado.
 - **Storage local no MVP** — evita configurar credenciais de nuvem antes de precisar; a interface de `adapters/storage_adapter.py` já isola essa troca para quando for necessária.
-- **Motor de recomendação baseado em regras, não em modelo generativo** — mais previsível, testável e barato que gerar sugestões via LLM a cada requisição; deixa a "inteligência" mais cara (Gemini Vision) reservada para os pontos onde ela é indispensável (extração de metadados, entendimento da imagem de inspiração).
+- **Motor de recomendação baseado em regras, não em modelo generativo** — mais previsível, testável e barato que gerar sugestões via LLM a cada requisição; deixa a "inteligência" mais cara (Gemma 3 via Ollama) reservada para os pontos onde ela é indispensável (extração de metadados, entendimento da imagem de inspiração).

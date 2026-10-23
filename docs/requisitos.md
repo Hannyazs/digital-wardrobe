@@ -11,11 +11,11 @@ Quando uma feature é quebrada em PBIs pra execução do time, essa quebra vive 
 - **Privacidade**: fotos de peças e preferências são dados pessoais — todo dado é escopado por `usuario_id`, derivado do JWT, nunca do corpo da requisição (ver CLAUDE.md, seção Auth). Nenhuma busca (inclusive por similaridade vetorial) pode vazar dados entre usuários.
 - **Idioma**: interface e mensagens em português. Código e nomes técnicos em inglês.
 - **Disponibilidade**: sem requisito de SLA formal no MVP — é aceitável indisponibilidade eventual durante a fase de validação.
-- **Resiliência de IA**: nenhuma chamada a serviço de IA (Gemini) pode derrubar um fluxo do usuário — falha na extração de metadados degrada para preenchimento manual, nunca para erro fatal.
+- **Resiliência de IA**: nenhuma chamada a serviço de IA (Gemma 3 via Ollama) pode derrubar um fluxo do usuário — falha na extração de metadados degrada para preenchimento manual, nunca para erro fatal.
 
 ## Base da aplicação (sem IA)
 
-Os três primeiros épicos entregam um produto funcional usando apenas CRUD e regras determinísticas — nenhum depende de Gemini ou de qualquer sugestão automática. A remoção de fundo (`rembg`) é uma exceção deliberada: embora use um modelo de visão computacional por baixo, não é uma *sugestão* sujeita ao julgamento do usuário (não há "certo" ou "errado" em remover o fundo de uma foto), por isso permanece no Épico 1 em vez de ser adiada com o resto.
+Os três primeiros épicos entregam um produto funcional usando apenas CRUD e regras determinísticas — nenhum depende de modelo de IA generativa ou de qualquer sugestão automática. A remoção de fundo (`rembg`) é uma exceção deliberada: embora use um modelo de visão computacional por baixo, não é uma *sugestão* sujeita ao julgamento do usuário (não há "certo" ou "errado" em remover o fundo de uma foto), por isso permanece no Épico 1 em vez de ser adiada com o resto.
 
 ### Épico 1 — Cadastro de roupas (manual)
 
@@ -116,7 +116,7 @@ Reaproveita o motor do Épico 5 sem duplicar a lógica de combinação; acrescen
 Enriquece o Épico 1 depois de pronto: a sugestão automática de metadados que inicialmente não existia passa a estar disponível, sempre revisável antes de salvar.
 
 **Features:**
-- Sugestão automática de metadados (categoria, cor, estação, ocasião) via Gemini Vision, a partir da foto processada.
+- Sugestão automática de metadados (categoria, cor, estação, ocasião) via Gemma 3 4B (Google), executado localmente pelo Ollama, a partir da foto processada.
 - Sugestão sempre editável — nunca salva sem revisão do usuário.
 
 **Histórias de usuário:**
@@ -124,28 +124,34 @@ Enriquece o Épico 1 depois de pronto: a sugestão automática de metadados que 
 - Como Marina, quero que o app sugira a categoria e a cor da peça automaticamente, para não precisar preencher tudo manualmente.
   - *Critério de aceite*: após o processamento da imagem, os campos de categoria/cor/estação/ocasião vêm pré-preenchidos, mas editáveis; se a IA falhar, os campos aparecem vazios em vez de travar o cadastro.
 
-### Épico 8 — Inspiração por imagem
+### Épico 8 — Inspiração por imagem (mural de referências)
 
-O de maior risco técnico (depende de embeddings e busca vetorial) e o último da fila — o primeiro a ser simplificado ou adiado se o prazo apertar. Reaproveita o motor de combinação do Épico 5 quando aplicável.
+Dividido em duas etapas. A primeira — o **mural de referências**, inspirado na organização visual do Pinterest — entra na versão inicial (decidido em 2026-10-23): o usuário importa e organiza imagens de referência dentro do app, sem integração com a API do Pinterest, e ele mesmo relaciona a referência às suas peças. A segunda — análise automatizada da referência — é a de maior risco técnico (depende de embeddings e busca vetorial) e fica como evolução futura. Reaproveita o motor de combinação do Épico 5 quando aplicável.
 
-**Features:**
-- Upload de uma imagem de referência externa (Pinterest, Instagram, TikTok, etc.).
+**Features — versão inicial (mural):**
+- Importar ou salvar imagens de referência externas (Pinterest, Instagram, TikTok, galeria etc.) dentro do app.
+- Organizar e consultar as referências salvas: grade de imagens e coleções criadas pelo usuário (uma por imagem); adicionar só da galeria, sem remoção de fundo.
+- Nota opcional por imagem e ligação a um look salvo.
+- Etiquetas das peças visíveis sugeridas pela IA (Gemma 3), apenas como texto editável, sem comparar com o armário.
+
+**Features — evolução futura (análise automatizada):**
 - Identificação de estilo, cores e composição da imagem de referência.
 - Montagem de um look semelhante usando somente peças cadastradas no app.
 - Exposição explícita de lacunas quando não existir peça equivalente a algum item da referência.
 
 **Histórias de usuário:**
 
-- Como Marina, quero enviar uma foto que salvei como inspiração, para ver um look parecido montado com roupas que eu realmente tenho.
-- Como Marina, quero saber quando o app não encontrou nada parecido com uma peça da foto de referência, para entender que aquele item eu não tenho, em vez de receber uma sugestão genérica que não bate com a inspiração.
+- Como Marina, quero guardar no app as imagens de looks que me inspiram, para consultá-las na hora de montar um look com as minhas roupas.
+- *(Futuro)* Como Marina, quero enviar uma foto que salvei como inspiração, para ver um look parecido montado com roupas que eu realmente tenho.
+- *(Futuro)* Como Marina, quero saber quando o app não encontrou nada parecido com uma peça da foto de referência, para entender que aquele item eu não tenho, em vez de receber uma sugestão genérica que não bate com a inspiração.
 
 ## Roadmap sugerido (referência para o MVP de 2 meses)
 
 | Fase | Épicos | Observação |
 | --- | --- | --- |
-| 1 | Épico 1 + Épico 2 | Sem armário navegável, nenhuma outra tela tem o que mostrar. Cadastro 100% manual — sem dependência de Gemini. |
+| 1 | Épico 1 + Épico 2 | Sem armário navegável, nenhuma outra tela tem o que mostrar. Cadastro 100% manual — sem dependência de IA generativa. |
 | 2 | Épico 3 | Fecha a base: com looks manuais prontos, o produto já é minimamente utilizável sem nenhuma IA. |
 | 3 | Épico 4 | Entrada da personalização (preferências e restrições). |
 | 4 | Épico 5 + Épico 6 | Sugestões por motor de regras, não modelo generativo (ver Documento de Arquitetura): primeiro sob demanda, depois o look do dia. |
-| 5 | Épico 7 | Primeira assistência de IA generativa (sugestão de metadados com Gemini). |
-| 6 | Épico 8 | Só se o cronograma permitir; é aceitável entregar o MVP sem essa feature e tratá-la como fast-follow. |
+| 5 | Épico 7 | Primeira assistência de IA generativa (sugestão de metadados com Gemma 3 via Ollama). |
+| 6 | Épico 8 | Mural de referências entra na versão inicial; a análise automatizada da referência fica como evolução futura. |

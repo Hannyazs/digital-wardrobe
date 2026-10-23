@@ -119,6 +119,7 @@ class _EscolherParViewState extends ConsumerState<EscolherParView> {
                     final peca = entry.value[index];
                     return ClothingCard(
                       imagemUrl: peca.imagemUrl,
+                      rotulo: descricaoPeca(peca),
                       selecionavel: true,
                       selecionada: _selecionadas.contains(peca.id),
                       onTap: _enviando ? null : () => _alternar(peca),

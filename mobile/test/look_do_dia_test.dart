@@ -37,6 +37,9 @@ class _SugestaoServiceFake extends SugestaoService {
   Object? erro;
   bool armarioVazio = false;
 
+  /// `Sugestao.chave` → id de um look que já existe salvo (E6.F1.3).
+  final salvosNoServidor = <String, String>{};
+
   @override
   Future<LookDoDia> lookDoDia({
     required DateTime data,
@@ -60,7 +63,12 @@ class _SugestaoServiceFake extends SugestaoService {
     if (restantes.isEmpty) {
       return LookDoDia(ocasiao: usada, motivo: 'Não há mais sugestões com esses filtros.');
     }
-    return LookDoDia(look: restantes.first, ocasiao: usada, temMais: restantes.length > 1);
+    return LookDoDia(
+      look: restantes.first,
+      lookSalvoId: salvosNoServidor[restantes.first.chave],
+      ocasiao: usada,
+      temMais: restantes.length > 1,
+    );
   }
 }
 
@@ -307,5 +315,50 @@ void main() {
     await tester.tap(find.text('Tentar novamente'));
     await tester.pumpAndSettle();
     expect(find.text('• Look 1 para Casual.'), findsOneWidget);
+  });
+
+  // --- E6.F1.3: look do dia que já é um look salvo ---
+
+  testWidgets('Look que já existe aparece como "Já salvo", sem opção de salvar de novo', (
+    tester,
+  ) async {
+    final cena = _Cena();
+    cena.sugestoes.salvosNoServidor['Casual-baixo1,Casual-cima1'] = 'look-antigo';
+    await _abrirCasa(tester, cena);
+
+    expect(find.text('• Look 1 para Casual.'), findsOneWidget); // continua sendo sugerido
+    expect(find.text('Este look já está em Armário › Looks.'), findsOneWidget);
+    expect(find.text('Salvar'), findsNothing);
+    final botao = tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Já salvo'));
+    expect(botao.onPressed, isNull);
+  });
+
+  testWidgets('"Usei hoje" num look que já existe registra o uso nele, sem criar outro', (
+    tester,
+  ) async {
+    final cena = _Cena();
+    cena.sugestoes.salvosNoServidor['Casual-baixo1,Casual-cima1'] = 'look-antigo';
+    await _abrirCasa(tester, cena);
+
+    await tester.tap(find.text('Usei hoje'));
+    await tester.pumpAndSettle();
+
+    expect(cena.looks.criados, isEmpty);
+    expect(cena.looks.usos.single.lookId, 'look-antigo');
+    expect(cena.looks.usos.single.data, hoje);
+  });
+
+  testWidgets('"Outra sugestão" para um look que não existe volta a permitir salvar', (tester) async {
+    final cena = _Cena();
+    cena.sugestoes.salvosNoServidor['Casual-baixo1,Casual-cima1'] = 'look-antigo';
+    await _abrirCasa(tester, cena);
+
+    await tester.tap(find.text('Outra sugestão'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('• Look 2 para Casual.'), findsOneWidget);
+    expect(find.text('Este look já está em Armário › Looks.'), findsNothing);
+    final botao = tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Salvar'));
+    expect(botao.onPressed, isNotNull);
   });
 }

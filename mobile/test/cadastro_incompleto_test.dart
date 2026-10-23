@@ -31,8 +31,8 @@ Peca _peca(
       categoria: categoria,
       corPrincipal: cor,
       ocasioes: ocasioes,
-      estilo: estilo,
-      estacao: estacao,
+      estilos: estilo == null ? const [] : [estilo],
+      estacoes: estacao == null ? const [] : [estacao],
     );
 
 /// Fake com estado: `atualizarPeca` muda o que `listarPecas` devolve.
@@ -51,8 +51,9 @@ class _PecaServiceArmario extends PecaService {
     String? subcategoria,
     String? corPrincipal,
     String? tonalidadeCor,
-    String? estacao,
-    String? estilo,
+    List<String> coresSecundarias = const [],
+    List<String> estacoes = const [],
+    List<String> estilos = const [],
     String? modelagem,
     List<String> ocasioes = const [],
   }) async {
@@ -61,8 +62,8 @@ class _PecaServiceArmario extends PecaService {
       imagemUrl: '/uploads/$id.png',
       categoria: categoria,
       corPrincipal: corPrincipal,
-      estacao: estacao,
-      estilo: estilo,
+      estacoes: estacoes,
+      estilos: estilos,
       ocasioes: ocasioes,
     );
     pecas = [for (final p in pecas) p.id == id ? nova : p];
@@ -171,14 +172,14 @@ void main() {
     expect(find.text('Editar peça'), findsOneWidget); // formulário de edição
 
     // Preenche o estilo e salva: o formulário volta ao armário, já recarregado.
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Casual'));
+    await tester.tap(find.widgetWithText(FilterChip, 'Casual').first);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Salvar alterações'));
     await tester.tap(find.text('Salvar alterações'));
     await tester.pumpAndSettle();
 
-    expect(service.pecas.single.estilo, 'Casual');
-    expect(find.text('Meu Guarda-Roupa'), findsOneWidget);
+    expect(service.pecas.single.estilos, ['Casual']);
+    expect(find.text('Meu Armário'), findsOneWidget);
     expect(_selo, findsNothing);
 
     // Reabrindo o detalhe, a faixa sumiu.

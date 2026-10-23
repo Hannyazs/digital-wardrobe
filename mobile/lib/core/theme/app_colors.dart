@@ -20,6 +20,10 @@ class AppColors {
   /// de imagem) e de acentos discretos.
   static const sage = Color(0xFF9BBDB3);
 
+  /// O mesmo verde, mais escuro: bordas de campo, foco e marcações que
+  /// precisam de contraste 3:1 com o fundo (o sage claro fica em ~2:1).
+  static const sageEscuro = Color(0xFF619385);
+
   /// Preto pra texto — nunca `Colors.black` puro, levemente suavizado.
   static const textPrimary = Color(0xFF14160F);
 

@@ -84,9 +84,19 @@ class PaginaSugestoes {
 /// quando não há look possível (armário insuficiente ou tudo descartado) —
 /// aí [motivo] explica.
 class LookDoDia {
-  const LookDoDia({this.look, required this.ocasiao, this.temMais = false, this.motivo});
+  const LookDoDia({
+    this.look,
+    this.lookSalvoId,
+    required this.ocasiao,
+    this.temMais = false,
+    this.motivo,
+  });
 
   final Sugestao? look;
+
+  /// Id do look salvo com exatamente as mesmas peças (E6.F1.3), se existir:
+  /// o card não oferece salvar de novo e "Usei hoje" usa esse look.
+  final String? lookSalvoId;
 
   /// Ocasião usada pelo backend: a pedida, senão a salva, senão "Casual".
   final String ocasiao;
@@ -97,6 +107,7 @@ class LookDoDia {
     final look = json['look'];
     return LookDoDia(
       look: look == null ? null : Sugestao.fromJson(look as Map<String, dynamic>),
+      lookSalvoId: json['look_salvo_id'] as String?,
       ocasiao: json['ocasiao'] as String,
       temMais: json['tem_mais'] as bool? ?? false,
       motivo: json['motivo'] as String?,

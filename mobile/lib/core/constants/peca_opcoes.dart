@@ -11,9 +11,14 @@ import 'package:flutter/material.dart';
 const categoriasFixas = [
   'Camisetas',
   'Camisas',
+  'Blusas',
+  'Regatas',
+  'Suéteres',
   'Calças',
+  'Shorts',
   'Saias',
   'Vestidos',
+  'Macacões',
   'Casacos',
   'Sapatos',
   'Acessórios',
@@ -33,9 +38,10 @@ class Gaveta {
 /// Na ordem de [categoriasFixas]: a montagem de look, que lista por categoria,
 /// fica na mesma sequência do armário.
 const gavetasDoArmario = [
-  Gaveta('Partes de cima', ['Camisetas', 'Camisas']),
-  Gaveta('Partes de baixo', ['Calças', 'Saias']),
+  Gaveta('Partes de cima', ['Camisetas', 'Camisas', 'Blusas', 'Regatas', 'Suéteres']),
+  Gaveta('Partes de baixo', ['Calças', 'Shorts', 'Saias']),
   Gaveta('Vestidos', ['Vestidos']),
+  Gaveta('Macacões', ['Macacões']),
   Gaveta('Casacos', ['Casacos']),
   Gaveta('Sapatos', ['Sapatos']),
   Gaveta('Acessórios', ['Acessórios']),
@@ -123,10 +129,15 @@ String? tonalidadeSugeridaPara(String? nomeCor) {
 const modelagensPorCategoria = {
   'Camisetas': ['Oversized', 'Justa', 'Reta', 'Larga'],
   'Camisas': ['Oversized', 'Justa', 'Reta', 'Larga'],
+  'Blusas': ['Oversized', 'Justa', 'Reta', 'Larga'],
+  'Regatas': ['Justa', 'Reta', 'Larga'],
+  'Suéteres': ['Oversized', 'Justa', 'Reta', 'Larga'],
   'Casacos': ['Oversized', 'Justa', 'Reta', 'Larga'],
   'Calças': ['Justa', 'Reta', 'Larga'],
+  'Shorts': ['Justa', 'Reta', 'Larga'],
   'Saias': ['Justa', 'Reta', 'Evasê'],
   'Vestidos': ['Justa', 'Reta', 'Evasê', 'Larga'],
+  'Macacões': ['Justa', 'Reta', 'Larga'],
 };
 
 List<String> modelagensDe(String? categoria) => modelagensPorCategoria[categoria] ?? const [];

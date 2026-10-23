@@ -90,7 +90,7 @@ class UploadView extends ConsumerWidget {
     final EnvioState envioState = ref.watch(uploadSubmissionProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Adicionar Peça')),
+      appBar: AppBar(title: const Text('Adicionar peça')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: foto == null
@@ -119,8 +119,10 @@ class UploadView extends ConsumerWidget {
           onConfirmar: () => ref.read(uploadSubmissionProvider.notifier).enviar(),
         ),
       Enviando() => _Processando(foto: foto),
-      EnvioSucesso(:final imagemUrl, :final semRemocaoDeFundo) => _ResultadoProcessado(
+      EnvioSucesso(:final imagemUrl, :final semRemocaoDeFundo, :final sugestao) =>
+        _ResultadoProcessado(
           imagemUrl: imagemUrl,
+          sugestao: sugestao,
           semRemocaoDeFundo: semRemocaoDeFundo,
           onNovaFoto: onTrocarFoto,
         ),
@@ -263,8 +265,10 @@ class _ResultadoProcessado extends StatelessWidget {
     required this.imagemUrl,
     required this.onNovaFoto,
     this.semRemocaoDeFundo = false,
+    this.sugestao,
   });
 
+  final Map<String, dynamic>? sugestao;
   final String imagemUrl;
   final VoidCallback onNovaFoto;
   final bool semRemocaoDeFundo;
@@ -288,7 +292,7 @@ class _ResultadoProcessado extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           semRemocaoDeFundo
-              ? 'Continuando sem remoção de fundo — você pode ajustar isso depois.'
+              ? 'A peça será salva com o fundo original da foto.'
               : 'Fundo removido! Revise os dados na próxima etapa.',
           textAlign: TextAlign.center,
         ),
@@ -300,6 +304,7 @@ class _ResultadoProcessado extends StatelessWidget {
               builder: (_) => PecaFormView(
                 imagemUrl: imagemUrl,
                 semRemocaoDeFundo: semRemocaoDeFundo,
+                sugestao: sugestao,
               ),
             ),
           ),

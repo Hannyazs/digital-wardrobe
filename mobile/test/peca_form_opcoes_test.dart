@@ -37,8 +37,9 @@ class _PecaServiceFalso extends PecaService {
     String? subcategoria,
     String? corPrincipal,
     String? tonalidadeCor,
-    String? estacao,
-    String? estilo,
+    List<String> coresSecundarias = const [],
+    List<String> estacoes = const [],
+    List<String> estilos = const [],
     String? modelagem,
     List<String> ocasioes = const [],
   }) async {
@@ -46,8 +47,8 @@ class _PecaServiceFalso extends PecaService {
       'categoria': categoria,
       'cor': corPrincipal,
       'tonalidade': tonalidadeCor,
-      'estacao': estacao,
-      'estilo': estilo,
+      'estacoes': estacoes,
+      'estilos': estilos,
       'modelagem': modelagem,
       'ocasioes': ocasioes,
     });
@@ -70,8 +71,9 @@ class _PecaServiceFalso extends PecaService {
     String? subcategoria,
     String? corPrincipal,
     String? tonalidadeCor,
-    String? estacao,
-    String? estilo,
+    List<String> coresSecundarias = const [],
+    List<String> estacoes = const [],
+    List<String> estilos = const [],
     String? modelagem,
     List<String> ocasioes = const [],
   }) async {
@@ -158,13 +160,14 @@ void main() {
     expect(_selecionado(tester, ChoiceChip, 'Neutra'), isTrue);
     expect(_selecionado(tester, ChoiceChip, 'Escura'), isFalse);
 
-    await _tocar(tester, ChoiceChip, 'Casual');
+    await tester.tap(find.widgetWithText(FilterChip, 'Casual').first); // estilo (a ocasião vem depois)
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
 
     expect(service.ultimoEnvio!['cor'], 'Azul-marinho');
     expect(service.ultimoEnvio!['tonalidade'], 'Neutra');
-    expect(service.ultimoEnvio!['estilo'], 'Casual');
+    expect(service.ultimoEnvio!['estilos'], ['Casual']);
   });
 
   testWidgets('Modelagem só aparece para categorias compatíveis e é limpa ao trocar', (

@@ -39,7 +39,7 @@ class WardrobeView extends ConsumerWidget {
       body: Column(
         children: [
           const ScreenHeader(
-            titulo: 'Meu Guarda-Roupa',
+            titulo: 'Meu Armário',
             subtitulo: 'Suas peças e seus looks guardados.',
           ),
           Padding(
@@ -191,6 +191,7 @@ class _Gavetas extends StatelessWidget {
 Widget cardDaPeca(BuildContext context, Peca peca) {
   return ClothingCard(
     imagemUrl: peca.imagemUrl,
+    rotulo: descricaoPeca(peca),
     incompleta: camposIncompletos(peca).isNotEmpty,
     onTap: () => Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => PecaDetailView(peca: peca)),
@@ -216,7 +217,7 @@ class _ArmarioVazio extends StatelessWidget {
                 SizedBox(height: 16),
                 Text('Seu armário está vazio'),
                 SizedBox(height: 8),
-                Text('Toque em + para adicionar sua primeira peça'),
+                Text('Toque no botão de câmera para adicionar sua primeira peça'),
               ],
             ),
           ),
