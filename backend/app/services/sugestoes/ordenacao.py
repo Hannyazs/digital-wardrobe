@@ -141,7 +141,7 @@ def explicar(candidato: Candidato, prefs: PreferenciasMotor, filtros: Filtros) -
     elif len(cores) > 1:
         mais_ousado = None
         for a, b in combinations(pecas, 2):
-            if par_favorito(a, b, prefs) or eh_neutra(a) or eh_neutra(b):
+            if eh_neutra(a) or eh_neutra(b):
                 continue
             ousadia = ousadia_par(a, b)
             if ousadia and (mais_ousado is None or ousadia > mais_ousado[0]):

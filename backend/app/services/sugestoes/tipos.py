@@ -76,7 +76,7 @@ class Conflito:
 @dataclass(frozen=True)
 class Candidato:
     pecas: tuple[PecaMotor, ...]
-    ousadia: int  # sem contar pares favoritos
+    ousadia: int  # maior ousadia entre os pares do look
     pares_favoritos: frozenset[frozenset[str]]
     coringas: frozenset[uuid.UUID]
     sem_sapato: bool

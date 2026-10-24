@@ -104,6 +104,17 @@ Revisão de UI/UX pedida pelo usuário, sem mudar a identidade visual (paleta, f
 
 **Verificação**: `dart analyze` limpo; `flutter test` **242/242** (14 testes novos em `acessibilidade_e_ux_test.dart`: rótulos do leitor de tela, selecionada/não, botão de filtros, área de toque ≥ 48, subcategorias, texto 2× em Casa/Armário/Montar/Montagem/Looks, formulário, montagem, toque no card, textos). Testes antigos ajustados aos textos novos. Validação visual no Chrome pendente.
 
+## Etapa 9 — Casa mais compacta e régua de criatividade nas Sugestões (2026-10-23)
+
+Pedido de reorganização da tela inicial, sem mudar cores, tipografia, componentes nem o backend.
+
+- **Ordem da Casa:** saudação (cabeçalho compacto, com o ícone de ajustes que abre as Preferências de estilo), as ações "Adicionar peça" e "Montar um look" lado a lado, o card "Look do dia" e o calendário de looks recolhido.
+- **Ações principais:** dois botões do tema, com o ícone sobre o rótulo (o rótulo pode ir para duas linhas em telas estreitas). O botão grande "Preferências de estilo" saiu da lista.
+- **Look do dia:** padding menor, peças numa linha que se ajusta à largura (`PecasDoLook(ajustarALargura: true)`), só a primeira justificativa visível; as demais justificativas e os avisos abrem em "Detalhes" (folha inferior). "Outra sugestão", "Salvar" e "Usei hoje" continuam, sem ícones quando não há estado (só o "✓" de salvo/usado).
+- **Calendário:** recolhido por padrão ("Calendário de looks", mês e ano, e o total de usos do mês quando o histórico já chegou — nunca um número inventado), com seta que gira; tocar abre o calendário completo na própria Casa e tocar de novo recolhe.
+- **Régua de criatividade ("Criatividade das combinações", 1 a 5):** saiu de Preferências de estilo e foi para a aba **Sugestões**, junto dos filtros e antes de "Sugerir looks". Mesma escala, rótulos e preferência salva (`preferencias.criatividade`); "Sugerir looks" espera a gravação terminar para gerar com o nível escolhido. Como é a mesma preferência, o look do dia também a usa.
+- Medido nos testes (fonte de teste, mais larga que a real): card do Look do dia de 540 → 272 px em 360×800 (476 → 248 em 400×900); "Adicionar peça" de y=727 → 161; conteúdo da Casa de 1558 → 800 px, cabendo na tela sem rolar.
+
 ## Aviso permanente
 
 Testes existentes que fazem `find.text(...)`/`find.byType(...)` sobre textos ou widgets visuais (ex: `FilterChip`, "Salvar look") podem precisar de ajuste de uma linha quando a etapa correspondente trocar esse texto/widget — não é regressão de funcionalidade, é manutenção esperada de teste. Cada etapa que tocar uma tela com testes existentes vai rodar `flutter test` e reportar o que precisou ajustar.

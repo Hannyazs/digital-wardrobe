@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     ollama_modelo: str = "gemma3:4b"
     ollama_timeout_s: float = 30.0
+    # Tempo total da sugestão de look a partir de uma referência (E8.F5.2): esgotado,
+    # as etiquetas que faltam ficam "não analisadas" e o resultado sai com o que deu.
+    sugestao_tempo_max_s: float = 120.0
 
     # Storage local (MVP)
     upload_dir: str = "uploads"

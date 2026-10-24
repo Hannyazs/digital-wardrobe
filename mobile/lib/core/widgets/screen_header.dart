@@ -14,6 +14,7 @@ class ScreenHeader extends StatelessWidget {
     this.subtitulo,
     this.textoSecundario,
     this.acao,
+    this.compacto = false,
   });
 
   final String titulo;
@@ -25,11 +26,17 @@ class ScreenHeader extends StatelessWidget {
   /// ocuparia espaço extra e empurraria o degradê pra baixo.
   final Widget? acao;
 
+  /// Versão com menos respiro vertical (a Home, que precisa de espaço para as
+  /// ações e o look do dia). Os textos mantêm o tamanho: só o padding encolhe.
+  final bool compacto;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      padding: compacto
+          ? EdgeInsets.fromLTRB(20, 4, acao == null ? 20 : 8, 12)
+          : const EdgeInsets.fromLTRB(20, 20, 20, 28),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -44,19 +51,24 @@ class ScreenHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(titulo, style: AppTextStyles.titulo()),
-                  if (subtitulo != null) ...[
-                    const SizedBox(height: 12),
-                    Text(subtitulo!, style: AppTextStyles.subtitulo()),
+              child: Padding(
+                // Com a ação (48 px de altura) à direita, o texto desce um pouco
+                // para ficar alinhado ao centro dela.
+                padding: EdgeInsets.only(top: compacto && acao != null ? 8 : 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(titulo, style: AppTextStyles.titulo()),
+                    if (subtitulo != null) ...[
+                      SizedBox(height: compacto ? 4 : 12),
+                      Text(subtitulo!, style: AppTextStyles.subtitulo()),
+                    ],
+                    if (textoSecundario != null) ...[
+                      const SizedBox(height: 6),
+                      Text(textoSecundario!, style: AppTextStyles.secundario()),
+                    ],
                   ],
-                  if (textoSecundario != null) ...[
-                    const SizedBox(height: 6),
-                    Text(textoSecundario!, style: AppTextStyles.secundario()),
-                  ],
-                ],
+                ),
               ),
             ),
             if (acao != null) acao!,

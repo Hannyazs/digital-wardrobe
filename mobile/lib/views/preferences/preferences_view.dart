@@ -6,16 +6,18 @@ import '../../models/preferencia.dart';
 import 'preferences_controller.dart';
 import 'widgets/secao_combinacoes_evitadas.dart';
 import 'widgets/secao_cores_favoritas.dart';
-import 'widgets/secao_criatividade.dart';
 import 'widgets/secao_de_chips.dart';
 import 'widgets/secao_pecas_evitadas.dart';
 
 /// Configuração de preferências de estilo (MVP #6): cores favoritas,
-/// sobreposições, estilos preferidos, peças a evitar, nível de criatividade.
+/// sobreposições, estilos preferidos e peças/combinações a evitar.
 /// Cada seção entra numa PBI própria do Épico 4: estilos (E4.F3.1), cores
-/// (E4.F1.2), sobreposições (E4.F2.1), criatividade (E4.F5.1), peças
-/// evitadas (E4.F4.2) e combinações evitadas (E4.F4.3). Estilos vêm primeiro: é a preferência
-/// central da história do épico ("combinar com meu gosto pessoal").
+/// (E4.F1.2), sobreposições (E4.F2.1), peças evitadas (E4.F4.2) e combinações
+/// evitadas (E4.F4.3). Estilos vêm primeiro: é a preferência central da
+/// história do épico ("combinar com meu gosto pessoal").
+/// O nível de criatividade (E4.F5.1) saiu daqui: o controle fica na aba
+/// Sugestões, onde os looks são gerados (`suggestions/widgets/secao_criatividade.dart`),
+/// e continua gravando a mesma preferência.
 /// Alterações são salvas na hora, sem botão "Salvar".
 class PreferencesView extends ConsumerWidget {
   const PreferencesView({super.key});
@@ -66,10 +68,6 @@ class PreferencesView extends ConsumerWidget {
                 aplicar: (p, lista) => p.copyWith(sobreposicoes: lista),
               ),
             ),
-            SecaoCriatividade(
-              nivel: preferencia.criatividade,
-              onSalvar: (nivel) => _salvarCriatividade(context, ref, nivel),
-            ),
             const SecaoPecasEvitadas(),
             const SecaoCombinacoesEvitadas(),
           ],
@@ -82,17 +80,6 @@ class PreferencesView extends ConsumerWidget {
   /// gravado com [aplicar]) e salva. Parte do estado **atual** do controller
   /// (já com mudanças otimistas anteriores), não do capturado no build, para
   /// dois toques seguidos não perderem o primeiro.
-  /// Devolve `true` se gravou (a seção usa isso para desfazer o arrasto em falha).
-  Future<bool> _salvarCriatividade(BuildContext context, WidgetRef ref, int nivel) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final erro = await ref.read(preferenciasProvider.notifier).atualizar(
-      {'criatividade': nivel},
-      (p) => p.copyWith(criatividade: nivel),
-    );
-    if (erro != null) messenger.showSnackBar(SnackBar(content: Text(erro)));
-    return erro == null;
-  }
-
   Future<void> _alternar(
     BuildContext context,
     WidgetRef ref, {

@@ -10,8 +10,10 @@ import '../../models/peca.dart';
 import '../../models/sugestao.dart';
 import '../../services/sugestao_service.dart';
 import '../looks/looks_controller.dart' show lookListProvider;
+import '../preferences/preferences_controller.dart' show mensagemDeErroAoCarregar, preferenciasProvider;
 import 'suggestions_controller.dart';
 import 'widgets/conteudo_sugestao.dart';
+import 'widgets/secao_criatividade.dart';
 
 /// Estações que fazem sentido como filtro ("Todas as estações" não é uma).
 final _estacoesDoFiltro = estacoesFixas.where((e) => e != 'Todas as estações').toList();
@@ -33,6 +35,41 @@ class SuggestionsView extends ConsumerStatefulWidget {
 }
 
 class _SuggestionsViewState extends ConsumerState<SuggestionsView> {
+  /// Gravação do nível de criatividade em andamento (se houver). "Sugerir
+  /// looks" espera por ela: o backend lê o nível salvo, então pedir antes de
+  /// gravar geraria com o valor antigo.
+  Future<bool>? _salvandoNivel;
+
+  Future<bool> _salvarNivel(int nivel) {
+    final messenger = ScaffoldMessenger.of(context);
+    final futuro = () async {
+      final erro = await ref.read(preferenciasProvider.notifier).atualizar(
+        {'criatividade': nivel},
+        (p) => p.copyWith(criatividade: nivel),
+      );
+      if (erro != null) messenger.showSnackBar(SnackBar(content: Text(erro)));
+      return erro == null;
+    }();
+    _salvandoNivel = futuro;
+    // Looks que já estão na tela foram gerados com o nível antigo: ao gravar o
+    // novo, a lista é refeita sozinha (sem isso a régua parecia não mudar nada
+    // até a pessoa tocar de novo em "Sugerir looks").
+    futuro.then((gravou) {
+      if (!gravou || !mounted) return;
+      final provider = sugestoesProvider(widget.pecaBase?.id);
+      final estado = ref.read(provider);
+      if (estado.resultado != null && !estado.resultado!.isLoading) {
+        ref.read(provider.notifier).sugerir();
+      }
+    });
+    return futuro;
+  }
+
+  Future<void> _sugerir(SugestoesController controller) async {
+    await _salvandoNivel;
+    await controller.sugerir();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +89,7 @@ class _SuggestionsViewState extends ConsumerState<SuggestionsView> {
     final controller = ref.read(provider.notifier);
     final filtros = estado.filtros;
     final carregando = estado.resultado?.isLoading ?? false;
+    final preferencia = ref.watch(preferenciasProvider);
 
     return Scaffold(
       appBar: pecaBase == null ? null : AppBar(title: const Text('Looks com esta peça')),
@@ -102,12 +140,29 @@ class _SuggestionsViewState extends ConsumerState<SuggestionsView> {
                     ocasiao: filtros.ocasiao, estilo: filtros.estilo, estacao: filtros.estacao, cor: v,
                   )),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
+                preferencia.when(
+                  data: (p) => SecaoCriatividade(nivel: p.criatividade, onSalvar: _salvarNivel),
+                  loading: () => const SizedBox.shrink(),
+                  error: (erro, _) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(mensagemDeErroAoCarregar(erro))),
+                        TextButton(
+                          onPressed: () => ref.invalidate(preferenciasProvider),
+                          child: const Text('Tentar de novo'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 AppButton(
                   label: 'Sugerir looks',
                   icon: Icons.auto_awesome,
                   loading: carregando,
-                  onPressed: controller.sugerir,
+                  onPressed: () => _sugerir(controller),
                 ),
                 const SizedBox(height: 20),
                 _Resultado(estado: estado, pecaBaseId: pecaBase?.id),

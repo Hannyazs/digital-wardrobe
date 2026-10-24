@@ -8,10 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:guarda_roupa_app/models/preferencia.dart';
+import 'package:guarda_roupa_app/models/sugestao.dart';
+import 'package:guarda_roupa_app/services/sugestao_service.dart';
 import 'package:guarda_roupa_app/views/home/home_view.dart';
 import 'package:guarda_roupa_app/views/preferences/preferences_controller.dart';
 import 'package:guarda_roupa_app/views/preferences/preferences_view.dart';
 import 'package:guarda_roupa_app/views/preferences/widgets/secao_cores_favoritas.dart';
+import 'package:guarda_roupa_app/views/suggestions/suggestions_controller.dart' show sugestaoServiceProvider;
+import 'package:guarda_roupa_app/views/suggestions/suggestions_view.dart';
 
 import 'support/preferencia_service_sem_evitadas.dart';
 
@@ -108,7 +112,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Preferências de estilo'));
+    await tester.tap(find.byTooltip('Preferências de estilo'));
     await tester.pumpAndSettle();
 
     expect(find.byType(PreferencesView), findsOneWidget);
@@ -528,7 +532,49 @@ void estilosTests() {
   });
 }
 
-// --- E4.F5.1: nível de criatividade ---
+// --- E4.F5.1: nível de criatividade (o controle mora na aba Sugestões) ---
+
+/// `SugestaoService` falso que anota o nível de criatividade **salvo** no
+/// momento em que a geração é pedida: é o que o backend leria.
+class _SugestaoServiceQueAnotaONivel extends SugestaoService {
+  _SugestaoServiceQueAnotaONivel(this.preferencias);
+
+  final _PreferenciaServiceFake preferencias;
+  final niveisNaGeracao = <int>[];
+
+  @override
+  Future<PaginaSugestoes> sugerir({
+    FiltroSugestoes filtros = const FiltroSugestoes(),
+    String? pecaBaseId,
+    int pagina = 1,
+    List<List<String>> descartados = const [],
+  }) async {
+    niveisNaGeracao.add(preferencias.estado.criatividade);
+    return const PaginaSugestoes(motivo: 'Seu armário ainda não tem peças cadastradas.');
+  }
+}
+
+Future<_SugestaoServiceQueAnotaONivel> _abrirSugestoes(
+  WidgetTester tester,
+  _PreferenciaServiceFake service,
+) async {
+  tester.view.physicalSize = const Size(800, 1800);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  final sugestoes = _SugestaoServiceQueAnotaONivel(service);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        preferenciaServiceProvider.overrideWithValue(service),
+        sugestaoServiceProvider.overrideWithValue(sugestoes),
+      ],
+      child: const MaterialApp(home: SuggestionsView()),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return sugestoes;
+}
 
 Slider _slider(WidgetTester tester) => tester.widget<Slider>(find.byType(Slider));
 
@@ -536,16 +582,37 @@ String _rotuloCriatividade(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const Key('rotulo-criatividade'))).data!;
 
 void criatividadeTests() {
-  testWidgets('Sem preferência salva, o controle aparece no nível 3 "Cores vizinhas"', (tester) async {
+  testWidgets('A tela de Preferências não tem mais o controle de criatividade', (tester) async {
     await _abrirTela(tester, _PreferenciaServiceFake());
+
+    expect(find.byType(Slider), findsNothing);
+    expect(find.text('Criatividade das combinações'), findsNothing);
+    // As demais preferências continuam lá.
+    expect(find.text('Estilos preferidos'), findsOneWidget);
+  });
+
+  testWidgets('Sem preferência salva, o controle aparece na aba Sugestões no nível 3 "Cores vizinhas"', (
+    tester,
+  ) async {
+    await _abrirSugestoes(tester, _PreferenciaServiceFake());
 
     expect(find.text('Criatividade das combinações'), findsOneWidget);
     expect(_slider(tester).value, 3);
     expect(_rotuloCriatividade(tester), 'Cores vizinhas');
   });
 
+  testWidgets('A escala e os rótulos são os de antes (1 a 5)', (tester) async {
+    await _abrirSugestoes(tester, _PreferenciaServiceFake());
+
+    expect(_slider(tester).min, 1);
+    expect(_slider(tester).max, 5);
+    expect(_slider(tester).divisions, 4);
+    expect(find.text('Neutros + uma cor'), findsOneWidget);
+    expect(find.text('Cores opostas'), findsOneWidget);
+  });
+
   testWidgets('Nível salvo aparece ao abrir', (tester) async {
-    await _abrirTela(
+    await _abrirSugestoes(
       tester,
       _PreferenciaServiceFake(estado: const Preferencia(criatividade: 5)),
     );
@@ -558,7 +625,7 @@ void criatividadeTests() {
     tester,
   ) async {
     final service = _PreferenciaServiceFake();
-    await _abrirTela(tester, service);
+    await _abrirSugestoes(tester, service);
 
     // Movimento intermediário (como um arrasto): só estado local.
     _slider(tester).onChanged!(4);
@@ -579,7 +646,7 @@ void criatividadeTests() {
 
   testWidgets('Arrasto real até o fim do controle grava o nível 5 uma única vez', (tester) async {
     final service = _PreferenciaServiceFake();
-    await _abrirTela(tester, service);
+    await _abrirSugestoes(tester, service);
 
     await tester.drag(find.byType(Slider), const Offset(600, 0));
     await tester.pumpAndSettle();
@@ -592,7 +659,7 @@ void criatividadeTests() {
 
   testWidgets('Soltar no mesmo nível em que estava não grava nada', (tester) async {
     final service = _PreferenciaServiceFake();
-    await _abrirTela(tester, service);
+    await _abrirSugestoes(tester, service);
 
     _slider(tester).onChanged!(4);
     await tester.pump();
@@ -604,22 +671,22 @@ void criatividadeTests() {
     expect(service.patches, isEmpty);
   });
 
-  testWidgets('Nível persiste ao reabrir a tela', (tester) async {
+  testWidgets('Nível persiste ao reabrir a aba', (tester) async {
     final service = _PreferenciaServiceFake();
-    await _abrirTela(tester, service);
+    await _abrirSugestoes(tester, service);
 
     _slider(tester).onChanged!(4);
     _slider(tester).onChangeEnd!(4);
     await tester.pumpAndSettle();
 
-    await _abrirTela(tester, service);
+    await _abrirSugestoes(tester, service);
     expect(_slider(tester).value, 4);
     expect(_rotuloCriatividade(tester), 'Cores contrastantes');
   });
 
   testWidgets('Falha no PATCH devolve o controle ao nível anterior e avisa', (tester) async {
     final service = _PreferenciaServiceFake(falhasAoAtualizar: 1);
-    await _abrirTela(tester, service);
+    await _abrirSugestoes(tester, service);
 
     _slider(tester).onChanged!(5);
     await tester.pump();
@@ -633,5 +700,92 @@ void criatividadeTests() {
     expect(_slider(tester).value, 3);
     expect(_rotuloCriatividade(tester), 'Cores vizinhas');
     expect(service.estado.criatividade, 3);
+  });
+
+  testWidgets('"Sugerir looks" gera com o nível escolhido, mesmo pedido logo após soltar o controle', (
+    tester,
+  ) async {
+    // A gravação demora; a geração só pode sair depois dela (o backend lê o nível salvo).
+    final service = _PreferenciaServiceFake(atraso: const Duration(milliseconds: 300));
+    final sugestoes = await _abrirSugestoes(tester, service);
+
+    _slider(tester).onChanged!(5);
+    _slider(tester).onChangeEnd!(5);
+    await tester.pump();
+    await tester.tap(find.text('Sugerir looks'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(sugestoes.niveisNaGeracao, isEmpty); // ainda esperando a gravação
+
+    await tester.pumpAndSettle();
+    expect(sugestoes.niveisNaGeracao, [5]);
+  });
+
+  testWidgets('Com looks na tela, mudar a régua refaz a lista com o novo nível', (tester) async {
+    final service = _PreferenciaServiceFake();
+    final sugestoes = await _abrirSugestoes(tester, service);
+
+    await tester.tap(find.text('Sugerir looks'));
+    await tester.pumpAndSettle();
+    expect(sugestoes.niveisNaGeracao, [3]);
+
+    _slider(tester).onChanged!(1);
+    _slider(tester).onChangeEnd!(1);
+    await tester.pumpAndSettle();
+
+    // Uma nova geração, já com o nível 1 gravado.
+    expect(sugestoes.niveisNaGeracao, [3, 1]);
+  });
+
+  testWidgets('Sem looks na tela, mudar a régua só grava: nada é gerado sozinho', (tester) async {
+    final service = _PreferenciaServiceFake();
+    final sugestoes = await _abrirSugestoes(tester, service);
+
+    _slider(tester).onChanged!(5);
+    _slider(tester).onChangeEnd!(5);
+    await tester.pumpAndSettle();
+
+    expect(service.patches, [
+      {'criatividade': 5},
+    ]);
+    expect(sugestoes.niveisNaGeracao, isEmpty);
+  });
+
+  testWidgets('Se gravar o nível falha, a lista não é refeita', (tester) async {
+    final service = _PreferenciaServiceFake();
+    final sugestoes = await _abrirSugestoes(tester, service);
+    await tester.tap(find.text('Sugerir looks'));
+    await tester.pumpAndSettle();
+
+    service.falhasAoAtualizar = 1;
+    _slider(tester).onChanged!(5);
+    _slider(tester).onChangeEnd!(5);
+    await tester.pumpAndSettle();
+
+    expect(sugestoes.niveisNaGeracao, [3]); // só a primeira geração
+    expect(_slider(tester).value, 3);
+  });
+
+  testWidgets('Sem mexer no controle, "Sugerir looks" gera com o nível já salvo', (tester) async {
+    final service = _PreferenciaServiceFake(estado: const Preferencia(criatividade: 2));
+    final sugestoes = await _abrirSugestoes(tester, service);
+
+    await tester.tap(find.text('Sugerir looks'));
+    await tester.pumpAndSettle();
+
+    expect(sugestoes.niveisNaGeracao, [2]);
+    expect(service.patches, isEmpty);
+  });
+
+  testWidgets('Se as preferências não carregam, avisa e "Tentar de novo" refaz a busca', (tester) async {
+    final service = _PreferenciaServiceFake(falharAoObter: true);
+    await _abrirSugestoes(tester, service);
+
+    expect(find.byType(Slider), findsNothing);
+    expect(find.text('Tentar de novo'), findsOneWidget);
+
+    service.falharAoObter = false;
+    await tester.tap(find.text('Tentar de novo'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Slider), findsOneWidget);
   });
 }

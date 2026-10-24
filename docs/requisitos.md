@@ -133,6 +133,7 @@ Dividido em duas etapas. A primeira — o **mural de referências**, inspirado n
 - Organizar e consultar as referências salvas: grade de imagens e coleções criadas pelo usuário (uma por imagem); adicionar só da galeria, sem remoção de fundo.
 - Nota opcional por imagem e ligação a um look salvo.
 - Etiquetas das peças visíveis sugeridas pela IA (Gemma 3), apenas como texto editável, sem comparar com o armário.
+- **Ligação automática (decidido em 2026-10-23):** em "Ligar a um look", além do modo manual, o automático usa as etiquetas para estreitar as peças do armário e o Gemma compara a imagem da referência com as fotos delas; sugere um look salvo que contenha as peças encontradas ou um look novo, sempre só com peças do usuário e com as lacunas explícitas ("sem peça equivalente"). Usa o Gemma local no lugar de embeddings e `pgvector`; nada é salvo ou ligado sem a confirmação do usuário.
 
 **Features — evolução futura (análise automatizada):**
 - Identificação de estilo, cores e composição da imagem de referência.

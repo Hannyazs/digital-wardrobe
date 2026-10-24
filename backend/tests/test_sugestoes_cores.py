@@ -114,12 +114,34 @@ def test_exemplo_rosa_e_azul_claro_pasteis_na_criatividade_3():
     assert avaliar_cores(look, prefs(2))[0] is False
 
 
-def test_exemplo_par_favorito_passa_da_criatividade():
+def test_par_favorito_nao_passa_da_criatividade_a_regua_manda():
+    # Amarelo + Roxo são opostos (ousadia 4): só cabem na criatividade 5.
     look = [peca("Camisetas", "Amarelo"), peca("Calças", "Roxo"), peca("Sapatos", "Branco")]
-    assert avaliar_cores(look, prefs(1))[0] is False
-    valido, ousadia, favoritos = avaliar_cores(look, prefs(1, [("Amarelo", "Roxo")]))
-    assert valido and ousadia == 0
-    assert favoritos == {frozenset({"Amarelo", "Roxo"})}
+    favoritos = [("Amarelo", "Roxo")]
+    for criatividade in (1, 2, 3, 4):
+        assert avaliar_cores(look, prefs(criatividade, favoritos))[0] is False
+    valido, ousadia, achados = avaliar_cores(look, prefs(5, favoritos))
+    assert valido and ousadia == 4
+    assert achados == {frozenset({"Amarelo", "Roxo"})}
+
+
+def test_par_favorito_dentro_do_limite_continua_contando_para_ordenar():
+    # Vermelho + Azul: ousadia 3, cabe na criatividade 4 e é reconhecido como favorito.
+    look = [peca("Camisetas", "Vermelho"), peca("Calças", "Azul"), peca("Sapatos", "Branco")]
+    valido, ousadia, favoritos = avaliar_cores(look, prefs(4, [("Vermelho", "Azul")]))
+    assert valido and ousadia == 3
+    assert favoritos == {frozenset({"Vermelho", "Azul"})}
+    assert avaliar_cores(look, prefs(3, [("Vermelho", "Azul")]))[0] is False
+
+
+def test_criatividade_1_so_deixa_uma_cor_viva_mesmo_com_favoritas():
+    # Rosa + Vermelho são da mesma família (ousadia 1): não cabem em "Neutros + uma cor".
+    favoritas = [("Rosa", "Vermelho"), ("Verde", "Preto")]
+    dois_vivos = [peca("Vestidos", "Rosa"), peca("Sapatos", "Vermelho")]
+    assert avaliar_cores(dois_vivos, prefs(1, favoritas))[0] is False
+    assert avaliar_cores(dois_vivos, prefs(2, favoritas))[0] is True
+    uma_viva = [peca("Vestidos", "Rosa"), peca("Sapatos", "Marrom"), peca("Casacos", "Preto")]
+    assert avaliar_cores(uma_viva, prefs(1, favoritas))[0] is True
 
 
 def test_exemplo_verde_oliva_neutro_com_laranja_na_criatividade_1():

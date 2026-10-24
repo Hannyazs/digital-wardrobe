@@ -123,17 +123,17 @@ def par_favorito(a: PecaMotor, b: PecaMotor, prefs: PreferenciasMotor) -> frozen
 
 
 def par_permitido(a: PecaMotor, b: PecaMotor, prefs: PreferenciasMotor) -> bool:
-    """O par cabe na criatividade, ou é um par de cores favorito."""
+    """O par cabe na criatividade. Par de cores favorito NÃO abre exceção: a
+    régua manda, e os favoritos só ajudam a ordenar os looks que já cabem nela."""
     ousadia = ousadia_par(a, b)
-    if ousadia is None or ousadia <= ousadia_maxima(prefs.criatividade):
-        return True
-    return par_favorito(a, b, prefs) is not None
+    return ousadia is None or ousadia <= ousadia_maxima(prefs.criatividade)
 
 
 def avaliar_cores(
     pecas: tuple[PecaMotor, ...] | list[PecaMotor], prefs: PreferenciasMotor
 ) -> tuple[bool, int, frozenset[frozenset[str]]]:
-    """(válido, ousadia do look sem pares favoritos, pares favoritos presentes)."""
+    """(válido, ousadia do look, pares favoritos presentes). Os pares favoritos
+    contam na ousadia como qualquer outro; servem só para ordenar."""
     if len(cores_nao_neutras(pecas)) > MAX_CORES_NAO_NEUTRAS:
         return False, 0, frozenset()
     ousadia_look = 0
@@ -142,7 +142,6 @@ def avaliar_cores(
         favorito = par_favorito(a, b, prefs)
         if favorito is not None:
             favoritos.add(favorito)
-            continue
         ousadia = ousadia_par(a, b)
         if ousadia is not None:
             ousadia_look = max(ousadia_look, ousadia)

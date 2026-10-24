@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/peca_opcoes.dart';
 
-/// Seção "Criatividade das combinações" (E4.F5.1): `Slider` de 1 a 5.
+/// Seção "Criatividade das combinações" (E4.F5.1): `Slider` de 1 a 5. Mora na aba
+/// Sugestões, junto dos filtros, porque é lá que os looks são gerados; o valor é a
+/// mesma preferência salva do usuário (`preferencias.criatividade`).
+///
 ///
 /// Durante o arrasto o valor fica só aqui (o rótulo acompanha o dedo, sem
 /// chamar o servidor); ao soltar, [onSalvar] recebe o nível e diz se gravou.

@@ -771,7 +771,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Imagem válida enviada aparece na listagem; arquivo inválido ou acima de 10 MB responde 422.
 - Cada usuário vê, edita e exclui só as suas referências.
 
-**Status**: não iniciado.
+**Status**: **concluída** — tabela `referencias` (migração `0014`) e rotas `POST/GET/PATCH/DELETE /referencias`; `pytest` 120; testada com a API real.
 **Estimativa**: M.
 **Dependências**: Auth JWT e `storage_adapter` existentes.
 
@@ -785,7 +785,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Foto escolhida da galeria aparece no topo da grade.
 - Mural vazio mostra mensagem e o botão Adicionar.
 
-**Status**: não iniciado.
+**Status**: **concluída (validação manual no Chrome pendente)** — aba Referências virou o mural: grade em duas colunas, adicionar da galeria com nota opcional e visualização com zoom. `flutter test` 259; `flutter analyze` limpo.
 **Estimativa**: M.
 **Dependências**: E8.F1.1.
 
@@ -799,7 +799,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Nota editada persiste ao reabrir.
 - Exclusão confirmada remove a imagem da grade.
 
-**Status**: não iniciado.
+**Status**: **concluída (validação manual no Chrome pendente)** — detalhe da referência com nota editável e exclusão com confirmação. `flutter test` 266; `flutter analyze` limpo.
 **Estimativa**: P.
 **Dependências**: E8.F1.1, E8.F1.2.
 
@@ -815,7 +815,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Nome repetido (sem diferenciar caixa) responde 409.
 - Excluir a coleção mantém as referências, sem coleção.
 
-**Status**: não iniciado.
+**Status**: **concluída** — tabela `colecoes` (migração `0015`), rotas `/colecoes`, filtro por coleção em `GET /referencias` e mover pelo `PATCH`; `pytest` 137; testada com a API real.
 **Estimativa**: M.
 **Dependências**: E8.F1.1.
 
@@ -829,7 +829,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Imagem adicionada numa coleção aparece na grade dela e em Todas.
 - Excluir a coleção não apaga as imagens.
 
-**Status**: não iniciado.
+**Status**: **concluída (validação manual no Chrome pendente)** — abas Todas/Coleções no mural, criar/renomear/excluir coleção, escolher a coleção ao adicionar e mover pelo detalhe. `flutter test` 275; `flutter analyze` limpo.
 **Estimativa**: M.
 **Dependências**: E8.F2.1, E8.F1.3.
 
@@ -845,7 +845,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Referência ligada mostra nome e peças do look.
 - Look arquivado não aparece como ligado.
 
-**Status**: não iniciado.
+**Status**: **concluída (validação manual no Chrome pendente)** — `referencias.look_id` (migração `0016`), `PATCH` liga/desliga, detalhe mostra o look ligado (nome e peças) e a grade um selo. `pytest` 144; `flutter test` 283; `flutter analyze` limpo.
 **Estimativa**: M.
 **Dependências**: E8.F1.3, E3.F1.1.
 
@@ -861,9 +861,57 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Com o Ollama rodando, a referência nasce com etiquetas editáveis.
 - Com o Ollama parado, a referência é salva sem etiquetas.
 
-**Status**: não iniciado.
+**Status**: **concluída (validação manual no Chrome pendente)** — o Gemma 3 sugere etiquetas das peças ao enviar a referência (`referencias.etiquetas`, migração `0017`); chips editáveis no detalhe. `pytest` 156; `flutter test` 292; `flutter analyze` limpo; testado com o Ollama real (5–12 s).
 **Estimativa**: M.
 **Dependências**: E8.F1.3, E7.F1.1.
+
+---
+
+### Épico 8, Feature 5 — Ligação automática: sugerir o look a partir da referência
+
+Pedido de 2026-10-23: "Ligar a um look" ganha duas formas, manual e automática. No automático, as etiquetas da referência estreitam as peças candidatas do armário e o Gemma compara a imagem da referência com as fotos das peças, uma etiqueta por vez. O resultado reaproveita um look salvo, se algum contém as peças encontradas, ou propõe um look novo, sempre só com peças do usuário e com as lacunas explícitas. Substitui, para esta parte, o plano de embeddings e `pgvector` da segunda etapa do Épico 8.
+
+### E8.F5.1 — Estreitar candidatos do armário a partir das etiquetas (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F5-ligacao-automatica/E8.F5.1-estreitar-candidatos-por-etiqueta.md](PBIs/E8-F5-ligacao-automatica/E8.F5.1-estreitar-candidatos-por-etiqueta.md).
+
+**Descrição**: funções puras que, para cada etiqueta, descobrem categoria e cores e escolhem até 4 peças candidatas do armário (sem as evitadas); etiqueta sem equivalente vira lacuna.
+
+**Critérios de aceite:**
+- "calça jeans azul" traz as calças do armário, a azul de jeans primeiro; camiseta não entra.
+- Sem peça da categoria, ou etiqueta não entendida, é lacuna explícita; peça evitada nunca aparece.
+
+**Status**: **concluída** — `services/inspiracao/` com vocabulário e `estreitar`: categoria, cores e palavras da etiqueta viram até 4 candidatas do armário (sem as evitadas) ou uma lacuna explícita. `pytest` 213 (54 novos).
+**Estimativa**: M.
+**Dependências**: E8.F4.1, E4.F4.2.
+
+### E8.F5.2 — Sugerir o look da referência comparando com o Gemma (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F5-ligacao-automatica/E8.F5.2-sugerir-look-com-gemma.md](PBIs/E8-F5-ligacao-automatica/E8.F5.2-sugerir-look-com-gemma.md).
+
+**Descrição**: `POST /referencias/{id}/sugestao-de-look`: o Gemma compara a imagem da referência com as candidatas de cada etiqueta; devolve look salvo que contém as peças, ou look novo, mais as lacunas.
+
+**Critérios de aceite:**
+- Só peças do usuário; etiqueta sem equivalente aparece em `lacunas`.
+- Com o Ollama parado, 200 com `sem_pecas`; sem etiquetas, 422.
+
+**Status**: **concluída** — `POST /referencias/{id}/sugestao-de-look`: o Gemma compara a referência com as candidatas de cada etiqueta e a rota devolve look salvo, look novo ou sem peças, mais as lacunas. `pytest` 251; testada com o Ollama real (35 s para 5 etiquetas, precisão média).
+**Estimativa**: G.
+**Dependências**: E8.F5.1, E8.F4.1, E8.F3.1.
+
+### E8.F5.3 — "Ligar a um look": manual ou automático (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F5-ligacao-automatica/E8.F5.3-ligar-a-look-manual-ou-automatico.md](PBIs/E8-F5-ligacao-automatica/E8.F5.3-ligar-a-look-manual-ou-automatico.md).
+
+**Descrição**: o botão "Ligar a um look" oferece Manual e Automático (IA); o automático mostra o look sugerido (salvo ou novo) com as lacunas e só liga ou salva depois do toque do usuário.
+
+**Critérios de aceite:**
+- Automático desabilitado sem etiquetas; look salvo vira "Ligar a este look"; look novo vira "Salvar como look e ligar".
+- Lacunas sempre visíveis; nenhuma peça fora do armário.
+
+**Status**: **concluída (validação manual no Chrome pendente)** — "Ligar a um look" oferece Manual e Automático (IA); o automático mostra o look sugerido (salvo ou novo) com as lacunas e só liga ou salva depois do toque. `flutter test` 340; `flutter analyze` limpo; contrato lido com a resposta real do backend.
+**Estimativa**: M.
+**Dependências**: E8.F5.2, E8.F3.1, E3.F1.1.
 
 ---
 
@@ -914,12 +962,15 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E6.F1.3 | Look do dia que já é um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
 | E7.F1.1 | Adaptador do Ollama (Gemma 3) e sugestão no processamento da foto (backend) | Concluída (rota ponta a ponta não exercitada) |
 | E7.F1.2 | Formulário pré-preenchido com a sugestão da IA (mobile) | Concluída (validação manual pendente) |
-| E8.F1.1 | Referências do mural: tabela, upload e rotas (backend) | Não iniciado |
-| E8.F1.2 | Grade do mural e adicionar da galeria (mobile) | Não iniciado |
-| E8.F1.3 | Nota e exclusão da referência (mobile) | Não iniciado |
-| E8.F2.1 | Coleções de referências (backend) | Não iniciado |
-| E8.F2.2 | Aba de coleções no mural (mobile) | Não iniciado |
-| E8.F3.1 | Ligar a referência a um look salvo (backend + mobile) | Não iniciado |
-| E8.F4.1 | Etiquetas das peças da referência por IA (backend + mobile) | Não iniciado |
+| E8.F1.1 | Referências do mural: tabela, upload e rotas (backend) | Concluída (`pytest` + API real) |
+| E8.F1.2 | Grade do mural e adicionar da galeria (mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F1.3 | Nota e exclusão da referência (mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F2.1 | Coleções de referências (backend) | Concluída (`pytest` + API real) |
+| E8.F2.2 | Aba de coleções no mural (mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F3.1 | Ligar a referência a um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F4.1 | Etiquetas das peças da referência por IA (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F5.1 | Estreitar candidatos do armário a partir das etiquetas (backend) | Concluída (`pytest`) |
+| E8.F5.2 | Sugerir o look da referência comparando com o Gemma (backend) | Concluída (`pytest` + Ollama real; precisão média) |
+| E8.F5.3 | "Ligar a um look": manual ou automático (mobile) | Concluída (validação manual no Chrome pendente) |
 
 E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão).

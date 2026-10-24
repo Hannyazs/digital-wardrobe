@@ -104,6 +104,13 @@ Future<void> _abrirHistorico(WidgetTester tester, LookService service) async {
     ),
   );
   await tester.pumpAndSettle();
+  await _expandirCalendario(tester);
+}
+
+/// O calendário da Casa nasce recolhido: tocar no cabeçalho o abre.
+Future<void> _expandirCalendario(WidgetTester tester) async {
+  await tester.tap(find.text('Calendário de looks'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -169,6 +176,8 @@ void main() {
         child: const MaterialApp(home: HomeView()),
       ),
     );
+    await tester.pump();
+    await tester.tap(find.text('Calendário de looks'));
     await tester.pump();
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     await tester.pump(const Duration(seconds: 1));
@@ -375,6 +384,7 @@ void main() {
 
     await tester.tap(find.text('Casa'));
     await tester.pumpAndSettle();
+    await _expandirCalendario(tester);
     expect(find.text(rotuloDoMes(mesAtual)), findsOneWidget);
     expect(find.text('Hoje'), findsOneWidget);
     expect(find.byKey(ValueKey('marca-${hojeDia.day}')), findsOneWidget);

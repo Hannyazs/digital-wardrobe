@@ -21,3 +21,16 @@ def save_image(imagem_bytes: bytes, extensao: str = "png") -> str:
     caminho.write_bytes(imagem_bytes)
 
     return f"/uploads/{nome_arquivo}"
+
+
+def delete_image(imagem_url: str) -> None:
+    """Apaga a imagem salva por `save_image`; arquivo ja inexistente nao e erro.
+    Usa so o nome do arquivo da URL, nunca um caminho vindo de fora."""
+    caminho = Path(settings.upload_dir) / Path(imagem_url).name
+    caminho.unlink(missing_ok=True)
+
+
+def read_image(imagem_url: str) -> bytes:
+    """Lê a imagem salva por `save_image`. Levanta `FileNotFoundError` se ela sumiu.
+    Usa so o nome do arquivo da URL, nunca um caminho vindo de fora."""
+    return (Path(settings.upload_dir) / Path(imagem_url).name).read_bytes()

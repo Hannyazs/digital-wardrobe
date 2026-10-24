@@ -83,7 +83,8 @@ def test_peca_evitada_nunca_entra():
 
 def test_par_evitado_nunca_entra_mesmo_sendo_par_favorito():
     cima, baixo, sapato = peca("Camisetas", "Amarelo"), peca("Calças", "Roxo"), peca("Sapatos", "Branco")
-    prefs = PreferenciasMotor(criatividade=1, pares_favoritos=frozenset({frozenset({"Amarelo", "Roxo"})}))
+    # Amarelo + Roxo (ousadia 4) só cabem na criatividade 5.
+    prefs = PreferenciasMotor(criatividade=5, pares_favoritos=frozenset({frozenset({"Amarelo", "Roxo"})}))
     assert len(gerar([cima, baixo, sapato], prefs=prefs).candidatos) == 1
 
     restricoes = Restricoes(pares_evitados=frozenset({frozenset({cima.id, baixo.id})}))
@@ -284,3 +285,17 @@ def test_varios_estilos_basta_um_bater_com_o_filtro():
     assert gerar(pecas, filtros=Filtros(estilo="Casual")).candidatos
     assert gerar(pecas, filtros=Filtros(estilo="Elegante")).candidatos
     assert not gerar(pecas, filtros=Filtros(estilo="Formal")).candidatos
+
+
+def test_par_favorito_nao_fura_a_regua_na_montagem():
+    vestido = peca("Vestidos", "Rosa")
+    tenis_vermelho, sapato_preto = peca("Sapatos", "Vermelho"), peca("Sapatos", "Preto")
+    favoritas = frozenset({frozenset({"Rosa", "Vermelho"})})
+
+    rigido = gerar([vestido, tenis_vermelho, sapato_preto], prefs=PreferenciasMotor(criatividade=1, pares_favoritos=favoritas))
+    assert [tuple(p.cor for p in c.pecas) for c in rigido.candidatos] == [("Rosa", "Preto")]
+
+    solto = gerar([vestido, tenis_vermelho, sapato_preto], prefs=PreferenciasMotor(criatividade=2, pares_favoritos=favoritas))
+    assert {tuple(p.cor for p in c.pecas) for c in solto.candidatos} == {("Rosa", "Vermelho"), ("Rosa", "Preto")}
+    favorito = next(c for c in solto.candidatos if c.pecas[-1].cor == "Vermelho")
+    assert favorito.pares_favoritos == favoritas  # continua marcado, para a ordenação

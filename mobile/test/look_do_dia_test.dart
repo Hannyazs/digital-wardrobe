@@ -177,7 +177,7 @@ void main() {
 
     expect(find.text('Look do dia'), findsOneWidget);
     expect(_ocasiaoNoSeletor(tester), 'Casual');
-    expect(find.text('• Look 1 para Casual.'), findsOneWidget);
+    expect(find.text('Look 1 para Casual.'), findsOneWidget);
     expect(cena.sugestoes.pedidos.single.ocasiao, isNull); // backend escolhe
     expect(cena.sugestoes.pedidos.single.data, hoje);
   });
@@ -187,7 +187,7 @@ void main() {
     await _abrirCasa(tester, cena);
 
     expect(_ocasiaoNoSeletor(tester), 'Trabalho');
-    expect(find.text('• Look 1 para Trabalho.'), findsOneWidget);
+    expect(find.text('Look 1 para Trabalho.'), findsOneWidget);
   });
 
   testWidgets('Trocar a ocasião muda o look, grava a preferência e vale ao reabrir o app', (
@@ -197,12 +197,12 @@ void main() {
     await _abrirCasa(tester, cena);
 
     await _escolherOcasiao(tester, 'Trabalho');
-    expect(find.text('• Look 1 para Trabalho.'), findsOneWidget);
+    expect(find.text('Look 1 para Trabalho.'), findsOneWidget);
     expect(cena.servidor.ocasiaoSalva, 'Trabalho');
 
     await _abrirCasa(tester, cena); // "reabre o app"
     expect(_ocasiaoNoSeletor(tester), 'Trabalho');
-    expect(find.text('• Look 1 para Trabalho.'), findsOneWidget);
+    expect(find.text('Look 1 para Trabalho.'), findsOneWidget);
   });
 
   testWidgets('Se gravar a ocasião falhar, o look muda mesmo assim e aparece mensagem', (tester) async {
@@ -212,7 +212,7 @@ void main() {
 
     await _escolherOcasiao(tester, 'Festa');
 
-    expect(find.text('• Look 1 para Festa.'), findsOneWidget);
+    expect(find.text('Look 1 para Festa.'), findsOneWidget);
     expect(find.textContaining('Não foi possível lembrar a ocasião'), findsOneWidget);
     expect(cena.servidor.ocasiaoSalva, isNull);
   });
@@ -229,8 +229,8 @@ void main() {
     expect(cena.sugestoes.pedidos.last.descartados, [
       ['Casual-cima1', 'Casual-baixo1'],
     ]);
-    expect(find.text('• Look 2 para Casual.'), findsOneWidget);
-    expect(find.text('• Look 1 para Casual.'), findsNothing);
+    expect(find.text('Look 2 para Casual.'), findsOneWidget);
+    expect(find.text('Look 1 para Casual.'), findsNothing);
     final botao = tester.widget<TextButton>(find.widgetWithText(TextButton, 'Outra sugestão'));
     expect(botao.onPressed, isNull);
   });
@@ -286,7 +286,7 @@ void main() {
 
     expect(find.textContaining('Sem conexão com o servidor'), findsOneWidget);
     expect(cena.looks.usos, isEmpty);
-    expect(find.text('• Look 1 para Casual.'), findsOneWidget);
+    expect(find.text('Look 1 para Casual.'), findsOneWidget);
   });
 
   testWidgets('Armário insuficiente mostra o motivo; atalhos continuam', (tester) async {
@@ -314,7 +314,7 @@ void main() {
     cena.sugestoes.erro = null;
     await tester.tap(find.text('Tentar novamente'));
     await tester.pumpAndSettle();
-    expect(find.text('• Look 1 para Casual.'), findsOneWidget);
+    expect(find.text('Look 1 para Casual.'), findsOneWidget);
   });
 
   // --- E6.F1.3: look do dia que já é um look salvo ---
@@ -326,7 +326,7 @@ void main() {
     cena.sugestoes.salvosNoServidor['Casual-baixo1,Casual-cima1'] = 'look-antigo';
     await _abrirCasa(tester, cena);
 
-    expect(find.text('• Look 1 para Casual.'), findsOneWidget); // continua sendo sugerido
+    expect(find.text('Look 1 para Casual.'), findsOneWidget); // continua sendo sugerido
     expect(find.text('Este look já está em Armário › Looks.'), findsOneWidget);
     expect(find.text('Salvar'), findsNothing);
     final botao = tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Já salvo'));
@@ -356,7 +356,7 @@ void main() {
     await tester.tap(find.text('Outra sugestão'));
     await tester.pumpAndSettle();
 
-    expect(find.text('• Look 2 para Casual.'), findsOneWidget);
+    expect(find.text('Look 2 para Casual.'), findsOneWidget);
     expect(find.text('Este look já está em Armário › Looks.'), findsNothing);
     final botao = tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Salvar'));
     expect(botao.onPressed, isNotNull);

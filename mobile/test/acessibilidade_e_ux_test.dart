@@ -221,6 +221,6 @@ void main() {
     await tester.tap(find.text('Referências'));
     await tester.pumpAndSettle();
     expect(find.text('Inspirações'), findsOneWidget);
-    expect(find.text('Em breve'), findsOneWidget);
+    expect(find.text('Seu mural de referências'), findsOneWidget);
   });
 }

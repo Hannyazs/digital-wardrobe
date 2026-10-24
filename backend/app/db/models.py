@@ -10,7 +10,9 @@ from sqlalchemy import (
     ForeignKey,
     SmallInteger,
     String,
+    Text,
     Table,
+    Index,
     UniqueConstraint,
     func,
     text,
@@ -193,3 +195,48 @@ class CombinacaoEvitada(Base):
 
     peca_a: Mapped[Peca] = relationship(foreign_keys=[peca_a_id])
     peca_b: Mapped[Peca] = relationship(foreign_keys=[peca_b_id])
+
+
+class Referencia(Base):
+    """Imagem do mural de referencias (E8.F1.1): guardada como veio, sem
+    remocao de fundo nem IA."""
+
+    __tablename__ = "referencias"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+
+    imagem_url: Mapped[str] = mapped_column(String, nullable=False)
+    nota: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # E8.F2.1 — no máximo uma coleção; excluir a coleção devolve a "Sem coleção".
+    colecao_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("colecoes.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # E8.F3.1 — no máximo um look salvo; um look pode ter várias referências.
+    look_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("looks.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # E8.F4.1 — peças visíveis na imagem ("camiseta branca"): sugeridas pela IA, editáveis.
+    etiquetas: Mapped[list[str]] = mapped_column(
+        ARRAY(String), nullable=False, server_default=text("'{}'::varchar[]")
+    )
+
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    # Carregado junto com a referência (a sessão é assíncrona: nada de lazy load).
+    look: Mapped[Look | None] = relationship(lazy="joined")
+
+
+class Colecao(Base):
+    """Separação do mural escolhida pelo usuário (E8.F2.1). O nome é único por
+    usuário sem diferenciar maiúsculas (índice `uq_colecoes_usuario_nome`)."""
+
+    __tablename__ = "colecoes"
+    __table_args__ = (Index("uq_colecoes_usuario_nome", "usuario_id", func.lower(text("nome")), unique=True),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

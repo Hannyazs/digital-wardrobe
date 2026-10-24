@@ -43,10 +43,10 @@ Tabela resultante entre cores não neutras:
 - Nenhuma outra combinação de tonalidades altera a ousadia.
 
 **Look:**
-- Ousadia do look = maior ousadia entre os seus pares, **sem contar pares favoritos**.
+- Ousadia do look = maior ousadia entre os seus pares (pares favoritos contam como quaisquer outros).
 - Ousadia máxima permitida = criatividade − 1 (criatividade 1 a 5).
 - No máximo **3 cores não neutras** por look, contadas por nome (cor repetida conta uma vez), em qualquer criatividade.
-- **Par de cores favorito** (preferências): pode passar da ousadia máxima. Não libera o limite de 3 cores, nem peças ou pares evitados.
+- **Par de cores favorito** (preferências): **não passa da ousadia máxima** — a régua de criatividade manda (decisão de 2026-10-23; antes o par favorito furava o limite, e em "Neutros + uma cor" ainda saíam looks com duas cores vivas). Entre os looks que cabem no nível, o par favorito só ajuda a ordenar (critério 1) e aparece na explicação. Também não libera o limite de 3 cores, nem peças ou pares evitados.
 - Cor fora da lista fixa (texto livre antigo) é tratada como peça sem cor.
 - **Peça multicolorida** (cor predominante em `cor_principal` + `cores_secundarias`): conta como uma peça de cada uma das suas cores. O motor avalia cada cor (regras de ousadia, limite de 3 cores e filtro de cor valem para a cor avaliada) e o mesmo look sai uma só vez, com a cor que dá a menor ousadia. Decisão de 2026-10-23.
 
