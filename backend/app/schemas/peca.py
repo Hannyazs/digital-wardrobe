@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -45,6 +45,15 @@ class PecaRead(PecaBase):
     usuario_id: uuid.UUID
     imagem_url: str
     criado_em: datetime
+
+
+class PecaParadaRead(BaseModel):
+    """Item de GET /pecas/paradas (E13.F1.1): a peça, o último uso (nulo se
+    nunca foi usada) e há quantos dias está parada."""
+
+    peca: PecaRead
+    ultimo_uso: date | None
+    dias_parada: int
 
 
 class ImagemProcessadaResponse(BaseModel):

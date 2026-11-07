@@ -13,6 +13,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Sem isto o Flutter Web não consegue ler a contagem da paginação de /pecas.
+    expose_headers=["X-Total-Count"],
 )
 
 app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")

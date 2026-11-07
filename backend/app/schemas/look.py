@@ -32,6 +32,9 @@ class LookUpdate(BaseModel):
     ocasioes: list[str] | None = None
     # E3.F5.2: troca as peças do look (pelo menos uma; o router confere se são do usuário).
     peca_ids: list[uuid.UUID] | None = Field(default=None, min_length=1)
+    # E3.F6.1: muda a pasta do look. Fora de `_nao_nulo` de propósito: `null`
+    # tira o look da pasta ("Sem pasta"). O router confere se a pasta é do usuário.
+    pasta_id: uuid.UUID | None = None
 
     @field_validator("nome", "favorito", "ocasioes", "peca_ids", mode="before")
     @classmethod
@@ -65,6 +68,7 @@ class LookRead(BaseModel):
     nome: str
     favorito: bool
     ocasioes: list[str]
+    pasta_id: uuid.UUID | None = None
     criado_em: datetime
     pecas: list[PecaRead]
 

@@ -1,5 +1,5 @@
 // Testes de excluir (arquivar) look salvo (E3.F5.1). LookService falso, nunca bate numa API real.
-// Ver docs/PBIs/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md.
+// Ver docs/PBIs/E3-criacao-manual-de-looks/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

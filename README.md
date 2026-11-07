@@ -126,7 +126,7 @@ Regra prática pro time:
 
 ## Testando endpoints autenticados (antes do Supabase Auth existir)
 
-Os endpoints de `/pecas` exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. Enquanto não existe um projeto Supabase real, gere um token de teste localmente, assinado com o mesmo `SUPABASE_JWT_SECRET` do seu `.env`:
+Quase todos os endpoints exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. **Exceção conhecida (limitação de segurança, ainda não corrigida):** `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação**; a correção está prevista na PBI E10.F2.2 (ver [docs/backlog.md](docs/backlog.md)). Enquanto não existe um projeto Supabase real, gere um token de teste localmente, assinado com o mesmo `SUPABASE_JWT_SECRET` do seu `.env`:
 
 ```bash
 cd backend
@@ -146,7 +146,7 @@ cd mobile
 flutter run -d chrome --web-port=8080 --dart-define=DEV_AUTH_TOKEN=<token-copiado>
 ```
 
-> Token atual gerado em 2026-10-02, válido por 30 dias (expira ~2026-11-01). Depois disso, gere um novo com `python scripts/gerar_token_teste.py`.
+> Token gerado em 2026-10-02, válido por 30 dias (expirou por volta de 2026-11-01). Gere um novo com `python scripts/gerar_token_teste.py` quando precisar. O login real com Supabase Auth ainda **não existe** (Épico 9, não iniciado): até lá, o app depende deste `DEV_AUTH_TOKEN`.
 
 ## Visualizando o banco (opcional)
 
@@ -179,6 +179,8 @@ Alternativas equivalentes: [DBeaver](https://dbeaver.io/) (gratuito, suporta vá
 | Rodar a API | `uvicorn app.main:app --reload` |
 | Rodar o app Flutter | `flutter run` (dentro de `mobile/`) |
 | Atualizar dependências Flutter | `flutter pub get` |
+| Rodar os testes do backend | `pytest` (dentro de `backend/`, venv ativada; os testes de `referencias` e `colecoes` precisam do Postgres no ar e são pulados sem ele) |
+| Rodar os testes do app | `flutter test` (dentro de `mobile/`) |
 
 ## Variáveis de ambiente (`backend/.env`)
 
@@ -189,7 +191,7 @@ Alternativas equivalentes: [DBeaver](https://dbeaver.io/) (gratuito, suporta vá
 | `SUPABASE_JWT_SECRET` | Valida o token JWT emitido pelo Supabase Auth |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | Credenciais do projeto Supabase (auth/storage) — preencher quando o projeto Supabase for criado |
 | `OLLAMA_URL` / `OLLAMA_MODELO` / `OLLAMA_TIMEOUT_S` | Ollama local (padrão `http://localhost:11434`, `gemma3:4b`, 30 s) — sugestão de metadados da peça; sem ele a sugestão vem vazia |
-| `UPLOAD_DIR` | Pasta local onde as imagens processadas são salvas (MVP; será trocado por S3/Supabase Storage) |
+| `UPLOAD_DIR` | Pasta local onde as imagens são salvas e de onde `/uploads` as serve, **sem autenticação** (MVP; a troca por bucket privado do Supabase Storage está planejada no Épico 10, não iniciado) |
 | `CORS_ORIGINS` | Origens permitidas a chamar a API, separadas por vírgula |
 
 O `.env` **não é versionado** (está no `.gitignore`) — cada pessoa cria o seu localmente a partir do `.env.example`, que sim é versionado com valores padrão de desenvolvimento.

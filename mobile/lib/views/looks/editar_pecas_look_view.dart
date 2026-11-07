@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/category_section.dart';
 import '../../core/widgets/clothing_card.dart';
 import '../../models/look.dart';
 import '../wardrobe/wardrobe_controller.dart';
+import '../wardrobe/widgets/carrosseis_paginados.dart';
 import '../wardrobe/widgets/filtros_de_pecas.dart';
 import 'looks_controller.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
 import '../../models/peca.dart';
+import 'pastas_controller.dart' show invalidarLooks;
 
 /// Trocar as peças de um look salvo (E3.F5.2): mesmos carrosséis por
 /// categoria e filtros da montagem, com as peças do look já marcadas.
@@ -58,7 +59,7 @@ class _EditarPecasLookViewState extends ConsumerState<EditarPecasLookView> {
       await ref
           .read(lookServiceProvider)
           .atualizarLook(widget.look.id, {'peca_ids': _selecao.toList()});
-      ref.invalidate(lookListProvider);
+      invalidarLooks(ref);
       // O calendário da Casa mostra as peças do look nos dias de uso.
       ref.invalidate(historicoProvider);
       ref.invalidate(historicoMesProvider);
@@ -88,7 +89,6 @@ class _EditarPecasLookViewState extends ConsumerState<EditarPecasLookView> {
 
   @override
   Widget build(BuildContext context) {
-    final pecasAsync = ref.watch(pecaListProvider);
     final filtro = ref.watch(filtroEdicaoLookProvider);
     final texto = switch (_selecao.length) {
       0 => 'Escolha pelo menos uma peça',
@@ -98,64 +98,38 @@ class _EditarPecasLookViewState extends ConsumerState<EditarPecasLookView> {
 
     return Scaffold(
       appBar: AppBar(title: Text('Editar peças · ${widget.look.nome}')),
-      body: pecasAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Não foi possível carregar seu armário.'),
-                const SizedBox(height: 12),
-                AppButton(
-                  label: 'Tentar novamente',
-                  onPressed: () => ref.invalidate(pecaListProvider),
-                ),
-              ],
+      body: Column(
+        children: [
+          BarraDeFiltros(
+            texto: texto,
+            quantidadeFiltros: filtro.quantidade,
+            onFiltros: () => abrirFiltrosDePecas(
+              context,
+              filtroEdicaoLookProvider,
+              pecasCarregadas(ref, gruposPorCategoria, filtro),
             ),
           ),
-        ),
-        data: (pecas) {
-          final grupos = agruparPorCategoria(filtrarPecas(pecas, filtro));
-          return Column(
-            children: [
-              BarraDeFiltros(
-                texto: texto,
-                quantidadeFiltros: filtro.quantidade,
-                onFiltros: () => abrirFiltrosDePecas(context, filtroEdicaoLookProvider, pecas),
+          Expanded(
+            child: ListaDeCarrosseis(
+              listKey: const Key('editar-pecas-lista'),
+              grupos: gruposPorCategoria,
+              filtro: filtro,
+              vazio: const SizedBox.shrink(),
+              aoLimparFiltro: () => ref
+                  .read(filtroEdicaoLookProvider.notifier)
+                  .state = const FiltroPecas(),
+              // A seleção é por id: as peças do look já vêm marcadas mesmo que
+              // ainda não tenham sido carregadas pela lista paginada.
+              itemBuilder: (context, peca) => ClothingCard(
+                imagemUrl: peca.imagemUrl,
+                rotulo: descricaoPeca(peca),
+                selecionavel: true,
+                selecionada: _selecao.contains(peca.id),
+                onTap: _salvando ? null : () => _alternar(peca.id),
               ),
-              Expanded(
-                child: grupos.isEmpty
-                    ? SemResultadoFiltro(
-                        onLimpar: () => ref.read(filtroEdicaoLookProvider.notifier).state =
-                            const FiltroPecas(),
-                      )
-                    : ListView(
-                        key: const Key('editar-pecas-lista'),
-                        padding: const EdgeInsets.only(top: 4, bottom: 16),
-                        children: [
-                          for (final entry in grupos.entries)
-                            CategorySection(
-                              titulo: entry.key,
-                              itemCount: entry.value.length,
-                              itemBuilder: (context, index) {
-                                final peca = entry.value[index];
-                                return ClothingCard(
-                                  imagemUrl: peca.imagemUrl,
-                                  rotulo: descricaoPeca(peca),
-                                  selecionavel: true,
-                                  selecionada: _selecao.contains(peca.id),
-                                  onTap: _salvando ? null : () => _alternar(peca.id),
-                                );
-                              },
-                            ),
-                        ],
-                      ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(

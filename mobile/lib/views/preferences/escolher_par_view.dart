@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/category_section.dart';
 import '../../core/widgets/clothing_card.dart';
 import '../../models/peca.dart';
 import '../wardrobe/wardrobe_controller.dart';
+import '../wardrobe/widgets/carrosseis_paginados.dart';
 import 'preferences_controller.dart';
 
 /// Escolha de um par de peças do armário para evitar juntas (E4.F4.3).
@@ -68,12 +68,14 @@ class _EscolherParViewState extends ConsumerState<EscolherParView> {
 
   @override
   Widget build(BuildContext context) {
-    final pecasAsync = ref.watch(pecaListProvider);
+    final totalAsync = ref.watch(totalDePecasProvider(const ConsultaPecas()));
     final completo = _selecionadas.length == 2;
+    final poucasPecas =
+        totalAsync.valueOrNull != null && totalAsync.valueOrNull! < 2;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Peças que não combinam')),
-      body: pecasAsync.when(
+      body: totalAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
@@ -83,13 +85,13 @@ class _EscolherParViewState extends ConsumerState<EscolherParView> {
               const SizedBox(height: 12),
               AppButton(
                 label: 'Tentar novamente',
-                onPressed: () => ref.invalidate(pecaListProvider),
+                onPressed: () => invalidarPecas(ref),
               ),
             ],
           ),
         ),
-        data: (pecas) {
-          if (pecas.length < 2) {
+        data: (total) {
+          if (total < 2) {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
@@ -100,38 +102,40 @@ class _EscolherParViewState extends ConsumerState<EscolherParView> {
               ),
             );
           }
-          final grupos = agruparPorCategoria(pecas);
-          return ListView(
-            padding: const EdgeInsets.only(top: 8, bottom: 16),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Text(
                   'Selecione as duas peças que você não quer ver juntas '
                   '(${_selecionadas.length} de 2).',
                 ),
               ),
-              for (final entry in grupos.entries)
-                CategorySection(
-                  titulo: entry.key,
-                  itemCount: entry.value.length,
-                  itemBuilder: (context, index) {
-                    final peca = entry.value[index];
-                    return ClothingCard(
-                      imagemUrl: peca.imagemUrl,
-                      rotulo: descricaoPeca(peca),
-                      selecionavel: true,
-                      selecionada: _selecionadas.contains(peca.id),
-                      onTap: _enviando ? null : () => _alternar(peca),
-                    );
-                  },
+              Expanded(
+                child: ListaDeCarrosseis(
+                  grupos: gruposPorCategoria,
+                  filtro: const FiltroPecas(),
+                  vazio: const SizedBox.shrink(),
+                  aoLimparFiltro: () {},
+                  padding: const EdgeInsets.only(top: 0, bottom: 16),
+                  // A seleção é por id e vive na tela: continua marcada ao
+                  // rolar, carregar outra página ou trocar de categoria.
+                  itemBuilder: (context, peca) => ClothingCard(
+                    imagemUrl: peca.imagemUrl,
+                    rotulo: descricaoPeca(peca),
+                    selecionavel: true,
+                    selecionada: _selecionadas.contains(peca.id),
+                    onTap: _enviando ? null : () => _alternar(peca),
+                  ),
                 ),
+              ),
             ],
           );
         },
       ),
-      bottomNavigationBar: pecasAsync.maybeWhen(
-        data: (pecas) => pecas.length < 2
+      bottomNavigationBar: totalAsync.maybeWhen(
+        data: (_) => poucasPecas
             ? null
             : Padding(
                 padding: const EdgeInsets.all(16),

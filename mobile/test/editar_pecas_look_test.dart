@@ -1,6 +1,7 @@
 // Testes de trocar as peças de um look salvo (E3.F5.2). Serviços falsos, nunca bate numa API real.
-// Ver docs/PBIs/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md.
+// Ver docs/PBIs/E3-criacao-manual-de-looks/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,7 +21,7 @@ final _camiseta =
 final _calca = Peca(id: 'calca', imagemUrl: '/p.png', categoria: 'Calças', corPrincipal: 'Preto');
 final _saia = Peca(id: 'saia', imagemUrl: '/s.png', categoria: 'Saias', corPrincipal: 'Azul');
 
-class _PecaServiceFake extends PecaService {
+class _PecaServiceFake extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [_camiseta, _calca, _saia];
 }

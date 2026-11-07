@@ -2,11 +2,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/look.dart';
+import '../../models/peca.dart';
 import '../../services/look_service.dart';
 
-/// Ids das peças selecionadas na grade de montagem (E3.F1.2). `autoDispose`
-/// para começar vazio sempre que a tela de montagem é reaberta.
-final selecaoLookProvider = StateProvider.autoDispose<Set<String>>((ref) => {});
+/// Peças selecionadas na grade de montagem (E3.F1.2), por `id`. Guarda a
+/// própria peça, não só o id: com as listas paginadas (E11.F2.1) uma peça
+/// escolhida pode sair da tela (outra página, outro filtro) e a miniatura
+/// dela continua precisando existir. `autoDispose` para começar vazio sempre
+/// que a tela de montagem é reaberta.
+final selecaoLookProvider =
+    StateProvider.autoDispose<Map<String, Peca>>((ref) => {});
 
 /// Ocasiões escolhidas na montagem (E3.F3.2); vazia = sem ocasião. Fica fora de
 /// `MontagemLookController` para sobreviver a um `MontagemErro` (a tela

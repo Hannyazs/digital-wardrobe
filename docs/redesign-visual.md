@@ -2,14 +2,14 @@
 
 Plano de adaptação do app Flutter pra seguir a identidade visual do Figma "VIRTUALASSIST" (tela de montagem de looks, `docs/figma-reference/catalogo_looks_screen.png`), em etapas pequenas e testáveis. Front-end/UI apenas — nenhuma mudança de backend, dados ou lógica de negócio.
 
-**Status**: Etapas 0–6 concluídas. Todas as telas existentes foram adaptadas à identidade visual do Figma; navegação de 5 abas funcionando. Verificado após cada etapa (`dart analyze` limpo, `flutter test` sem regressão — baseline estável em 36/39, mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas ao redesign). Validação manual visual no Chrome ainda pendente (não executável nesta sessão).
+**Status (atualizado em 2026-11-05)**: Etapas 0–8 concluídas (a tabela abaixo é a referência; o texto original deste cabeçalho dizia "Etapas 0–6 concluídas", escrito antes das etapas 7 e 8). Nesta data a suíte Flutter inteira passa (345/345) e as "3 falhas pré-existentes de `peca_form_test.dart`" citadas a seguir já não existem. As abas IA/Sugestões e Referências deixaram de ser placeholders (são as telas de Sugestões e do mural), e `PreferencesView` é uma tela real (Épico 4). Só `LoginView` continua placeholder. **Texto original preservado:** Etapas 0–6 concluídas. Todas as telas existentes foram adaptadas à identidade visual do Figma; navegação de 5 abas funcionando. Verificado após cada etapa (`dart analyze` limpo, `flutter test` sem regressão — baseline estável em 36/39, mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas ao redesign). Validação manual visual no Chrome ainda pendente (não executável nesta sessão).
 
 ## Decisões já tomadas
 
 - **Escopo**: só UI (cores, tipografia, componentes, navegação). Modelos, serviços, controllers/providers e o backend não mudam.
-- **Navigation bar**: vai de 2 para 5 abas — Casa, Armário, Criação de Looks (central, destaque), IA/Sugestões (placeholder), Referências (placeholder).
+- **Navigation bar**: vai de 2 para 5 abas — Casa, Armário, Criação de Looks (central, destaque), IA/Sugestões (placeholder), Referências (placeholder). *(Eram placeholders na época; hoje são, respectivamente, a tela de Sugestões — Épico 5 — e o mural de referências — Épico 8. A barra do `HomeShell` mostra Casa, Armário, Montar, Sugestões e Referências.)*
 - **Looks salvos**: a aba central "Criação de Looks" abre direto em `MontarLookView` (a tela de referência); "Meus looks" (listagem atual, `LooksView`) vira uma aba/toggle secundário dentro dessa mesma área, não uma 6ª aba.
-- **Login/Preferências**: `LoginView`/`PreferencesView` continuam como placeholders órfãos (não fazem parte do escopo deste redesign).
+- **Login/Preferências**: `LoginView`/`PreferencesView` continuam como placeholders órfãos (não fazem parte do escopo deste redesign). *(Decisão da época do redesign. Hoje: `PreferencesView` foi implementada nos PBIs do Épico 4 e é aberta pela Casa; `LoginView` segue placeholder até o Épico 9.)*
 
 ## Etapas
 

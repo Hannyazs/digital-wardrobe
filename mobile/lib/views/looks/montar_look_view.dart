@@ -1,20 +1,19 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/peca_opcoes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
-import '../../core/widgets/category_section.dart';
 import '../../core/widgets/clothing_card.dart';
 import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
 import '../upload/upload_view.dart';
 import '../wardrobe/wardrobe_controller.dart';
+import '../wardrobe/widgets/carrosseis_paginados.dart';
 import '../wardrobe/widgets/filtros_de_pecas.dart';
-import 'looks_controller.dart';
 import 'montar_look_controller.dart';
 import 'widgets/pecas_do_look.dart';
+import 'pastas_controller.dart' show invalidarLooks;
 
 /// Tela de montagem manual de um look (E3.F1.2): seleciona peças do
 /// armário, nomeia e confirma. Ao salvar, invalida `lookListProvider`
@@ -51,7 +50,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
     if (!_formKey.currentState!.validate() || selecao.isEmpty) return;
     ref.read(montagemLookProvider.notifier).salvar(
           nome: _nomeController.text.trim(),
-          pecaIds: selecao,
+          pecaIds: selecao.keys.toSet(),
           ocasioes: ref.read(ocasioesLookProvider),
         );
   }
@@ -67,7 +66,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
 
   @override
   Widget build(BuildContext context) {
-    final pecasAsync = ref.watch(pecaListProvider);
+    final totalAsync = ref.watch(totalDePecasProvider(const ConsultaPecas()));
     final selecao = ref.watch(selecaoLookProvider);
     final montagemState = ref.watch(montagemLookProvider);
     final enviando = montagemState is MontagemEnviando;
@@ -80,7 +79,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
       // aparece duas vezes.
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       if (next is MontagemSucesso) {
-        ref.invalidate(lookListProvider);
+        invalidarLooks(ref);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Look "${next.look.nome}" salvo.')),
         );
@@ -102,21 +101,21 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
             acao: _acaoHeader(context),
           ),
           Expanded(
-            child: pecasAsync.when(
+            child: totalAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => _Erro(
-                mensagem: _mensagemDeErro(error),
-                onTentarNovamente: () => ref.invalidate(pecaListProvider),
+                mensagem: mensagemDeErroArmario(error),
+                onTentarNovamente: () => invalidarPecas(ref),
               ),
-              data: (pecas) => pecas.isEmpty
+              data: (total) => total == 0
                   ? const _ArmarioVazio()
-                  : _buildConteudo(pecas, selecao, enviando),
+                  : _buildConteudo(selecao, enviando),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: pecasAsync.maybeWhen(
-        data: (pecas) => pecas.isEmpty
+      bottomNavigationBar: totalAsync.maybeWhen(
+        data: (total) => total == 0
             ? null
             : SafeArea(
                 child: Padding(
@@ -128,9 +127,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
                       // Conferir o que já foi escolhido sem rolar os carrosséis
                       // (inclui peças escondidas por um filtro).
                       if (selecao.isNotEmpty) ...[
-                        PecasDoLook(
-                          pecas: pecas.where((p) => selecao.contains(p.id)).toList(),
-                        ),
+                        PecasDoLook(pecas: selecao.values.toList()),
                         const SizedBox(height: 8),
                       ],
                       if (!podeConfirmar && !enviando) ...[
@@ -157,7 +154,7 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
 
   /// Por que "Salvar look" está desabilitado — botão desabilitado sem motivo
   /// deixa o usuário sem saber o próximo passo.
-  String _oQueFalta(Set<String> selecao) {
+  String _oQueFalta(Map<String, Peca> selecao) {
     final semNome = _nomeController.text.trim().isEmpty;
     if (selecao.isEmpty && semNome) return 'Escolha as peças e dê um nome ao look.';
     if (selecao.isEmpty) return 'Escolha pelo menos uma peça.';
@@ -176,9 +173,19 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
     );
   }
 
-  Widget _buildConteudo(List<Peca> pecas, Set<String> selecao, bool enviando) {
+  void _alternarPeca(Peca peca) {
+    final notifier = ref.read(selecaoLookProvider.notifier);
+    final nova = {...notifier.state};
+    if (nova.containsKey(peca.id)) {
+      nova.remove(peca.id);
+    } else {
+      nova[peca.id] = peca;
+    }
+    notifier.state = nova;
+  }
+
+  Widget _buildConteudo(Map<String, Peca> selecao, bool enviando) {
     final filtro = ref.watch(filtroMontagemProvider);
-    final grupos = agruparPorCategoria(filtrarPecas(pecas, filtro));
     final textoSelecao = switch (selecao.length) {
       0 => 'Toque nas peças para escolher',
       1 => '1 peça selecionada',
@@ -214,57 +221,33 @@ class _MontarLookViewState extends ConsumerState<MontarLookView> {
           BarraDeFiltros(
             texto: textoSelecao,
             quantidadeFiltros: filtro.quantidade,
-            onFiltros: () => abrirFiltrosDePecas(context, filtroMontagemProvider, pecas),
+            onFiltros: () => abrirFiltrosDePecas(
+              context,
+              filtroMontagemProvider,
+              pecasCarregadas(ref, gruposPorCategoria, filtro),
+            ),
           ),
           Expanded(
-            child: grupos.isEmpty
-                ? SemResultadoFiltro(
-                    onLimpar: () =>
-                        ref.read(filtroMontagemProvider.notifier).state = const FiltroPecas(),
-                  )
-                : ListView(
-                    key: const Key('montagem-lista-categorias'),
-                    padding: const EdgeInsets.only(top: 4, bottom: 16),
-                    children: [
-                      for (final entry in grupos.entries)
-                        CategorySection(
-                          titulo: entry.key,
-                          itemCount: entry.value.length,
-                          itemBuilder: (context, index) {
-                            final peca = entry.value[index];
-                            return ClothingCard(
-                              imagemUrl: peca.imagemUrl,
-                              rotulo: descricaoPeca(peca),
-                              selecionavel: true,
-                              selecionada: selecao.contains(peca.id),
-                              onTap: enviando
-                                  ? null
-                                  : () {
-                                      final notifier = ref.read(selecaoLookProvider.notifier);
-                                      final novaSelecao = {...notifier.state};
-                                      if (novaSelecao.contains(peca.id)) {
-                                        novaSelecao.remove(peca.id);
-                                      } else {
-                                        novaSelecao.add(peca.id);
-                                      }
-                                      notifier.state = novaSelecao;
-                                    },
-                            );
-                          },
-                        ),
-                    ],
-                  ),
+            child: ListaDeCarrosseis(
+              listKey: const Key('montagem-lista-categorias'),
+              grupos: gruposPorCategoria,
+              filtro: filtro,
+              vazio: const SizedBox.shrink(),
+              aoLimparFiltro: () => ref
+                  .read(filtroMontagemProvider.notifier)
+                  .state = const FiltroPecas(),
+              itemBuilder: (context, peca) => ClothingCard(
+                imagemUrl: peca.imagemUrl,
+                rotulo: descricaoPeca(peca),
+                selecionavel: true,
+                selecionada: selecao.containsKey(peca.id),
+                onTap: enviando ? null : () => _alternarPeca(peca),
+              ),
+            ),
           ),
         ],
       ),
     );
-  }
-
-  String _mensagemDeErro(Object error) {
-    if (error is DioException && error.response?.statusCode == 401) {
-      return 'Sessão expirada ou inválida. Não foi possível carregar seu armário.';
-    }
-    return 'Não foi possível carregar seu armário. Tente novamente.';
   }
 }
 

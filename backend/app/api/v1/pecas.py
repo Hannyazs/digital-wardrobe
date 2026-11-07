@@ -1,8 +1,9 @@
 import logging
 import uuid
+from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,10 +16,18 @@ from app.schemas.peca import (
     ImagemOriginalResponse,
     ImagemProcessadaResponse,
     PecaCreate,
+    PecaParadaRead,
     PecaRead,
     PecaUpdate,
 )
+from app.services import pecas_paradas
 from app.services.image_service import processar_imagem_peca, salvar_imagem_original
+from app.services.peca_consulta import (
+    LIMITE_MAXIMO,
+    condicoes_de_filtro,
+    consulta_de_pecas,
+    contagem_de_pecas,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +79,83 @@ async def criar_peca(
 
 @router.get("", response_model=list[PecaRead])
 async def listar_pecas(
+    response: Response,
+    limite: int | None = Query(default=None, ge=1, le=LIMITE_MAXIMO),
+    deslocamento: int = Query(default=0, ge=0),
+    categoria: list[str] = Query(default=[]),
+    outras: bool = False,
+    cor: list[str] = Query(default=[]),
+    estacao: list[str] = Query(default=[]),
+    ocasiao: list[str] = Query(default=[]),
     usuario_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    resultado = await db.execute(
-        select(Peca).where(Peca.usuario_id == usuario_id).order_by(Peca.criado_em.desc())
+    """Lista as peças do usuário (E11.F1.1), da mais nova para a mais antiga
+    (desempate por id). Sem parâmetros devolve todas, como antes.
+
+    - `limite`/`deslocamento`: paginação por offset (máximo de `LIMITE_MAXIMO`
+      por página; acima disso a requisição é rejeitada com 422).
+    - `categoria` (repetível), `outras` (categorias fora da lista fixa), `cor`,
+      `estacao` e `ocasiao` (repetíveis): OU dentro de um critério, E entre
+      critérios. Regras em `services/peca_consulta.py`.
+    - `X-Total-Count`: total que satisfaz os filtros, ignorando a paginação.
+
+    Limitação do offset: se uma peça for criada ou excluída entre duas páginas,
+    um item pode se repetir ou ser pulado; o app deduplica por `id` e atualiza
+    ao puxar para atualizar.
+    """
+    condicoes = condicoes_de_filtro(
+        categorias=categoria, outras=outras, cores=cor, estacoes=estacao, ocasioes=ocasiao
     )
+    consulta = consulta_de_pecas(usuario_id, condicoes)
+    if limite is not None:
+        consulta = consulta.limit(limite).offset(deslocamento)
+    elif deslocamento:
+        consulta = consulta.offset(deslocamento)
+
+    total = await db.scalar(contagem_de_pecas(usuario_id, condicoes))
+    response.headers["X-Total-Count"] = str(total or 0)
+    resultado = await db.execute(consulta)
     return resultado.scalars().all()
+
+
+@router.get("/paradas", response_model=list[PecaParadaRead])
+async def listar_pecas_paradas(
+    hoje: date | None = Query(default=None, description="Data do app (AAAA-MM-DD), no fuso do usuário."),
+    limite: int = Query(default=pecas_paradas.LIMITE_PADRAO, ge=1, le=pecas_paradas.LIMITE_MAXIMO),
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Peças sem uso há 90 dias ou mais (E13.F1.1), da mais parada para a menos
+    parada. Uso em look arquivado conta; peça nunca usada conta do cadastro;
+    peça com "lembrar depois" em vigor fica de fora. Regras em
+    `services/pecas_paradas.py`."""
+    hoje = hoje or date.today()
+    resultado = await db.execute(pecas_paradas.consulta_de_paradas(usuario_id, hoje, limite))
+    return [
+        PecaParadaRead(
+            peca=PecaRead.model_validate(peca),
+            ultimo_uso=ultimo_uso,
+            dias_parada=pecas_paradas.dias_parada(ultimo_uso, peca.criado_em, hoje),
+        )
+        for peca, ultimo_uso in resultado.all()
+    ]
+
+
+@router.post("/{peca_id}/adiar-lembrete", status_code=204)
+async def adiar_lembrete(
+    peca_id: uuid.UUID,
+    hoje: date | None = Query(default=None, description="Data do app (AAAA-MM-DD), no fuso do usuário."),
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """"Lembrar depois" (E13.F1.1): a peça sai de GET /pecas/paradas por 30 dias."""
+    peca = await db.get(Peca, peca_id)
+    if peca is None or peca.usuario_id != usuario_id:
+        raise HTTPException(status_code=404, detail="Peça não encontrada.")
+    peca.lembrete_adiado_ate = pecas_paradas.fim_do_adiamento(hoje or date.today())
+    await db.commit()
+    return Response(status_code=204)
 
 
 @router.put("/{peca_id}", response_model=PecaRead)

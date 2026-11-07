@@ -49,6 +49,7 @@ Registrado explicitamente para não expandir escopo por conta própria durante o
 - Múltiplos idiomas — MVP é em português.
 - Aprendizado de estilo sofisticado (ex: fine-tuning de modelo por usuário) — a personalização inicial é baseada em preferências explícitas cadastradas, não em aprendizado implícito de longo prazo.
 - Suporte multi-dispositivo sincronizado em tempo real (ex: editar em dois celulares ao mesmo tempo).
+- Avatar pixelado vestindo as peças do usuário: ideia futura, registrada como Épico 14 em [requisitos.md](requisitos.md); não entra no MVP.
 
 ## Estágio e restrição de prazo
 

@@ -9,11 +9,11 @@ import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
 import '../../models/sugestao.dart';
 import '../../services/sugestao_service.dart';
-import '../looks/looks_controller.dart' show lookListProvider;
 import '../preferences/preferences_controller.dart' show mensagemDeErroAoCarregar, preferenciasProvider;
 import 'suggestions_controller.dart';
 import 'widgets/conteudo_sugestao.dart';
 import 'widgets/secao_criatividade.dart';
+import '../looks/pastas_controller.dart' show invalidarLooks;
 
 /// Estações que fazem sentido como filtro ("Todas as estações" não é uma).
 final _estacoesDoFiltro = estacoesFixas.where((e) => e != 'Todas as estações').toList();
@@ -348,7 +348,7 @@ class _CardSugestao extends ConsumerWidget {
     final erro =
         await ref.read(sugestoesProvider(pecaBaseId).notifier).salvar(sugestao, DateTime.now());
     if (!context.mounted) return;
-    if (erro == null) ref.invalidate(lookListProvider);
+    if (erro == null) invalidarLooks(ref);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(erro ?? 'Look salvo em Armário › Looks.')),
     );

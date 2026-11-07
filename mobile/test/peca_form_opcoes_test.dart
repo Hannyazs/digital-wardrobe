@@ -3,6 +3,7 @@
 // atualização automática do armário depois do cadastro.
 // PecaService falso, nunca bate numa API real.
 
+import 'support/pagina_da_lista.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +20,7 @@ import 'package:guarda_roupa_app/views/upload/upload_controller.dart' show pecaS
 
 /// Guarda o que o formulário enviou e mantém um "banco" em memória, para
 /// provar que o armário passa a mostrar a peça recém-criada.
-class _PecaServiceFalso extends PecaService {
+class _PecaServiceFalso extends PecaService with PaginaDaLista {
   _PecaServiceFalso([List<Peca>? iniciais]) : pecas = [...?iniciais];
 
   final List<Peca> pecas;

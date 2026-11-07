@@ -7,10 +7,10 @@ import '../../core/widgets/app_button.dart';
 import '../../models/peca.dart';
 import '../../models/referencia.dart';
 import '../../models/sugestao_de_look.dart';
-import '../looks/looks_controller.dart' show lookListProvider;
 import '../looks/montar_look_controller.dart' show lookServiceProvider;
 import '../looks/widgets/pecas_do_look.dart';
 import 'references_controller.dart';
+import '../looks/pastas_controller.dart' show invalidarLooks;
 
 /// "Ligar a um look" no modo automático (E8.F5.3): a IA compara a referência
 /// com as peças do usuário e propõe um look. Nada é salvo ou ligado sem o toque
@@ -77,7 +77,7 @@ class _SugestaoDeLookViewState extends ConsumerState<SugestaoDeLookView> {
           .read(lookServiceProvider)
           .criarLook(nome: nome, pecaIds: [for (final p in sugestao.pecas) p.id]);
       criadoId = look.id;
-      ref.invalidate(lookListProvider);
+      invalidarLooks(ref);
     } catch (erro) {
       messenger.showSnackBar(
         SnackBar(content: Text(mensagemDeErro(erro, padrao: 'Não foi possível salvar o look. Tente novamente.'))),

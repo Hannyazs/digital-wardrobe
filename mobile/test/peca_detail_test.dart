@@ -1,7 +1,8 @@
 // Testes do detalhe, edição e exclusão de peça (E1.F3.1).
 // Mesmo padrão dos demais: PecaService falso, nunca bate numa API real.
-// Ver docs/PBIs/E1-F3-edicao-exclusao-peca/E1.F3.1-edicao-e-exclusao-de-peca.md.
+// Ver docs/PBIs/E1-cadastro-de-roupas/E1-F3-edicao-exclusao-peca/E1.F3.1-edicao-e-exclusao-de-peca.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +30,7 @@ final _peca = Peca(
   ocasioes: ['Festa'],
 );
 
-class _PecaServiceComSucesso extends PecaService {
+class _PecaServiceComSucesso extends PecaService with PaginaDaLista {
   @override
   Future<void> excluirPeca(String id, {bool removerDosLooks = false}) async {}
 
@@ -52,14 +53,14 @@ class _PecaServiceComSucesso extends PecaService {
   Future<List<Peca>> listarPecas() async => [];
 }
 
-class _PecaServiceExcluirNuncaDeveSerChamado extends PecaService {
+class _PecaServiceExcluirNuncaDeveSerChamado extends PecaService with PaginaDaLista {
   @override
   Future<void> excluirPeca(String id, {bool removerDosLooks = false}) async {
     fail('excluirPeca não deveria ser chamado quando o usuário cancela.');
   }
 }
 
-class _PecaServiceComErroAoExcluir extends PecaService {
+class _PecaServiceComErroAoExcluir extends PecaService with PaginaDaLista {
   @override
   Future<void> excluirPeca(String id, {bool removerDosLooks = false}) async {
     throw DioException(
@@ -70,7 +71,7 @@ class _PecaServiceComErroAoExcluir extends PecaService {
 }
 
 /// Simula o backend: recusa com 409 enquanto o usuário não confirmou.
-class _PecaServiceEmLooks extends PecaService {
+class _PecaServiceEmLooks extends PecaService with PaginaDaLista {
   _PecaServiceEmLooks(this.looks);
 
   final int looks;

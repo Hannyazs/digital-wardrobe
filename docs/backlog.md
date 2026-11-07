@@ -6,6 +6,10 @@ Numeração: `E<épico>.F<feature>.<PBI>` — ex. `E1.F1.2` é o segundo PBI da 
 
 **Status** reflete o estado real do código nesta data, não uma estimativa. "Implementado" e "testado/validado" são afirmações distintas e nunca combinadas sem verificação — um PBI só é marcado como validado se foi de fato executado e observado funcionando, não apenas revisado.
 
+**PBIs retroativas** (marcadas assim no título e na linha "Natureza" do arquivo detalhado): funcionalidades que **já estavam implementadas** quando a auditoria de 2026-11-05 as encontrou sem PBI. Foram documentadas depois do fato, só com o que o código já faz; não são tarefas pendentes. Hoje: E1.F1.6 e E1.F2.2.
+
+**Notas de evolução**: textos históricos dos status foram preservados. Quando a auditoria de 2026-11-05 encontrou algo que mudou depois (por exemplo, testes que falhavam e hoje passam), a correção entra como "Atualização de 2026-11-05" no fim do status, sem apagar o registro original e sem mudar critérios de aceite.
+
 ---
 
 ## Épico 1, Feature 1 — Adicionar peça por foto, com remoção automática de fundo
@@ -14,7 +18,7 @@ Feature completa = usuário tira/seleciona uma foto → foto é enviada e proces
 
 ### E1.F1.1 — Captura e seleção de foto no app
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md](PBIs/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md).
 
 **Descrição**: tela de upload permite tirar foto pela câmera ou escolher da galeria (`image_picker`), com preview antes de confirmar o envio.
 
@@ -29,7 +33,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E1.F1.2 — Endpoint de processamento de imagem (remoção de fundo)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-F1-adicionar-foto/E1.F1.2-processamento-de-imagem.md](PBIs/E1-F1-adicionar-foto/E1.F1.2-processamento-de-imagem.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.2-processamento-de-imagem.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.2-processamento-de-imagem.md).
 
 **Descrição**: endpoint backend que recebe a foto, remove o fundo via `rembg`, salva o resultado no storage e devolve a URL.
 
@@ -38,13 +42,13 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Retorna a URL de uma imagem PNG com fundo removido, no caminho feliz.
 - Se a imagem for inválida/corrompida ou o `rembg` falhar por qualquer motivo, o endpoint captura o erro, loga no backend, e devolve um erro HTTP estruturado — nunca uma exception crua (500 sem tratamento). Este critério é só sobre o **contrato do backend**; o que o app faz com esse erro é escopo do E1.F1.4, não deste PBI.
 
-**Status**: **concluída** — try/except implementado (`app/core/exceptions.py`, `app/adapters/rembg_adapter.py`) traduzido para `HTTPException` estruturada + log no router (`app/api/v1/pecas.py`), e a chamada síncrona (CPU-bound) agora roda via `run_in_threadpool`, resolvendo o bloqueio do event loop. Todos os critérios de aceite verificados por execução real (API local + `TestClient`, não só revisão de código) — ver log de implementação no arquivo detalhado.
+**Status**: **concluída** — try/except implementado (`app/core/exceptions.py`, `app/adapters/rembg_adapter.py`) traduzido para `HTTPException` estruturada + log no router (`app/api/v1/pecas.py`), e a chamada síncrona (CPU-bound) agora roda via `run_in_threadpool`, resolvendo o bloqueio do event loop. Todos os critérios de aceite verificados por execução real (API local + `TestClient`, não só revisão de código) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** hoje não há teste automatizado desta rota na suíte `pytest` (ver E1.F1.5). **Limitação de segurança conhecida:** `POST /pecas/processar-imagem` **não exige autenticação** (não usa `get_current_user_id`), ao contrário dos demais endpoints de `/pecas`; os critérios de aceite desta PBI nunca exigiram autenticação. A correção está prevista na E10.F2.2 e **não está concluída**.
 **Estimativa**: pequena.
 **Dependências**: nenhuma.
 
 ### E1.F1.3 — Envio da foto pro backend e exibição do resultado
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-F1-adicionar-foto/E1.F1.3-envio-e-exibicao-do-resultado.md](PBIs/E1-F1-adicionar-foto/E1.F1.3-envio-e-exibicao-do-resultado.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.3-envio-e-exibicao-do-resultado.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.3-envio-e-exibicao-do-resultado.md).
 
 **Descrição**: liga E1.F1.1 e E1.F1.2 — app envia a foto capturada, mostra estado de carregamento durante o processamento, e exibe a imagem sem fundo pro usuário confirmar.
 
@@ -59,7 +63,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E1.F1.4 — Degradação graciosa no app quando o processamento falha
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-F1-adicionar-foto/E1.F1.4-degradacao-graciosa-no-app.md](PBIs/E1-F1-adicionar-foto/E1.F1.4-degradacao-graciosa-no-app.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.4-degradacao-graciosa-no-app.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.4-degradacao-graciosa-no-app.md).
 
 **Descrição**: cobre o requisito não-funcional "nenhuma chamada de IA pode derrubar um fluxo do usuário" (ver `requisitos.md`), do lado do **app** — pressupõe que o backend já sinaliza falha de forma limpa (E1.F1.2). Escopo aqui é só a reação do app a esse sinal (erro estruturado ou timeout de rede), não o tratamento do erro em si.
 
@@ -67,7 +71,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Se o backend retornar o erro estruturado do E1.F1.2, ou a requisição expirar (timeout de rede), o app oferece explicitamente seguir com a foto original (sem remoção de fundo) em vez de travar o cadastro.
 - Usuário consegue completar o cadastro normalmente mesmo com essa falha.
 
-**Status**: **concluída** — botão "Continuar sem remoção de fundo" na tela de erro da E1.F1.3, novo endpoint `POST /pecas/upload-original` (salva a foto sem `rembg`/Gemini) para dar uma URL utilizável quando o processamento falha. Decisão de escopo (validada com o usuário): o fallback é oferecido para qualquer erro do envio, não só timeout/erro estruturado. `flutter test` com 6/6 passando; backend verificado só por `py_compile` (sem venv configurado nesta máquina para rodar de verdade — ver log de implementação). Validação manual visual no Chrome e execução real do backend ainda pendentes.
+**Status**: **concluída** — botão "Continuar sem remoção de fundo" na tela de erro da E1.F1.3, novo endpoint `POST /pecas/upload-original` (salva a foto sem `rembg`/Gemini) para dar uma URL utilizável quando o processamento falha. Decisão de escopo (validada com o usuário): o fallback é oferecido para qualquer erro do envio, não só timeout/erro estruturado. `flutter test` com 6/6 passando; backend verificado só por `py_compile` (sem venv configurado nesta máquina para rodar de verdade — ver log de implementação). Validação manual visual no Chrome e execução real do backend ainda pendentes. **Atualização de 2026-11-05:** hoje existe `backend/.venv` e uma suíte `pytest`, mas ela **não tem teste para `upload-original`** (nem para `processar-imagem`). **Limitação de segurança conhecida:** `POST /pecas/upload-original` e `POST /pecas/processar-imagem` **não exigem autenticação** (não usam `get_current_user_id`) e `upload-original` aceita a extensão do nome do arquivo sem validar o tipo real; a correção está prevista na E10.F2.2 e **não está concluída**.
 **Estimativa**: P.
 **Dependências**: E1.F1.2 (precisa existir um erro estruturado pra reagir a), E1.F1.3.
 
@@ -75,9 +79,26 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 **Descrição**: suíte `pytest` cobrindo `POST /pecas/processar-imagem` — caminho feliz e falha do `rembg` (depende de E1.F1.4 existir pra ter o que testar).
 
-**Status**: não iniciado — o projeto ainda não tem nenhuma suíte de teste configurada.
+**Status**: não iniciado. (Texto original: "o projeto ainda não tem nenhuma suíte de teste configurada".) **Atualização de 2026-11-05:** a suíte `pytest` existe hoje (261 testes coletados), mas **nenhum teste cobre `POST /pecas/processar-imagem` nem `POST /pecas/upload-original`**; esta PBI continua pendente. Relacionada à lacuna de testes de rota da E9.F3.1 e à vulnerabilidade de autenticação da E10.F2.2.
 **Estimativa**: M.
 **Dependências**: E1.F1.2, E1.F1.4.
+
+### E1.F1.6 — Recorte manual da foto antes do envio *(PBI retroativa — já implementada)*
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.6-recorte-manual-da-foto.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.6-recorte-manual-da-foto.md).
+
+**Natureza**: funcionalidade **já existente no código**, documentada retroativamente na auditoria de 2026-11-05; **não é tarefa pendente**.
+
+**Descrição**: ao escolher uma foto, o app abre o recorte (ajuste com arrastar/zoom e prévia com "Refazer recorte" / "Usar recorte"); o botão "Recortar" na prévia reabre o recorte; o recorte é refeito sempre a partir da foto original e a foto recortada (PNG) é a enviada ao backend.
+
+**Critérios de aceite (descrevem o que existe):**
+- Cancelar o recorte mantém a foto como estava.
+- Ajustar, recortar e "Usar recorte" troca a foto por uma versão recortada, menor que a original; "Refazer recorte" volta ao ajuste.
+- Falha do recorte mostra mensagem e a tela continua utilizável (sem teste automatizado).
+
+**Status**: **concluída — documentada retroativamente** (`recorte_view.dart`, `upload_view.dart`, `upload_controller.dart`; `recorte_test.dart` com 3 casos passando em 2026-11-05; validação manual não verificada).
+**Estimativa**: M (retroativa).
+**Dependências**: E1.F1.1, E1.F1.3.
 
 ---
 
@@ -87,7 +108,7 @@ Feature completa = depois que a foto já foi processada (Feature 1), o usuário 
 
 ### E1.F2.1 — Formulário de metadados e cadastro da peça
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md](PBIs/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md](PBIs/E1-cadastro-de-roupas/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md).
 
 **Descrição**: após o resultado do processamento de imagem (E1.F1.3/E1.F1.4), o usuário avança para um formulário com categoria, subcategoria, cor principal, estação e ocasião; ao confirmar, os dados (mais a `imagem_url` já obtida) são enviados para `POST /pecas`, criando a peça no banco.
 
@@ -97,9 +118,28 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Ao confirmar com dados válidos, a peça é criada via `POST /pecas` e o usuário recebe confirmação de sucesso.
 - Se o envio falhar (rede, validação do servidor, erro 401 por falta de autenticação), o app mostra uma mensagem clara e não descarta os dados já preenchidos.
 
-**Status**: **concluída (com ressalvas)** — formulário, controller, navegação e `POST /pecas` ligados; `DEV_AUTH_TOKEN` desbloqueia o envio autenticado sem login real. `dart analyze` limpo, suíte pré-existente (`widget_test.dart`) 7/7 passando. Os 3 testes novos de `peca_form_test.dart` ainda falham por mecânica do harness de teste (scroll/timing de SnackBar), não por bug do app — ver log de implementação no arquivo detalhado. Validação manual end-to-end (Chrome + backend real) pendente.
+**Status**: **concluída (com ressalvas)** — formulário, controller, navegação e `POST /pecas` ligados; `DEV_AUTH_TOKEN` desbloqueia o envio autenticado sem login real. `dart analyze` limpo, suíte pré-existente (`widget_test.dart`) 7/7 passando. Os 3 testes novos de `peca_form_test.dart` ainda falham por mecânica do harness de teste (scroll/timing de SnackBar), não por bug do app — ver log de implementação no arquivo detalhado. Validação manual end-to-end (Chrome + backend real) pendente. **Atualização de 2026-11-05:** as falhas de `peca_form_test.dart` citadas acima já não existem; a suíte Flutter inteira passa (345/345). Os campos do formulário evoluíram além dos cinco originais (ver E1.F2.2, retroativa).
 **Estimativa**: M.
 **Dependências**: E1.F1.3 (precisa de uma `imagem_url` já obtida), E1.F1.4 (a `imagem_url` pode vir do fallback sem remoção de fundo).
+
+### E1.F2.2 — Campos extras da peça: cores, estações, estilos, tonalidade, modelagem e ocasiões *(PBI retroativa — já implementada)*
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F2-metadados-da-peca/E1.F2.2-campos-extras-da-peca.md](PBIs/E1-cadastro-de-roupas/E1-F2-metadados-da-peca/E1.F2.2-campos-extras-da-peca.md).
+
+**Natureza**: funcionalidade **já existente no código**, documentada retroativamente na auditoria de 2026-11-05; **não é tarefa pendente**.
+
+**Descrição**: além dos cinco campos da E1.F2.1, a peça tem `cores_secundarias` (peça multicolorida), `tonalidade_cor` (sugerida pela cor), `estacoes`, `estilos` e `ocasioes` (listas) e `modelagem` (depende da categoria). Migrações `0004`, `0012` e `0013` converteram `ocasiao`, `estacao` e `estilo` em listas preservando os valores. Tamanho, data de compra, frequência de uso, marca e tecido **não existem**.
+
+**Critérios de aceite (descrevem o que existe):**
+- Escolher a cor sugere a tonalidade (editável); o diálogo multicolorido grava predominante e demais cores.
+- Estações, estilos e ocasiões aceitam várias marcações; "Todas as estações" exclui as outras; "Outros" exige texto.
+- Modelagem só aparece para categorias com lista e é limpa ao trocar para uma categoria incompatível.
+- Editar uma peça antiga preserva valores fora das listas.
+- O backend descarta `cores_secundarias` sem `cor_principal` e `PUT /pecas/{id}` não altera `imagem_url`.
+
+**Status**: **concluída — documentada retroativamente** (formulário coberto por `peca_form_opcoes_test.dart` e `peca_form_test.dart`, passando em 2026-11-05; **backend sem teste de rota** — ver E9.F3.1; migrações não reexecutadas; validação manual não verificada).
+**Estimativa**: G (retroativa).
+**Dependências**: E1.F2.1, E1.F3.1.
 
 ---
 
@@ -109,7 +149,7 @@ Feature completa = a partir do armário (E2.F1.1), o usuário consegue tocar num
 
 ### E1.F3.1 — Edição e exclusão de peça cadastrada
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-F3-edicao-exclusao-peca/E1.F3.1-edicao-e-exclusao-de-peca.md](PBIs/E1-F3-edicao-exclusao-peca/E1.F3.1-edicao-e-exclusao-de-peca.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F3-edicao-exclusao-peca/E1.F3.1-edicao-e-exclusao-de-peca.md](PBIs/E1-cadastro-de-roupas/E1-F3-edicao-exclusao-peca/E1.F3.1-edicao-e-exclusao-de-peca.md).
 
 **Descrição**: tocar numa miniatura do armário abre uma tela de detalhe da peça, com opções de editar (reaproveitando o formulário da E1.F2.1, pré-preenchido) e excluir (com confirmação). Backend ganha `PUT /pecas/{id}` e `DELETE /pecas/{id}`, escopados por `usuario_id`.
 
@@ -119,7 +159,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Excluir, com confirmação, remove a peça via `DELETE /pecas/{id}`; ela some do armário.
 - Peça de outro usuário não pode ser editada/excluída (404, nunca 200/403 revelando existência).
 
-**Status**: **concluída (validação manual end-to-end pendente)** — `PecaDetailView`, modo de edição do `PecaFormView` e `PUT`/`DELETE /pecas/{id}` (escopados por `usuario_id`) implementados. `dart analyze` limpo; `flutter test` 21/24 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 6 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local, e o 404 entre usuários diferentes, ainda pendentes — ver log de implementação no arquivo detalhado.
+**Status**: **concluída (validação manual end-to-end pendente)** — `PecaDetailView`, modo de edição do `PecaFormView` e `PUT`/`DELETE /pecas/{id}` (escopados por `usuario_id`) implementados. `dart analyze` limpo; `flutter test` 21/24 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 6 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local, e o 404 entre usuários diferentes, ainda pendentes — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345), e hoje há venv e `pytest`. O `DELETE /pecas/{id}` evoluiu depois desta PBI: responde `409` (`peca_em_looks`, com a quantidade de looks) quando a peça está em looks ativos, e só exclui com `remover_dos_looks=true`; vínculos com looks arquivados saem junto. Ele **não apaga o arquivo da imagem** (fica órfão); o tratamento está previsto na E10.F3.2. Os critérios de aceite originais não foram alterados. O 404 entre usuários não tem teste automatizado de rota (ver E9.F3.1).
 **Estimativa**: M.
 **Dependências**: E1.F2.1 (reaproveita o formulário de metadados), E2.F1.1 (é de onde se chega na peça, pelo armário).
 
@@ -131,7 +171,7 @@ Feature completa = usuário abre o app e vê as peças que já cadastrou, organi
 
 ### E2.F1.1 — Listagem do armário agrupada por categoria
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E2-F1-listagem-do-armario/E2.F1.1-listagem-agrupada-por-categoria.md](PBIs/E2-F1-listagem-do-armario/E2.F1.1-listagem-agrupada-por-categoria.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E2-organizacao-por-categorias/E2-F1-listagem-do-armario/E2.F1.1-listagem-agrupada-por-categoria.md](PBIs/E2-organizacao-por-categorias/E2-F1-listagem-do-armario/E2.F1.1-listagem-agrupada-por-categoria.md).
 
 **Descrição**: `WardrobeView` passa a buscar as peças do usuário e exibi-las agrupadas por categoria, em grade de miniaturas, com estados de carregamento/erro/vazio e atualização ao voltar do cadastro. Uma casca de navegação (`HomeShell`) com barra inferior Armário/Looks torna as duas telas principais alcançáveis.
 
@@ -141,7 +181,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Ao salvar uma peça no formulário, o usuário volta ao armário já com a peça nova listada e a barra inferior visível.
 - Cada usuário vê somente as próprias peças.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — `WardrobeView`, `HomeShell`, agrupamento por categoria e `order_by` no backend implementados. `dart analyze` limpo; `flutter test` 15/18 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 8 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado.
+**Status**: **concluída (validação manual end-to-end pendente)** — `WardrobeView`, `HomeShell`, agrupamento por categoria e `order_by` no backend implementados. `dart analyze` limpo; `flutter test` 15/18 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 8 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes já não existem (suíte Flutter 345/345) e hoje há venv e `pytest`; a navegação evoluiu para 5 abas e armário em gavetas (ver `redesign-visual.md`).
 **Estimativa**: M.
 **Dependências**: E1.F2.1.
 
@@ -153,7 +193,7 @@ Feature completa = na tela de armário (Feature 1), o usuário restringe a lista
 
 ### E2.F2.1 — Filtro de peças por cor, estação e ocasião
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E2-F2-filtro-armario/E2.F2.1-filtro-por-cor-estacao-ocasiao.md](PBIs/E2-F2-filtro-armario/E2.F2.1-filtro-por-cor-estacao-ocasiao.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E2-organizacao-por-categorias/E2-F2-filtro-armario/E2.F2.1-filtro-por-cor-estacao-ocasiao.md](PBIs/E2-organizacao-por-categorias/E2-F2-filtro-armario/E2.F2.1-filtro-por-cor-estacao-ocasiao.md).
 
 **Descrição**: `WardrobeView` ganha um painel de filtros (cor principal, estação, ocasião) que atua sobre a lista já carregada, combinando os filtros ativos com E lógico; opções de cor/estação vêm dos valores já presentes no armário do usuário (campos livres, sem enum), ocasião usa a lista fixa existente.
 
@@ -163,7 +203,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Nenhuma peça corresponde aos filtros ativos → mensagem clara com ação de limpar, sem travar a tela.
 - Cada usuário filtra somente dentro das próprias peças (reflexo do `GET /pecas` já escopado por `usuario_id`).
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `FiltroArmario`, `filtroArmarioProvider` e `filtrarPecas` implementados em `wardrobe_controller.dart`; painel de filtros (`FilterChip` por cor/estação/ocasião) e estado de vazio-por-filtro em `wardrobe_view.dart`. `dart analyze` limpo; `flutter test` 28/31 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 7 testes novos desta PBI passam. Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado.
+**Status**: **concluída (validação manual visual no Chrome pendente)** — `FiltroArmario`, `filtroArmarioProvider` e `filtrarPecas` implementados em `wardrobe_controller.dart`; painel de filtros (`FilterChip` por cor/estação/ocasião) e estado de vazio-por-filtro em `wardrobe_view.dart`. `dart analyze` limpo; `flutter test` 28/31 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 7 testes novos desta PBI passam. Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes já não existem (suíte Flutter 345/345). O filtro evoluiu para seleção múltipla em painel e considera as cores secundárias da peça (ver E1.F2.2, retroativa). Filtro por tecido e marca segue **inexistente** (não há esses campos).
 **Estimativa**: P.
 **Dependências**: E2.F1.1 (listagem e agrupamento do armário, base sobre a qual o filtro atua).
 
@@ -175,7 +215,7 @@ Feature completa = usuário escolhe peças do próprio armário, monta um look e
 
 ### E3.F1.1 — Modelo de dados e endpoint de criação/consulta de looks
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F1-montagem-manual-looks/E3.F1.1-modelo-e-endpoint-de-looks.md](PBIs/E3-F1-montagem-manual-looks/E3.F1.1-modelo-e-endpoint-de-looks.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.1-modelo-e-endpoint-de-looks.md](PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.1-modelo-e-endpoint-de-looks.md).
 
 **Descrição**: tabelas `looks` e `looks_pecas` (associação N:N com `pecas`), migração Alembic, e `POST /looks` / `GET /looks` escopados por `usuario_id`.
 
@@ -190,7 +230,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F1.2 — Tela de montagem manual do look no app
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F1-montagem-manual-looks/E3.F1.2-tela-de-montagem-do-look.md](PBIs/E3-F1-montagem-manual-looks/E3.F1.2-tela-de-montagem-do-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.2-tela-de-montagem-do-look.md](PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.2-tela-de-montagem-do-look.md).
 
 **Descrição**: nova tela acessível a partir de "Looks" onde o usuário seleciona peças do armário (reaproveitando `pecaListProvider`/agrupamento por categoria), dá um nome ao look e confirma, chamando `POST /looks`.
 
@@ -201,13 +241,13 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Falha no envio mostra mensagem clara e preserva nome/seleção para nova tentativa.
 - Armário sem nenhuma peça cadastrada mostra orientação para cadastrar antes, sem grade vazia.
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `MontarLookView`, `MontagemLookController` e `LookService.criarLook` implementados; FAB "Montar look" novo em `LooksView`. `dart analyze` limpo; `flutter test` 32/35 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos desta PBI passam. Bug real encontrado e corrigido no caminho: colisão de hero tag entre os FABs de `WardrobeView` e `LooksView` (ambas montadas ao mesmo tempo pelo `IndexedStack` do `HomeShell`) — ver log de implementação no arquivo detalhado.
+**Status**: **concluída (validação manual visual no Chrome pendente)** — `MontarLookView`, `MontagemLookController` e `LookService.criarLook` implementados; FAB "Montar look" novo em `LooksView`. `dart analyze` limpo; `flutter test` 32/35 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos desta PBI passam. Bug real encontrado e corrigido no caminho: colisão de hero tag entre os FABs de `WardrobeView` e `LooksView` (ambas montadas ao mesmo tempo pelo `IndexedStack` do `HomeShell`) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345).
 **Estimativa**: M.
 **Dependências**: E3.F1.1.
 
 ### E3.F1.3 — Listagem dos looks salvos no app
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F1-montagem-manual-looks/E3.F1.3-listagem-dos-looks-salvos.md](PBIs/E3-F1-montagem-manual-looks/E3.F1.3-listagem-dos-looks-salvos.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.3-listagem-dos-looks-salvos.md](PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.3-listagem-dos-looks-salvos.md).
 
 **Descrição**: `LooksView` passa a buscar e exibir os looks do usuário (miniaturas das peças de cada look), substituindo o placeholder atual — espelha a E2.F1.1, mas para looks em vez de peças.
 
@@ -218,7 +258,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Um look recém-salvo em `MontarLookView` já aparece na lista ao voltar, sem puxar manualmente.
 - Cada usuário vê só os próprios looks.
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `LooksView` reescrita (`ConsumerWidget` real, `RefreshIndicator`+`ListView` de `_LookCard`), `lookListProvider` (`looks_controller.dart`) e `LookService.listarLooks()` implementados; `montar_look_view.dart` invalida a lista ao salvar com sucesso. `dart analyze` limpo; `flutter test` 36/39 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos de `looks_test.dart` passam. Efeito colateral corrigido: `LooksView` virar real quebrou testes pré-existentes que não previam a chamada a `GET /looks` (mesmo padrão já visto na E2.F1.1) — ver log de implementação no arquivo detalhado.
+**Status**: **concluída (validação manual visual no Chrome pendente)** — `LooksView` reescrita (`ConsumerWidget` real, `RefreshIndicator`+`ListView` de `_LookCard`), `lookListProvider` (`looks_controller.dart`) e `LookService.listarLooks()` implementados; `montar_look_view.dart` invalida a lista ao salvar com sucesso. `dart analyze` limpo; `flutter test` 36/39 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos de `looks_test.dart` passam. Efeito colateral corrigido: `LooksView` virar real quebrou testes pré-existentes que não previam a chamada a `GET /looks` (mesmo padrão já visto na E2.F1.1) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345).
 **Estimativa**: M.
 **Dependências**: E3.F1.1, E3.F1.2.
 
@@ -230,7 +270,7 @@ Feature completa = usuário marca e desmarca looks como favoritos e consegue lis
 
 ### E3.F2.1 — Campo favorito e `PATCH /looks/{id}` (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F2-looks-favoritos/E3.F2.1-campo-favorito-e-patch-de-look.md](PBIs/E3-F2-looks-favoritos/E3.F2.1-campo-favorito-e-patch-de-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F2-looks-favoritos/E3.F2.1-campo-favorito-e-patch-de-look.md](PBIs/E3-criacao-manual-de-looks/E3-F2-looks-favoritos/E3.F2.1-campo-favorito-e-patch-de-look.md).
 
 **Descrição**: coluna `favorito` em `looks` (migração `0003`), exposta em `LookRead`, e `PATCH /looks/{id}` com atualização parcial escopada por `usuario_id`.
 
@@ -245,7 +285,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F2.2 — Favoritar looks e filtrar favoritos no app
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F2-looks-favoritos/E3.F2.2-favoritar-e-filtrar-no-app.md](PBIs/E3-F2-looks-favoritos/E3.F2.2-favoritar-e-filtrar-no-app.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F2-looks-favoritos/E3.F2.2-favoritar-e-filtrar-no-app.md](PBIs/E3-criacao-manual-de-looks/E3-F2-looks-favoritos/E3.F2.2-favoritar-e-filtrar-no-app.md).
 
 **Descrição**: coração em cada card da `LooksView` que alterna o favorito via `PATCH`, e filtro "Favoritos" client-side (mesmo padrão da E2.F2.1).
 
@@ -266,7 +306,7 @@ Feature completa = look guarda uma ocasião (trabalho, faculdade, festa, academi
 
 ### E3.F3.1 — Campo ocasião no look (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F3-looks-por-ocasiao/E3.F3.1-campo-ocasiao-no-look.md](PBIs/E3-F3-looks-por-ocasiao/E3.F3.1-campo-ocasiao-no-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F3-looks-por-ocasiao/E3.F3.1-campo-ocasiao-no-look.md](PBIs/E3-criacao-manual-de-looks/E3-F3-looks-por-ocasiao/E3.F3.1-campo-ocasiao-no-look.md).
 
 **Descrição**: coluna `ocasiao` (nullable) em `looks` (migração `0005`), aceita em `POST /looks` e no `PATCH /looks/{id}` da E3.F2.1, e exposta em `LookRead`.
 
@@ -281,7 +321,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F3.2 — Ocasião na montagem, no card e na edição do look (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F3-looks-por-ocasiao/E3.F3.2-ocasiao-na-montagem-e-no-card.md](PBIs/E3-F3-looks-por-ocasiao/E3.F3.2-ocasiao-na-montagem-e-no-card.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F3-looks-por-ocasiao/E3.F3.2-ocasiao-na-montagem-e-no-card.md](PBIs/E3-criacao-manual-de-looks/E3-F3-looks-por-ocasiao/E3.F3.2-ocasiao-na-montagem-e-no-card.md).
 
 **Descrição**: seletor opcional de ocasião em `MontarLookView`, chip de ocasião no card e menu do card com "Alterar ocasião" (bottom sheet com "Sem ocasião"). O menu do card nasce aqui; a E3.F4.2 acrescenta itens.
 
@@ -296,7 +336,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F3.3 — Filtro de looks por ocasião (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F3-looks-por-ocasiao/E3.F3.3-filtro-de-looks-por-ocasiao.md](PBIs/E3-F3-looks-por-ocasiao/E3.F3.3-filtro-de-looks-por-ocasiao.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F3-looks-por-ocasiao/E3.F3.3-filtro-de-looks-por-ocasiao.md](PBIs/E3-criacao-manual-de-looks/E3-F3-looks-por-ocasiao/E3.F3.3-filtro-de-looks-por-ocasiao.md).
 
 **Descrição**: chips de ocasião na `LooksView` (seleção única), combinados por E lógico com "Favoritos", estendendo o `FiltroLooks` da E3.F2.2.
 
@@ -317,7 +357,7 @@ Feature completa = usuário registra que usou um look em certa data, vê o hist�
 
 ### E3.F4.1 — Registro de uso e histórico de looks (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.1-registro-de-uso-e-historico-de-looks.md](PBIs/E3-F4-historico-de-looks/E3.F4.1-registro-de-uso-e-historico-de-looks.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.1-registro-de-uso-e-historico-de-looks.md](PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.1-registro-de-uso-e-historico-de-looks.md).
 
 **Descrição**: tabela `looks_usos` (migração `0006`), `POST /looks/{id}/usos`, `GET /looks/historico` (usos do usuário com o look e as peças embutidos) e `DELETE /looks/usos/{id}`.
 
@@ -327,13 +367,13 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - O mesmo look pode ter vários usos, inclusive no mesmo dia.
 - `DELETE` remove um uso próprio (204); de outro usuário → 404.
 
-**Status**: **concluída e validada** — tabela `looks_usos` (migração `0006`), `POST /looks/{id}/usos`, `GET /looks/historico` (com `de`/`ate` opcionais, acrescentados a pedido do calendário da E3.F4.3) e `DELETE /looks/usos/{id}`. Verificado por execução real (API + Postgres local + `curl`, dois usuários), sem suíte `pytest` ainda.
+**Status**: **concluída e validada** — tabela `looks_usos` (migração `0006`), `POST /looks/{id}/usos`, `GET /looks/historico` (com `de`/`ate` opcionais, acrescentados a pedido do calendário da E3.F4.3) e `DELETE /looks/usos/{id}`. Verificado por execução real (API + Postgres local + `curl`, dois usuários), sem suíte `pytest` ainda. **Nota de 2026-11-05:** o validador de data aceita até **+1 dia** em relação à data UTC do servidor (tolerância de fuso, já descrita no arquivo detalhado), então "data futura → 422" vale para datas além disso; o critério original acima não foi alterado. Continua sem teste automatizado de rota (ver E9.F3.1).
 **Estimativa**: M.
 **Dependências**: E3.F1.1.
 
 ### E3.F4.2 — Registrar uso de um look no app (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.2-registrar-uso-do-look-no-app.md](PBIs/E3-F4-historico-de-looks/E3.F4.2-registrar-uso-do-look-no-app.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.2-registrar-uso-do-look-no-app.md](PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.2-registrar-uso-do-look-no-app.md).
 
 **Descrição**: o menu do card ganha "Usei hoje" (um toque) e "Usei em outra data…" (seletor de data sem datas futuras), chamando `POST /looks/{id}/usos` com a data local do dispositivo.
 
@@ -348,7 +388,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F4.3 — Tela de histórico de looks utilizados (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md](PBIs/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md](PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md).
 
 **Descrição**: `HistoricoView`, aberta por um ícone na `AppBar` de `LooksView`, lista os usos do mais recente ao mais antigo, agrupados por dia, com miniaturas das peças e remoção de registro com confirmação. Define o `historicoProvider`.
 
@@ -363,7 +403,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F4.4 — Aviso de repetição recente nos looks (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md](PBIs/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md](PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md).
 
 **Descrição**: cada card mostra "Usado hoje / ontem / há N dias" a partir do `historicoProvider`, em destaque quando o último uso foi há 7 dias ou menos. É o que atende "não repetir a mesma combinação sem perceber" no ponto de decisão.
 
@@ -382,7 +422,7 @@ Feature completa = o usuário consegue tirar um look de Armário › Looks e tro
 
 ### E3.F5.1 — Excluir (arquivar) look salvo (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md](PBIs/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md](PBIs/E3-criacao-manual-de-looks/E3-F5-edicao-exclusao-looks/E3.F5.1-excluir-look.md).
 
 **Descrição**: migração `0011` (`looks.arquivado`), `DELETE /looks/{id}` arquiva; looks arquivados somem de `GET /looks` e das ações, mas os usos continuam no histórico. Item "Excluir" com confirmação no menu do card.
 
@@ -397,7 +437,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E3.F5.2 — Trocar as peças de um look salvo (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md](PBIs/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md](PBIs/E3-criacao-manual-de-looks/E3-F5-edicao-exclusao-looks/E3.F5.2-trocar-pecas-do-look.md).
 
 **Descrição**: `PATCH /looks/{id}` aceita `peca_ids`; "Editar peças" no menu do card abre uma tela com carrosséis e as peças do look marcadas.
 
@@ -409,13 +449,59 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Estimativa**: M.
 **Dependências**: E3.F5.1, E5.F3.1.
 
+## Épico 3, Feature 6 — Pastas para organizar os looks
+
+Planejada em 2026-11-06. Cada look fica em no máximo uma pasta (ou em "Sem pasta"), no mesmo desenho das coleções do mural (E8.F2). Excluir uma pasta nunca apaga os looks.
+
+### E3.F6.1 — Pastas de looks (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F6-pastas-de-looks/E3.F6.1-pastas-backend.md](PBIs/E3-criacao-manual-de-looks/E3-F6-pastas-de-looks/E3.F6.1-pastas-backend.md).
+
+**Descrição**: tabela `pastas_looks` com CRUD; `looks.pasta_id` (no máximo uma pasta); filtro por pasta em `GET /looks`; `PATCH /looks/{id}` aceita `pasta_id` (inclusive `null`).
+
+**Critérios de aceite:**
+- Nome repetido (sem diferenciar caixa) responde 409.
+- Excluir a pasta mantém os looks, sem pasta; look arquivado não conta na quantidade.
+
+**Status**: concluída (migração 0019, 17 testes de rota; API real conferida por chamada direta).
+**Estimativa**: M.
+**Dependências**: E3.F1.1.
+
+### E3.F6.2 — Pastas na aba Looks (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F6-pastas-de-looks/E3.F6.2-pastas-na-aba-looks.md](PBIs/E3-criacao-manual-de-looks/E3-F6-pastas-de-looks/E3.F6.2-pastas-na-aba-looks.md).
+
+**Descrição**: chips Todos / pastas / Sem pasta na aba Looks do Armário; criar, renomear e excluir pasta; combina com favoritos e ocasião.
+
+**Critérios de aceite:**
+- Pasta selecionada com favoritos ligado mostra só os favoritos dela.
+- Excluir a pasta não apaga os looks.
+
+**Status**: concluída (validação manual no Chrome pendente); chips na aba Looks, testes em `test/pastas_looks_test.dart`.
+**Estimativa**: M.
+**Dependências**: E3.F6.1.
+
+### E3.F6.3 — Mover um look para uma pasta (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E3-criacao-manual-de-looks/E3-F6-pastas-de-looks/E3.F6.3-mover-look-para-pasta.md](PBIs/E3-criacao-manual-de-looks/E3-F6-pastas-de-looks/E3.F6.3-mover-look-para-pasta.md).
+
+**Descrição**: opção "Mover para pasta" no menu do look, com "Sem pasta" e "Nova pasta…"; o card mostra a pasta.
+
+**Critérios de aceite:**
+- Mover atualiza o look e as contagens dos chips.
+- Falha de rede mantém o look onde estava.
+
+**Status**: concluída (validação manual no Chrome pendente); "Mover para pasta" no menu do card.
+**Estimativa**: P.
+**Dependências**: E3.F6.1, E3.F6.2.
+
 ## Épico 4, Feature 1 — Combinações de cores favoritas
 
 Feature completa = usuário abre a tela de preferências (hoje só um `TODO` sem caminho até ela) e cadastra pares de cores que gosta de ver juntos. Esta feature também entrega a **base de todo o Épico 4**: a tabela `preferencias` (uma linha por usuário, já prevista em [arquitetura.md](arquitetura.md)) com todos os campos simples (cores, sobreposições, estilos, criatividade), para as features seguintes serem só telas. **Não inclui** peças/combinações evitadas (Feature 4, tabelas próprias) nem o uso das preferências nas sugestões (Épicos 5 e 6).
 
 ### E4.F1.1 — Modelo de preferências e endpoints `GET`/`PATCH` (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F1-cores-favoritas/E4.F1.1-modelo-e-endpoints-de-preferencias.md](PBIs/E4-F1-cores-favoritas/E4.F1.1-modelo-e-endpoints-de-preferencias.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F1-cores-favoritas/E4.F1.1-modelo-e-endpoints-de-preferencias.md](PBIs/E4-preferencias-de-estilo/E4-F1-cores-favoritas/E4.F1.1-modelo-e-endpoints-de-preferencias.md).
 
 **Descrição**: tabela `preferencias` (migração `0007`) com `estilos`, `sobreposicoes`, `combinacoes_cores` e `criatividade`; `GET /preferencias` devolve os padrões quando nada foi salvo, e `PATCH /preferencias` atualiza só os campos enviados (upsert).
 
@@ -431,7 +517,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E4.F1.2 — Tela de preferências e combinações de cores favoritas (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md](PBIs/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md](PBIs/E4-preferencias-de-estilo/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md).
 
 **Descrição**: botão "Preferências de estilo" na Home abre a `PreferencesView` (hoje placeholder), que carrega as preferências e traz a seção de pares de cores, com salvamento imediato (atualização otimista com reversão em falha).
 
@@ -452,7 +538,7 @@ Feature completa = usuário marca os tipos de sobreposição que gosta (jaqueta,
 
 ### E4.F2.1 — Sobreposições preferidas na tela de preferências (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F2-sobreposicoes/E4.F2.1-sobreposicoes-preferidas-na-tela.md](PBIs/E4-F2-sobreposicoes/E4.F2.1-sobreposicoes-preferidas-na-tela.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F2-sobreposicoes/E4.F2.1-sobreposicoes-preferidas-na-tela.md](PBIs/E4-preferencias-de-estilo/E4-F2-sobreposicoes/E4.F2.1-sobreposicoes-preferidas-na-tela.md).
 
 **Descrição**: seção "Sobreposições" com um chip por tipo (Jaqueta, Cardigan, Camisa aberta, Blazer, Colete), salva na hora; cria o widget genérico `SecaoDeChips` que a E4.F3.1 reaproveita.
 
@@ -474,7 +560,7 @@ Feature completa = usuário escolhe os estilos que prefere (casual, streetwear, 
 
 ### E4.F3.1 — Estilos preferidos na tela de preferências (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F3-estilos-preferidos/E4.F3.1-estilos-preferidos-na-tela.md](PBIs/E4-F3-estilos-preferidos/E4.F3.1-estilos-preferidos-na-tela.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F3-estilos-preferidos/E4.F3.1-estilos-preferidos-na-tela.md](PBIs/E4-preferencias-de-estilo/E4-F3-estilos-preferidos/E4.F3.1-estilos-preferidos-na-tela.md).
 
 **Descrição**: seção "Estilos preferidos" com um chip por item de `estilosFixos` (seleção múltipla, salva na hora), reaproveitando `SecaoDeChips`.
 
@@ -495,7 +581,7 @@ Feature completa = usuário marca peças que não quer ver sugeridas e pares de 
 
 ### E4.F4.1 — Peças e combinações evitadas (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.1-pecas-e-combinacoes-evitadas-no-backend.md](PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.1-pecas-e-combinacoes-evitadas-no-backend.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.1-pecas-e-combinacoes-evitadas-no-backend.md](PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.1-pecas-e-combinacoes-evitadas-no-backend.md).
 
 **Descrição**: tabelas `pecas_evitadas` e `combinacoes_evitadas` (migração `0009`, par ordenado por UUID) e endpoints para listar, marcar e desmarcar peças e pares, escopados por usuário.
 
@@ -511,7 +597,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E4.F4.2 — Marcar peça como evitada no app (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md](PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md](PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md).
 
 **Descrição**: ação "Evitar nas sugestões" / "Parar de evitar" no detalhe da peça e seção "Peças que evito" na tela de preferências, com `evitadasProvider` e `Evitadas` já prontos para as combinações.
 
@@ -527,7 +613,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E4.F4.3 — Combinações de peças evitadas no app (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md](PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md](PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md).
 
 **Descrição**: seção "Combinações que evito" com os pares salvos e `EscolherParView`, uma grade do armário onde se seleciona exatamente duas peças.
 
@@ -549,7 +635,7 @@ Feature completa = usuário define, de 1 a 5, o quanto aceita sair do óbvio nas
 
 ### E4.F5.1 — Nível de criatividade na tela de preferências (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-F5-nivel-de-criatividade/E4.F5.1-nivel-de-criatividade-na-tela.md](PBIs/E4-F5-nivel-de-criatividade/E4.F5.1-nivel-de-criatividade-na-tela.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E4-preferencias-de-estilo/E4-F5-nivel-de-criatividade/E4.F5.1-nivel-de-criatividade-na-tela.md](PBIs/E4-preferencias-de-estilo/E4-F5-nivel-de-criatividade/E4.F5.1-nivel-de-criatividade-na-tela.md).
 
 **Descrição**: seção "Criatividade das combinações" com um `Slider` de 5 posições e rótulo por nível, salvo ao soltar (padrão 3).
 
@@ -574,7 +660,7 @@ Feature completa = backend gera, ordena e pagina looks válidos com as peças do
 
 ### E5.F1.1 — Motor de combinação: regras (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F1-motor-de-combinacao/E5.F1.1-regras-do-motor.md](PBIs/E5-F1-motor-de-combinacao/E5.F1.1-regras-do-motor.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F1-motor-de-combinacao/E5.F1.1-regras-do-motor.md](PBIs/E5-sugestoes-sob-demanda/E5-F1-motor-de-combinacao/E5.F1.1-regras-do-motor.md).
 
 **Descrição**: funções puras em `services/sugestoes/` para cores/ousadia, estrutura do look, filtros, restrições, coringas e peça-base; primeira suíte `pytest`.
 
@@ -589,7 +675,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E5.F1.2 — Ordenação, páginas e `POST /sugestoes` (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F1-motor-de-combinacao/E5.F1.2-ordenacao-paginas-e-endpoint.md](PBIs/E5-F1-motor-de-combinacao/E5.F1.2-ordenacao-paginas-e-endpoint.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F1-motor-de-combinacao/E5.F1.2-ordenacao-paginas-e-endpoint.md](PBIs/E5-sugestoes-sob-demanda/E5-F1-motor-de-combinacao/E5.F1.2-ordenacao-paginas-e-endpoint.md).
 
 **Descrição**: ordenação determinística (critérios 1–6), páginas de 3 com cada peça em no máximo 2 looks, descartes da sessão, explicações e avisos; endpoint escopado pelo usuário.
 
@@ -604,7 +690,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E5.F1.3 — Não sugerir looks já salvos (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F1-motor-de-combinacao/E5.F1.3-nao-sugerir-looks-salvos.md](PBIs/E5-F1-motor-de-combinacao/E5.F1.3-nao-sugerir-looks-salvos.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F1-motor-de-combinacao/E5.F1.3-nao-sugerir-looks-salvos.md](PBIs/E5-sugestoes-sob-demanda/E5-F1-motor-de-combinacao/E5.F1.3-nao-sugerir-looks-salvos.md).
 
 **Descrição**: `POST /sugestoes` deixa de devolver looks com o mesmo conjunto de peças de um look salvo; na aba Sugestões, salvar tira o card da lista e completa a página. O Look do dia não muda (decisão do usuário).
 
@@ -620,7 +706,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E5.F2.1 — Tela de sugestões (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F2-sugestoes-no-app/E5.F2.1-tela-de-sugestoes.md](PBIs/E5-F2-sugestoes-no-app/E5.F2.1-tela-de-sugestoes.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F2-sugestoes-no-app/E5.F2.1-tela-de-sugestoes.md](PBIs/E5-sugestoes-sob-demanda/E5-F2-sugestoes-no-app/E5.F2.1-tela-de-sugestoes.md).
 
 **Descrição**: aba "IA" renomeada para "Sugestões"; filtros, 3 looks com explicação e avisos, "Ver outras", descartar (sessão) e salvar como "Look sugerido – dd/mm"; rótulos de criatividade atualizados.
 
@@ -634,7 +720,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E5.F2.2 — Sugestões a partir de uma peça (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F2-sugestoes-no-app/E5.F2.2-sugestoes-a-partir-de-uma-peca.md](PBIs/E5-F2-sugestoes-no-app/E5.F2.2-sugestoes-a-partir-de-uma-peca.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F2-sugestoes-no-app/E5.F2.2-sugestoes-a-partir-de-uma-peca.md](PBIs/E5-sugestoes-sob-demanda/E5-F2-sugestoes-no-app/E5.F2.2-sugestoes-a-partir-de-uma-peca.md).
 
 **Descrição**: "Montar looks com esta peça" no detalhe da peça; aviso de peça evitada; conflito com filtro mostrado com "Remover filtro".
 
@@ -649,7 +735,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E5.F3.1 — Renomear look (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F3-renomear-look/E5.F3.1-renomear-look.md](PBIs/E5-F3-renomear-look/E5.F3.1-renomear-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F3-renomear-look/E5.F3.1-renomear-look.md](PBIs/E5-sugestoes-sob-demanda/E5-F3-renomear-look/E5.F3.1-renomear-look.md).
 
 **Descrição**: `PATCH /looks/{id}` aceita `nome`; item "Renomear" no menu do card.
 
@@ -664,7 +750,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E5.F4.1 — Aviso de cadastro incompleto no armário (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md](PBIs/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E5-sugestoes-sob-demanda/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md](PBIs/E5-sugestoes-sob-demanda/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md).
 
 **Descrição**: selo na miniatura e faixa no detalhe da peça sem cor, ocasião ou estilo, com atalho para editar.
 
@@ -681,7 +767,7 @@ Feature completa = a tela inicial mostra um look do dia sem o usuário pedir, pa
 
 ### E6.F1.1 — Look do dia e rotatividade (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-F1-look-do-dia/E6.F1.1-look-do-dia-e-rotatividade.md](PBIs/E6-F1-look-do-dia/E6.F1.1-look-do-dia-e-rotatividade.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.1-look-do-dia-e-rotatividade.md](PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.1-look-do-dia-e-rotatividade.md).
 
 **Descrição**: critério 5 em modo rotatividade (esquecidas, uso mais antigo, menor total); `POST /sugestoes/look-do-dia`; coluna `ocasiao_look_do_dia` em `preferencias` (migração `0010`).
 
@@ -695,7 +781,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E6.F1.2 — Card "Look do dia" na tela inicial (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md](PBIs/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md](PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md).
 
 **Descrição**: card na aba Casa com seletor de ocasião lembrado e ações "Salvar", "Usei hoje" (reaproveita `POST /looks` e `POST /looks/{id}/usos`) e "Outra sugestão".
 
@@ -708,7 +794,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E6.F1.3 — Look do dia que já é um look salvo (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-F1-look-do-dia/E6.F1.3-look-do-dia-ja-salvo.md](PBIs/E6-F1-look-do-dia/E6.F1.3-look-do-dia-ja-salvo.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.3-look-do-dia-ja-salvo.md](PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.3-look-do-dia-ja-salvo.md).
 
 **Descrição**: o look do dia continua podendo trazer um look salvo, mas o card mostra "Já salvo" (sem salvar de novo) e "Usei hoje" registra o uso no look existente. Pedido do usuário depois de salvar o mesmo look duas vezes.
 
@@ -727,7 +813,7 @@ Primeira assistência de IA do cadastro: o Gemma 3 4B, rodando localmente via Ol
 
 ### E7.F1.1 — Adaptador do Ollama (Gemma 3) e sugestão no processamento da foto (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E7-F1-metadados-por-ia/E7.F1.1-adaptador-ollama-backend.md](PBIs/E7-F1-metadados-por-ia/E7.F1.1-adaptador-ollama-backend.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E7-cadastro-assistido-por-ia/E7-F1-metadados-por-ia/E7.F1.1-adaptador-ollama-backend.md](PBIs/E7-cadastro-assistido-por-ia/E7-F1-metadados-por-ia/E7.F1.1-adaptador-ollama-backend.md).
 
 **Descrição**: trocar o `gemini_adapter` (stub) por um `ollama_adapter` que chama o Gemma 3 no Ollama local e devolve categoria, subcategoria, cor e tonalidade sugeridas em `POST /pecas/processar-imagem`, com tempo limite e sugestão vazia em qualquer falha.
 
@@ -741,7 +827,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E7.F1.2 — Formulário pré-preenchido com a sugestão da IA (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E7-F1-metadados-por-ia/E7.F1.2-formulario-pre-preenchido.md](PBIs/E7-F1-metadados-por-ia/E7.F1.2-formulario-pre-preenchido.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E7-cadastro-assistido-por-ia/E7-F1-metadados-por-ia/E7.F1.2-formulario-pre-preenchido.md](PBIs/E7-cadastro-assistido-por-ia/E7-F1-metadados-por-ia/E7.F1.2-formulario-pre-preenchido.md).
 
 **Descrição**: levar a `sugestao` do processamento até o `PecaFormView`, pré-preencher os campos e avisar que foram sugeridos pela IA e devem ser revisados.
 
@@ -763,7 +849,7 @@ Decisões de 2026-10-23: o mural guarda imagens da galeria (sem `rembg`), mostra
 
 ### E8.F1.1 — Referências do mural: tabela, upload e rotas (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F1-mural-basico/E8.F1.1-referencias-backend.md](PBIs/E8-F1-mural-basico/E8.F1.1-referencias-backend.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F1-mural-basico/E8.F1.1-referencias-backend.md](PBIs/E8-mural-de-referencias/E8-F1-mural-basico/E8.F1.1-referencias-backend.md).
 
 **Descrição**: tabela `referencias` por usuário e rotas para enviar a imagem da galeria, listar, editar a nota e excluir (apagando o arquivo).
 
@@ -777,7 +863,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F1.2 — Grade do mural e adicionar da galeria (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F1-mural-basico/E8.F1.2-grade-e-adicionar-da-galeria.md](PBIs/E8-F1-mural-basico/E8.F1.2-grade-e-adicionar-da-galeria.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F1-mural-basico/E8.F1.2-grade-e-adicionar-da-galeria.md](PBIs/E8-mural-de-referencias/E8-F1-mural-basico/E8.F1.2-grade-e-adicionar-da-galeria.md).
 
 **Descrição**: a aba Referências vira uma grade em duas colunas, com botão para adicionar da galeria (nota opcional) e visualização grande.
 
@@ -791,7 +877,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F1.3 — Nota e exclusão da referência (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F1-mural-basico/E8.F1.3-nota-e-exclusao.md](PBIs/E8-F1-mural-basico/E8.F1.3-nota-e-exclusao.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F1-mural-basico/E8.F1.3-nota-e-exclusao.md](PBIs/E8-mural-de-referencias/E8-F1-mural-basico/E8.F1.3-nota-e-exclusao.md).
 
 **Descrição**: editar a nota e excluir a referência (com confirmação) na visualização.
 
@@ -807,7 +893,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F2.1 — Coleções de referências (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F2-colecoes/E8.F2.1-colecoes-backend.md](PBIs/E8-F2-colecoes/E8.F2.1-colecoes-backend.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F2-colecoes/E8.F2.1-colecoes-backend.md](PBIs/E8-mural-de-referencias/E8-F2-colecoes/E8.F2.1-colecoes-backend.md).
 
 **Descrição**: tabela `colecoes` com CRUD; cada referência em no máximo uma coleção; filtro por coleção na listagem.
 
@@ -821,7 +907,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F2.2 — Aba de coleções no mural (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F2-colecoes/E8.F2.2-colecoes-no-mural.md](PBIs/E8-F2-colecoes/E8.F2.2-colecoes-no-mural.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F2-colecoes/E8.F2.2-colecoes-no-mural.md](PBIs/E8-mural-de-referencias/E8-F2-colecoes/E8.F2.2-colecoes-no-mural.md).
 
 **Descrição**: abas Todas/Coleções no mural, criar/renomear/excluir coleção, escolher a coleção ao adicionar e mover imagens.
 
@@ -837,7 +923,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F3.1 — Ligar a referência a um look salvo (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F3-ligar-a-look/E8.F3.1-ligar-referencia-a-look.md](PBIs/E8-F3-ligar-a-look/E8.F3.1-ligar-referencia-a-look.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F3-ligar-a-look/E8.F3.1-ligar-referencia-a-look.md](PBIs/E8-mural-de-referencias/E8-F3-ligar-a-look/E8.F3.1-ligar-referencia-a-look.md).
 
 **Descrição**: uma referência pode ser ligada a um look salvo; a visualização mostra o look e a grade um selo.
 
@@ -853,7 +939,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F4.1 — Etiquetas das peças da referência por IA (backend + mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F4-etiquetas-por-ia/E8.F4.1-etiquetas-das-pecas-por-ia.md](PBIs/E8-F4-etiquetas-por-ia/E8.F4.1-etiquetas-das-pecas-por-ia.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F4-etiquetas-por-ia/E8.F4.1-etiquetas-das-pecas-por-ia.md](PBIs/E8-mural-de-referencias/E8-F4-etiquetas-por-ia/E8.F4.1-etiquetas-das-pecas-por-ia.md).
 
 **Descrição**: o Gemma 3 lista as peças visíveis na referência como etiquetas de texto editáveis, sem casar com o armário.
 
@@ -873,7 +959,7 @@ Pedido de 2026-10-23: "Ligar a um look" ganha duas formas, manual e automática.
 
 ### E8.F5.1 — Estreitar candidatos do armário a partir das etiquetas (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F5-ligacao-automatica/E8.F5.1-estreitar-candidatos-por-etiqueta.md](PBIs/E8-F5-ligacao-automatica/E8.F5.1-estreitar-candidatos-por-etiqueta.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F5-ligacao-automatica/E8.F5.1-estreitar-candidatos-por-etiqueta.md](PBIs/E8-mural-de-referencias/E8-F5-ligacao-automatica/E8.F5.1-estreitar-candidatos-por-etiqueta.md).
 
 **Descrição**: funções puras que, para cada etiqueta, descobrem categoria e cores e escolhem até 4 peças candidatas do armário (sem as evitadas); etiqueta sem equivalente vira lacuna.
 
@@ -887,7 +973,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F5.2 — Sugerir o look da referência comparando com o Gemma (backend)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F5-ligacao-automatica/E8.F5.2-sugerir-look-com-gemma.md](PBIs/E8-F5-ligacao-automatica/E8.F5.2-sugerir-look-com-gemma.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F5-ligacao-automatica/E8.F5.2-sugerir-look-com-gemma.md](PBIs/E8-mural-de-referencias/E8-F5-ligacao-automatica/E8.F5.2-sugerir-look-com-gemma.md).
 
 **Descrição**: `POST /referencias/{id}/sugestao-de-look`: o Gemma compara a imagem da referência com as candidatas de cada etiqueta; devolve look salvo que contém as peças, ou look novo, mais as lacunas.
 
@@ -901,7 +987,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ### E8.F5.3 — "Ligar a um look": manual ou automático (mobile)
 
-Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-F5-ligacao-automatica/E8.F5.3-ligar-a-look-manual-ou-automatico.md](PBIs/E8-F5-ligacao-automatica/E8.F5.3-ligar-a-look-manual-ou-automatico.md).
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E8-mural-de-referencias/E8-F5-ligacao-automatica/E8.F5.3-ligar-a-look-manual-ou-automatico.md](PBIs/E8-mural-de-referencias/E8-F5-ligacao-automatica/E8.F5.3-ligar-a-look-manual-ou-automatico.md).
 
 **Descrição**: o botão "Ligar a um look" oferece Manual e Automático (IA); o automático mostra o look sugerido (salvo ou novo) com as lacunas e só liga ou salva depois do toque do usuário.
 
@@ -915,6 +1001,452 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ---
 
+## Épicos 9 a 12 — Autenticação real, storage, paginação e pesquisa do Pinterest
+
+Planejamento aprovado em 2026-11-05 (nenhuma PBI iniciada). **Ordem recomendada:** Épico 9 → Épico 10 → Épico 11 (o 11 é independente tecnicamente e pode vir antes do 10); o Épico 12 é pesquisa e corre em paralelo. A análise de concorrentes e a auditoria das referências do TCC **não são épicos**: são tarefas em [checklist-tcc.md](checklist-tcc.md). Estimativa: P = baixa, M = média, G = alta. O banco PostgreSQL **continua fora do Supabase**: só Auth e Storage migram. Login social não é requisito. Não entram neste ciclo: CI, Ruff, mypy, pgvector, processamento assíncrono e paginação de referências.
+
+**Decisões ainda pendentes (não são requisitos):** confirmação de e-mail no cadastro (decidir na configuração do Supabase); dados existentes (de teste ou a preservar — verificar antes de decidir qualquer migração); contagem por gaveta (manter se não trouxer complexidade desnecessária); endpoint de subcategorias (só se a paginação prejudicar as sugestões); estratégia de cache de imagens (após medir URLs assinadas e egress); pausa do plano gratuito do Supabase após 1 semana sem uso (verificar antes da apresentação do TCC); Modesona e acesso ao `MANUAL_DE_TCC.pdf` (ambos agora no [checklist-tcc.md](checklist-tcc.md)).
+
+**Lacunas e riscos já existentes (verificados na auditoria de 2026-11-05; nenhum está resolvido):**
+- `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação** — corrigir na **E10.F2.2**.
+- `DELETE /pecas/{id}` não apaga o arquivo da imagem — tratar na **E10.F3.2**.
+- **Não há testes de integração das rotas** `pecas`, `looks`, `preferencias` e `sugestoes` (só `referencias` e `colecoes` têm) — cobrir na **E9.F3.1** (e a E1.F1.5 continua pendente para `processar-imagem`).
+
+**Limitação do projeto — exclusão de conta e privacidade (sem PBI):** a exclusão completa da conta e dos dados associados está **fora do escopo atual**. A autenticação ficará no Supabase e o PostgreSQL continuará separado, sem chave estrangeira entre eles: excluir um usuário no Supabase **não remove** suas peças, looks, preferências, referências e imagens. **Isto precisa ser resolvido antes da disponibilização do aplicativo para terceiros em escala**, e deve constar como limitação no TCC.
+
+## Épico 9, Feature 1 — Backend: validação de token e migração de dados
+
+### E9.F1.1 — Validação do JWT por chaves públicas (JWKS)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F1-validacao-e-migracao/E9.F1.1-validacao-do-jwt-por-jwks.md](PBIs/E9-autenticacao/E9-F1-validacao-e-migracao/E9.F1.1-validacao-do-jwt-por-jwks.md).
+
+**Descrição**: `get_current_user_id` passa a validar o token com as chaves públicas (JWKS) do projeto Supabase; hoje só aceita HS256 com segredo estático. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Token válido do projeto passa e o `usuario_id` é o `sub`; expirado, de chave/emissor/audiência errados ou sem `sub` → 401.
+- JWKS inacessível → erro estruturado, nunca 500 cru.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: projeto Supabase criado (decisão do usuário).
+
+### E9.F1.2 — Plano e script de migração dos dados existentes
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F1-validacao-e-migracao/E9.F1.2-plano-e-script-de-migracao-de-dados.md](PBIs/E9-autenticacao/E9-F1-validacao-e-migracao/E9.F1.2-plano-e-script-de-migracao-de-dados.md).
+
+**Descrição**: primeiro verificar se os dados atuais são de teste ou a preservar; se houver migração, entregar script com backup verificado, `--dry-run`, validação e reversão. **Não executa nada.** **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Decisão "teste ou preservar" registrada; `--dry-run` lista linhas por tabela sem alterar nada.
+- Conflito (ex.: `preferencias` do destino) aborta antes de qualquer alteração; contagens batem e não resta UUID antigo (em banco de teste).
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E9.F1.1.
+
+### E9.F1.3 — Execução supervisionada da migração de dados
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F1-validacao-e-migracao/E9.F1.3-execucao-supervisionada-da-migracao.md](PBIs/E9-autenticacao/E9-F1-validacao-e-migracao/E9.F1.3-execucao-supervisionada-da-migracao.md).
+
+**Descrição**: execução no banco real, só com autorização explícita, backup confirmado e dry-run revisado. Só existe se a E9.F1.2 concluir que há dados a preservar. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Sem autorização ou sem backup confirmado, não executa; falha desfaz a transação.
+- Ao final, contagens batem e não resta linha com o UUID antigo.
+
+**Status**: não iniciada.
+**Estimativa**: P.
+**Dependências**: E9.F1.2, E9.F2.1.
+
+## Épico 9, Feature 2 — Contas no app
+
+### E9.F2.1 — Cadastro, login e logout no app
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F2-contas-no-app/E9.F2.1-cadastro-login-e-logout.md](PBIs/E9-autenticacao/E9-F2-contas-no-app/E9.F2.1-cadastro-login-e-logout.md).
+
+**Descrição**: telas de cadastro e login com `supabase_flutter`, sessão persistida, rota protegida e logout que limpa os estados. Confirmação de e-mail: decidida na configuração do Supabase. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Cadastro e login com credenciais válidas entram no app; credenciais erradas mostram mensagem clara.
+- A sessão persiste ao reabrir; o logout volta ao login sem dados do usuário anterior.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: projeto Supabase criado, E9.F1.1.
+
+### E9.F2.2 — Token real, renovação e sessão expirada
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F2-contas-no-app/E9.F2.2-token-real-renovacao-e-sessao-expirada.md](PBIs/E9-autenticacao/E9-F2-contas-no-app/E9.F2.2-token-real-renovacao-e-sessao-expirada.md).
+
+**Descrição**: o `ApiClient` envia o `access_token` da sessão, renova antes de expirar e leva ao login em 401 persistente; `DEV_AUTH_TOKEN` é removido do app. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Requisições vão com o token do usuário; token vencido renova e repete a requisição uma vez.
+- Sessão que não renova leva ao login com aviso; não resta `DEV_AUTH_TOKEN` no app.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E9.F2.1.
+
+### E9.F2.3 — Recuperação de senha
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F2-contas-no-app/E9.F2.3-recuperacao-de-senha.md](PBIs/E9-autenticacao/E9-F2-contas-no-app/E9.F2.3-recuperacao-de-senha.md).
+
+**Descrição**: "Esqueci minha senha": e-mail de redefinição, retorno ao app e nova senha. Se viável (depende do envio de e-mail e do redirecionamento). **Prioridade**: média · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Pedido não revela se o e-mail existe; o link leva à tela de nova senha e o login funciona com ela.
+- Link expirado ou inválido mostra mensagem clara com opção de pedir outro.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E9.F2.1.
+
+## Épico 9, Feature 3 — Segurança e isolamento
+
+### E9.F3.1 — Testes de isolamento entre usuários
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F3-seguranca-e-isolamento/E9.F3.1-testes-de-isolamento-entre-usuarios.md](PBIs/E9-autenticacao/E9-F3-seguranca-e-isolamento/E9.F3.1-testes-de-isolamento-entre-usuarios.md).
+
+**Descrição**: suíte `pytest` com dois usuários cobrindo `pecas`, `looks`, `preferencias`, `referencias`, `colecoes` e `sugestoes`: ler, alterar e excluir recurso alheio. **Lacuna que esta PBI cobre:** hoje só `referencias` e `colecoes` têm testes de rota; **`pecas`, `looks`, `preferencias` e `sugestoes` não têm testes de integração** (as verificações de "dois usuários" registradas nas PBIs antigas foram manuais). **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Recurso de outro usuário → 404 e nada muda; listagens sem dados alheios; relações cruzadas rejeitadas.
+- Vazamento encontrado é corrigido na mesma PBI.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E9.F1.1.
+
+### E9.F3.2 — Endurecimento de configuração
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F3-seguranca-e-isolamento/E9.F3.2-endurecimento-de-configuracao.md](PBIs/E9-autenticacao/E9-F3-seguranca-e-isolamento/E9.F3.2-endurecimento-de-configuracao.md).
+
+**Descrição**: CORS restrito, segredos só em variáveis de ambiente, chave de serviço do Supabase exclusivamente no backend, ferramentas de token de teste restritas ao desenvolvimento. Sem RLS (o banco continua fora do Supabase). **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Produção aceita só as origens do app; repositório e app sem segredos nem chave de serviço.
+- README separa o que é de desenvolvimento do que é de produção.
+
+**Status**: não iniciada.
+**Estimativa**: P.
+**Dependências**: E9.F1.1.
+
+## Épico 10, Feature 1 — Fundação do storage
+
+### E10.F1.1 — Bucket privado e convenção de chaves
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F1-fundacao-do-storage/E10.F1.1-bucket-privado-e-convencao-de-chaves.md](PBIs/E10-supabase-storage/E10-F1-fundacao-do-storage/E10.F1.1-bucket-privado-e-convencao-de-chaves.md).
+
+**Descrição**: bucket privado, chave `{usuario_id}/{pecas|referencias}/{uuid}.ext`, variáveis de ambiente e estimativa de consumo contra os limites do plano gratuito. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Bucket privado: URL sem assinatura não devolve a imagem; toda chave começa pelo `usuario_id`.
+- Estimativa registrada com a data da conferência dos limites; pausa por inatividade registrada como risco.
+
+**Status**: não iniciada.
+**Estimativa**: P.
+**Dependências**: E9.F1.1.
+
+### E10.F1.2 — Adaptador do Supabase Storage com a mesma interface
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F1-fundacao-do-storage/E10.F1.2-adaptador-do-supabase-storage.md](PBIs/E10-supabase-storage/E10-F1-fundacao-do-storage/E10.F1.2-adaptador-do-supabase-storage.md).
+
+**Descrição**: implementação Supabase de `save_image`/`delete_image`/`read_image` mais URL assinada, escolhida por `STORAGE_BACKEND`; o adaptador local permanece. A chave de serviço fica exclusivamente no backend. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- `local` funciona como hoje; `supabase` opera sobre o bucket privado; storage fora do ar → exceção própria.
+- A chave de serviço não aparece em respostas, logs, repositório nem no app.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E10.F1.1.
+
+## Épico 10, Feature 2 — Assinatura, upload e leitura pela IA
+
+### E10.F2.1 — Assinatura centralizada nas respostas da API
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.1-assinatura-centralizada-nas-respostas.md](PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.1-assinatura-centralizada-nas-respostas.md).
+
+**Descrição**: o banco guarda a chave; a API devolve URL assinada de validade curta no campo `imagem_url`, num ponto único e em lote; valores legados `/uploads/...` continuam como hoje. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Peças, looks, histórico, evitadas e sugestões trazem imagens assinadas; legado inalterado.
+- Chave que não pertence ao usuário da requisição não é assinada; assinatura em lote.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E10.F1.2.
+
+### E10.F2.2 — Upload no cadastro e nas referências
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.2-upload-no-cadastro-e-nas-referencias.md](PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.2-upload-no-cadastro-e-nas-referencias.md).
+
+**Descrição**: `processar-imagem`, `upload-original` e `POST /referencias` gravam no bucket com a chave do `usuario_id` do JWT. **Vulnerabilidade existente que esta PBI deve corrigir (ainda não corrigida):** hoje `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação**, e `upload-original` usa a extensão do nome do arquivo sem validar o tipo real. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Todos os endpoints de upload e processamento de imagens exigem autenticação (sem token → 401).
+- Tipo real do arquivo (pelo conteúdo) e tamanho máximo são validados.
+- Um usuário não consegue enviar, acessar, substituir ou excluir imagens de outro; a chave é gerada no servidor.
+- Falha do storage não cria peça com imagem inexistente.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E10.F1.2, E10.F2.1.
+
+### E10.F2.3 — Leitura de imagens pelo Gemma a partir do storage
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.3-leitura-de-imagens-pelo-gemma.md](PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.3-leitura-de-imagens-pelo-gemma.md).
+
+**Descrição**: `read_image` baixa do bucket privado (só `sugerir_para_referencia` lê do armazenamento; as demais chamadas ao Gemma usam bytes em memória); ajusta os `except` e mede o tempo. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Sugestão de look funciona como hoje; storage lento → etiquetas "não analisadas", sem erro.
+- Foto da referência ausente → 404 "imagem não disponível"; candidata ausente é ignorada; registro legado continua lendo.
+- Tempo medido antes e depois registrado.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E10.F1.2, E10.F2.2.
+
+## Épico 10, Feature 3 — Exibição, cache e exclusão
+
+### E10.F3.1 — Exibição no app e cache de imagens
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F3-exibicao-cache-e-exclusao/E10.F3.1-exibicao-no-app-e-cache.md](PBIs/E10-supabase-storage/E10-F3-exibicao-cache-e-exclusao/E10.F3.1-exibicao-no-app-e-cache.md).
+
+**Descrição**: imagens por URL assinada, com renovação ao expirar; cache por identidade do usuário e limpo no logout; estratégia definitiva escolhida só depois de medir URLs assinadas e egress. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- URL expirada é renovada sem imagem quebrada.
+- O cache considera a identidade do usuário: imagens de uma sessão não aparecem para outro usuário.
+- O cache é limpo ou invalidado no logout.
+- A estratégia de cache é escolhida após a medição de egress, com a evidência registrada; nenhuma otimização antecipada sem evidência.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E10.F2.1, E9.F2.1.
+
+### E10.F3.2 — Exclusão de imagens e tratamento de falhas
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F3-exibicao-cache-e-exclusao/E10.F3.2-exclusao-de-imagens-e-falhas.md](PBIs/E10-supabase-storage/E10-F3-exibicao-cache-e-exclusao/E10.F3.2-exclusao-de-imagens-e-falhas.md).
+
+**Descrição**: excluir peça passa a apagar o arquivo (hoje só a exclusão de referência apaga); falha ao apagar não impede a exclusão do registro; política de arquivos órfãos; placeholder com "tentar de novo" no app. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Excluir peça ou referência remove o arquivo; falha ao apagar o arquivo vira log e a exclusão do registro vale.
+- O usuário só exclui imagens próprias; imagem que não carrega mostra placeholder sem travar a tela.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E10.F2.2.
+
+## Épico 10, Feature 4 — Migração das imagens locais
+
+### E10.F4.1 — Plano e script de migração das imagens locais
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F4-migracao-das-imagens/E10.F4.1-plano-e-script-de-migracao-das-imagens.md](PBIs/E10-supabase-storage/E10-F4-migracao-das-imagens/E10.F4.1-plano-e-script-de-migracao-das-imagens.md).
+
+**Descrição**: se os dados atuais forem a preservar, script idempotente com `--dry-run`, upload, verificação no destino e só então atualização do `imagem_url`; `uploads/` não é apagado. **Não executa nada.** **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- `--dry-run` não altera bucket nem banco; cada registro migrado aponta para arquivo existente; segunda execução não duplica.
+- Arquivo local ausente vai para o relatório; se os dados forem descartáveis (E9.F1.2), a PBI se reduz ao registro dessa decisão.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: E9.F1.2 (e E9.F1.3, havendo migração de dados), E10.F2.1, E10.F2.2.
+
+### E10.F4.2 — Execução da migração e desligamento do acesso público a `/uploads`
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F4-migracao-das-imagens/E10.F4.2-execucao-e-desligamento-do-acesso-publico.md](PBIs/E10-supabase-storage/E10-F4-migracao-das-imagens/E10.F4.2-execucao-e-desligamento-do-acesso-publico.md).
+
+**Descrição**: execução com autorização explícita e remoção do `StaticFiles` público de `/uploads`, **somente depois de verificar que nenhum registro, tela ou fluxo ainda depende das imagens locais**. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Há registros `/uploads/...` ou tela/fluxo dependente de imagem local → `/uploads` não é desligado.
+- Verificação limpa e autorização → `/uploads` deixa de ser servido, todas as telas com imagem seguem funcionando e URL antiga dá 404.
+- `uploads/` permanece no disco até autorização de remoção.
+
+**Status**: não iniciada.
+**Estimativa**: P.
+**Dependências**: E10.F4.1.
+
+## Épico 11, Feature 1 — Armário e gavetas
+
+Paginação por **offset** (`limite` e `deslocamento`), aprovada para a V1. **Limitação do offset:** se uma peça for criada ou excluída em outro aparelho durante a rolagem, o deslocamento muda e um item pode se repetir ou ser pulado; a V1 aceita o risco e o mitiga com deduplicação por `id` no app e puxar para atualizar. Não há endpoint de facetas.
+
+### E11.F1.1 — `GET /pecas` com paginação e filtros
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E11-paginacao-do-armario/E11-F1-armario-e-gavetas/E11.F1.1-listagem-de-pecas-paginada-com-filtros.md](PBIs/E11-paginacao-do-armario/E11-F1-armario-e-gavetas/E11.F1.1-listagem-de-pecas-paginada-com-filtros.md).
+
+**Descrição**: parâmetros opcionais `limite`/`deslocamento`, ordem `criado_em desc, id`, filtros no servidor com a semântica de `filtrarPecas` e contagem em `X-Total-Count` (mantida se não trouxer complexidade desnecessária). Sem parâmetros, resposta idêntica à atual. **Prioridade**: alta · **Tipo**: técnica.
+
+**Critérios de aceite:**
+- Páginas consecutivas na ordem estável; sem parâmetros, resposta idêntica à de hoje; testes de paridade dos filtros com `filtrarPecas`.
+- Testes de peça criada e de peça excluída durante o carregamento de páginas documentam o comportamento (repetição e omissão); nada de outro usuário aparece.
+
+**Status**: Concluída e validada (`pytest` contra o Postgres local, 25 testes novos). **Limitação do offset (aceita na V1)**: peça criada ou excluída entre duas páginas pode repetir ou pular um item; o app deduplica por `id` e atualiza ao puxar.
+**Estimativa**: M.
+**Dependências**: nenhuma (independente de E9 e E10).
+
+### E11.F1.2 — Armário (carrosséis por gaveta) com carregamento gradual
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E11-paginacao-do-armario/E11-F1-armario-e-gavetas/E11.F1.2-armario-com-carregamento-gradual.md](PBIs/E11-paginacao-do-armario/E11-F1-armario-e-gavetas/E11.F1.2-armario-com-carregamento-gradual.md).
+
+**Descrição**: cada gaveta carrega suas primeiras peças; filtros preservados; estados de carregamento, vazio e erro por gaveta; cria o provider paginado reutilizado pela Feature 2. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Cada gaveta carrega só a primeira página; filtros com as mesmas regras de hoje; mudar o filtro reinicia as listas.
+- Criar, editar ou excluir peça reflete no armário; nenhuma funcionalidade atual regride.
+
+**Status**: Concluída (validação manual no Chrome pendente).
+**Estimativa**: G.
+**Dependências**: E11.F1.1.
+
+### E11.F1.3 — Visão de gaveta com rolagem infinita
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E11-paginacao-do-armario/E11-F1-armario-e-gavetas/E11.F1.3-gaveta-com-rolagem-infinita.md](PBIs/E11-paginacao-do-armario/E11-F1-armario-e-gavetas/E11.F1.3-gaveta-com-rolagem-infinita.md).
+
+**Descrição**: `GavetaView` carrega a próxima página ao chegar ao fim, com deduplicação por `id`, filtros e contagem preservados e tratamento de erro na página seguinte. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Rolar até o fim carrega a próxima página; lista que mudou entre páginas não mostra peça duplicada.
+- Erro na página seguinte mantém as peças exibidas e oferece "tentar novamente"; última página não gera novas requisições.
+
+**Status**: Concluída (validação manual no Chrome pendente).
+**Estimativa**: M.
+**Dependências**: E11.F1.1, E11.F1.2.
+
+## Épico 11, Feature 2 — Telas que consultam peças
+
+### E11.F2.1 — Montar look e editar peças do look com peças paginadas
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E11-paginacao-do-armario/E11-F2-telas-que-consultam-pecas/E11.F2.1-montar-e-editar-pecas-do-look.md](PBIs/E11-paginacao-do-armario/E11-F2-telas-que-consultam-pecas/E11.F2.1-montar-e-editar-pecas-do-look.md).
+
+**Descrição**: `MontarLookView` e `EditarPecasLookView` usam o provider paginado, com seleção por `id` que persiste entre páginas e gavetas. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Escolher peças de qualquer gaveta e página; a seleção persiste ao rolar e ao trocar de gaveta.
+- "Editar peças" mostra as peças do look marcadas; salvar grava exatamente a seleção.
+
+**Status**: Concluída (validação manual no Chrome pendente).
+**Estimativa**: M.
+**Dependências**: E11.F1.2.
+
+### E11.F2.2 — Escolher par de peças evitadas com peças paginadas
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E11-paginacao-do-armario/E11-F2-telas-que-consultam-pecas/E11.F2.2-escolher-par-de-pecas-evitadas.md](PBIs/E11-paginacao-do-armario/E11-F2-telas-que-consultam-pecas/E11.F2.2-escolher-par-de-pecas-evitadas.md).
+
+**Descrição**: `EscolherParView` carrega a grade por página, mantendo a regra de exatamente duas peças e a orientação para armário com menos de 2 peças. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- Seleção entre páginas persiste; confirmar só com exatamente duas; terceira bloqueada com aviso.
+
+**Status**: Concluída (validação manual no Chrome pendente).
+**Estimativa**: P.
+**Dependências**: E11.F1.2.
+
+### E11.F2.3 — Formulário: subcategorias já usadas
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E11-paginacao-do-armario/E11-F2-telas-que-consultam-pecas/E11.F2.3-formulario-subcategorias-ja-usadas.md](PBIs/E11-paginacao-do-armario/E11-F2-telas-que-consultam-pecas/E11.F2.3-formulario-subcategorias-ja-usadas.md).
+
+**Descrição**: preservar a sugestão de subcategorias já usadas sem depender da lista completa; **endpoint novo só se a paginação realmente prejudicar as sugestões**. **Prioridade**: alta · **Tipo**: funcional.
+
+**Critérios de aceite:**
+- As subcategorias já usadas continuam sendo sugeridas; verificação e decisão (manter derivação ou criar endpoint) registradas.
+- Endpoint, se criado, só devolve dados do usuário e entra na bateria de isolamento.
+
+**Status**: Concluída (verificação com os dados locais: nenhum endpoint novo; validação manual no Chrome pendente).
+**Estimativa**: P.
+**Dependências**: E11.F1.1.
+
+## Épico 12, Feature 1 — Viabilidade e decisão (Pinterest)
+
+Apenas investigação e decisão go/no-go. **Nenhuma PBI de implementação é criada antes do go confirmado.**
+
+### E12.F1.1 — Investigação de viabilidade da integração com o Pinterest
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E12-pesquisa-pinterest/E12-F1-pinterest-viabilidade/E12.F1.1-investigacao-de-viabilidade.md](PBIs/E12-pesquisa-pinterest/E12-F1-pinterest-viabilidade/E12.F1.1-investigacao-de-viabilidade.md).
+
+**Descrição**: relatório com fontes oficiais e datas sobre API, permissões, restrições para apps novos, custos, limites, aprovação, acesso aos Pins e regras de armazenamento/uso por IA. Sem scraping. **Prioridade**: investigação · **Tipo**: pesquisa.
+
+**Critérios de aceite:**
+- Cada item tem resposta com fonte oficial e data, ou está marcado "não confirmado".
+- O conflito entre as regras do Pinterest e o mural é analisado; nenhuma proposta de contornar restrições.
+
+**Status**: não iniciada.
+**Estimativa**: M.
+**Dependências**: nenhuma.
+
+### E12.F1.2 — Decisão go/no-go e alternativas permitidas
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E12-pesquisa-pinterest/E12-F1-pinterest-viabilidade/E12.F1.2-decisao-go-no-go.md](PBIs/E12-pesquisa-pinterest/E12-F1-pinterest-viabilidade/E12.F1.2-decisao-go-no-go.md).
+
+**Descrição**: decisão registrada com motivos; se no-go, alternativas lícitas avaliadas com fonte; se go, nenhum PBI de implementação sem nova aprovação. **Prioridade**: investigação · **Tipo**: pesquisa.
+
+**Critérios de aceite:**
+- Decisão com data, motivos e referência ao relatório, confirmada pelo usuário.
+- Nenhuma PBI de implementação do Pinterest existe no backlog.
+
+**Status**: não iniciada.
+**Estimativa**: P.
+**Dependências**: E12.F1.1.
+
+## Épico 13 — Peças paradas
+
+Planejado em 2026-11-06; as três PBIs da Feature 1 foram implementadas em 2026-11-07 (validação manual no Chrome pendente). Aviso na abertura do app de peça sem uso há 90 dias ou mais, com três escolhas: doar (excluir do app), sugerir look com ela ou lembrar depois (30 dias). Prazos fixos nesta versão. Risco conhecido: roupa sazonal.
+
+### Épico 13, Feature 1 — Aviso de peça sem uso
+
+### E13.F1.1 — Peças paradas e lembrete adiado (backend)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E13-pecas-paradas/E13-F1-pecas-paradas/E13.F1.1-pecas-paradas-backend.md](PBIs/E13-pecas-paradas/E13-F1-pecas-paradas/E13.F1.1-pecas-paradas-backend.md).
+
+**Descrição**: `GET /pecas/paradas` (90 dias sem uso; peça nunca usada conta do cadastro) e `POST /pecas/{id}/adiar-lembrete` (30 dias, coluna `pecas.lembrete_adiado_ate`).
+
+**Critérios de aceite:**
+- 90 dias entra na lista; 89 não.
+- Uso em look arquivado conta; peça de outro usuário nunca aparece.
+
+**Status**: concluída (migração 0018, 23 testes de rota e de regra; API real conferida por chamada direta).
+**Estimativa**: M.
+**Dependências**: E3.F4.1.
+
+### E13.F1.2 — Aviso de peça parada ao abrir o app (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E13-pecas-paradas/E13-F1-pecas-paradas/E13.F1.2-aviso-de-peca-parada.md](PBIs/E13-pecas-paradas/E13-F1-pecas-paradas/E13.F1.2-aviso-de-peca-parada.md).
+
+**Descrição**: pop-up na abertura com a peça mais parada e os botões Doar, Sugerir look e Lembrar depois; um por sessão; falha de rede não mostra nada.
+
+**Critérios de aceite:**
+- "Lembrar depois" adia 30 dias.
+- Fechar sem escolher não adia e não reabre na sessão.
+
+**Status**: concluída (validação manual no Chrome pendente); pop-up na `HomeShell`, testes em `test/peca_parada_test.dart`.
+**Estimativa**: M.
+**Dependências**: E13.F1.1.
+
+### E13.F1.3 — Doar a peça ou sugerir um look com ela (mobile)
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E13-pecas-paradas/E13-F1-pecas-paradas/E13.F1.3-doar-ou-sugerir-look.md](PBIs/E13-pecas-paradas/E13-F1-pecas-paradas/E13.F1.3-doar-ou-sugerir-look.md).
+
+**Descrição**: "Doar" reaproveita a confirmação de exclusão (a peça sai do app, de forma definitiva); "Sugerir look" abre as sugestões com a peça fixa (E5.F2.2).
+
+**Critérios de aceite:**
+- Cancelar a confirmação não exclui.
+- Acessório não tem o botão de sugerir look.
+
+**Status**: concluída (validação manual no Chrome pendente); exclusão extraída para `views/wardrobe/acoes_da_peca.dart`.
+**Estimativa**: P.
+**Dependências**: E13.F1.2, E1.F3.1, E5.F2.2.
+
+## Épico 14 — Avatar pixelado (plano futuro)
+
+Registrado em 2026-11-06 como ideia futura: **sem PBIs, sem estimativa e sem prazo**. Ver [requisitos.md](requisitos.md). Só deve ser detalhado depois dos Épicos 9 e 10 (contas reais e imagens privadas).
+
+---
+
 ## Resumo do estado atual
 
 | PBI | Descrição curta | Status |
@@ -923,8 +1455,10 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E1.F1.2 | Endpoint de remoção de fundo (backend) | Concluída (tratamento de erro e validação com imagem real já feitos — ver arquivo detalhado) |
 | E1.F1.3 | Integração envio + exibição (mobile) | Concluída (validação visual manual e teste contra backend real pendentes) |
 | E1.F1.4 | Degradação no app quando processamento falha | Concluída (execução real do endpoint novo e validação visual manual pendentes) |
-| E1.F1.5 | Testes automatizados | Não iniciado |
+| E1.F1.5 | Testes automatizados (de `processar-imagem`) | Não iniciado (a suíte `pytest` existe, mas não cobre `processar-imagem`/`upload-original`) |
+| E1.F1.6 | Recorte manual da foto antes do envio | Concluída — **retroativa** (já implementada; validação manual não verificada) |
 | E1.F2.1 | Formulário de metadados e cadastro da peça (mobile) | Concluída (testes do formulário com falhas conhecidas de harness; validação manual pendente) |
+| E1.F2.2 | Campos extras da peça (cores secundárias, estações, estilos, tonalidade, modelagem, ocasiões) | Concluída — **retroativa** (já implementada; backend sem teste de rota; validação manual não verificada) |
 | E1.F3.1 | Edição e exclusão de peça cadastrada | Concluída (validação manual end-to-end pendente) |
 | E2.F1.1 | Listagem do armário agrupada por categoria + navegação inferior (mobile) | Concluída (validação manual end-to-end pendente) |
 | E2.F2.1 | Filtro de peças por cor, estação e ocasião (mobile) | Concluída (validação manual visual no Chrome pendente) |
@@ -942,6 +1476,9 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E3.F4.4 | Aviso de repetição recente nos looks (mobile) | Concluída (validação manual end-to-end pendente) |
 | E3.F5.1 | Excluir (arquivar) look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
 | E3.F5.2 | Trocar as peças de um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E3.F6.1 | Pastas de looks (backend) | Concluída |
+| E3.F6.2 | Pastas na aba Looks (mobile) | Concluída (validação manual no Chrome pendente) |
+| E3.F6.3 | Mover um look para uma pasta (mobile) | Concluída (validação manual no Chrome pendente) |
 | E4.F1.1 | Modelo de preferências e endpoints `GET`/`PATCH` (backend) | Concluída e validada (execução real contra Postgres local) |
 | E4.F1.2 | Tela de preferências e combinações de cores favoritas (mobile) | Concluída (validação manual end-to-end pendente) |
 | E4.F2.1 | Sobreposições preferidas na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
@@ -972,5 +1509,51 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 | E8.F5.1 | Estreitar candidatos do armário a partir das etiquetas (backend) | Concluída (`pytest`) |
 | E8.F5.2 | Sugerir o look da referência comparando com o Gemma (backend) | Concluída (`pytest` + Ollama real; precisão média) |
 | E8.F5.3 | "Ligar a um look": manual ou automático (mobile) | Concluída (validação manual no Chrome pendente) |
+| E9.F1.1 | Validação do JWT por chaves públicas (JWKS) | Não iniciada |
+| E9.F1.2 | Plano e script de migração dos dados existentes | Não iniciada |
+| E9.F1.3 | Execução supervisionada da migração de dados | Não iniciada |
+| E9.F2.1 | Cadastro, login e logout no app | Não iniciada |
+| E9.F2.2 | Token real, renovação e sessão expirada | Não iniciada |
+| E9.F2.3 | Recuperação de senha | Não iniciada |
+| E9.F3.1 | Testes de isolamento entre usuários | Não iniciada |
+| E9.F3.2 | Endurecimento de configuração | Não iniciada |
+| E10.F1.1 | Bucket privado e convenção de chaves | Não iniciada |
+| E10.F1.2 | Adaptador do Supabase Storage com a mesma interface | Não iniciada |
+| E10.F2.1 | Assinatura centralizada nas respostas da API | Não iniciada |
+| E10.F2.2 | Upload no cadastro e nas referências | Não iniciada |
+| E10.F2.3 | Leitura de imagens pelo Gemma a partir do storage | Não iniciada |
+| E10.F3.1 | Exibição no app e cache de imagens | Não iniciada |
+| E10.F3.2 | Exclusão de imagens e tratamento de falhas | Não iniciada |
+| E10.F4.1 | Plano e script de migração das imagens locais | Não iniciada |
+| E10.F4.2 | Execução da migração e desligamento do acesso público a `/uploads` | Não iniciada |
+| E11.F1.1 | `GET /pecas` com paginação e filtros | Concluída e validada (`pytest` contra o Postgres local, 25 testes novos) |
+| E11.F1.2 | Armário (carrosséis por gaveta) com carregamento gradual | Concluída (validação manual no Chrome pendente) |
+| E11.F1.3 | Visão de gaveta com rolagem infinita | Concluída (validação manual no Chrome pendente) |
+| E11.F2.1 | Montar look e editar peças do look com peças paginadas | Concluída (validação manual no Chrome pendente) |
+| E11.F2.2 | Escolher par de peças evitadas com peças paginadas | Concluída (validação manual no Chrome pendente) |
+| E11.F2.3 | Formulário: subcategorias já usadas | Concluída (verificação com os dados locais: nenhum endpoint novo; validação manual no Chrome pendente) |
+| E12.F1.1 | Investigação de viabilidade da integração com o Pinterest | Não iniciada |
+| E12.F1.2 | Decisão go/no-go e alternativas permitidas | Não iniciada |
+| E13.F1.1 | Peças paradas e lembrete adiado (backend) | Concluída |
+| E13.F1.2 | Aviso de peça parada ao abrir o app (mobile) | Concluída (validação manual no Chrome pendente) |
+| E13.F1.3 | Doar a peça ou sugerir um look com ela (mobile) | Concluída (validação manual no Chrome pendente) |
 
-E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão).
+**Contagem (atualizada em 2026-11-07):**
+
+| Grupo | PBIs | Status |
+| --- | --- | --- |
+| Épicos 1 a 8, planejadas originalmente | 53 | 52 concluídas, 1 não iniciada (E1.F1.5) |
+| Épicos 1 a 8, retroativas (E1.F1.6, E1.F2.2) | 2 | 2 concluídas — já implementadas, documentadas depois do fato |
+| Épicos 9 a 12, novas | 25 | 6 concluídas (E11), 19 não iniciadas |
+| E3.F6 e Épico 13, novas (2026-11-06) | 6 | 6 concluídas |
+| **Total** | **86** | 66 concluídas, 19 não iniciadas, 1 pendente (E1.F1.5) |
+
+"Concluída" significa que o código existe e os critérios de aceite do backlog são compatíveis com ele; **não** significa validada em uso real: a maior parte segue com "validação manual no Chrome pendente".
+
+E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão). *(Texto original, de quando só existiam os Épicos 1 a 3; ver a verificação de 2026-11-05 abaixo.)*
+
+**Verificação da auditoria de 2026-11-05:**
+- `pytest`: 261 testes coletados; 211 executados e passando (os 50 de `test_colecoes.py` e `test_referencias.py` usam o Postgres local e não foram executados na auditoria). Só `referencias` e `colecoes` têm testes de rota; `pecas`, `looks`, `preferencias` e `sugestoes` não têm testes de integração (lacuna → E9.F3.1).
+- `flutter test`: 345 passando, nenhum falhando (os testes usam serviços falsos, não o backend real). `flutter analyze` não pôde ser executado nessa verificação; o "analyze limpo" dos status é histórico.
+- Contagens de testes citadas nos status das PBIs são do momento de cada implementação; as de hoje são as acima.
+- Vulnerabilidade registrada, **não corrigida**: `POST /pecas/processar-imagem` e `POST /pecas/upload-original` não exigem autenticação (correção prevista na E10.F2.2).

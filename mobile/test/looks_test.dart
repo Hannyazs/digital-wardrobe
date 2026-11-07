@@ -1,7 +1,8 @@
 // Testes da listagem dos looks salvos (E3.F1.3).
 // Mesmo padrão dos demais: LookService falso, nunca bate numa API real.
-// Ver docs/PBIs/E3-F1-montagem-manual-looks/E3.F1.3-listagem-dos-looks-salvos.md.
+// Ver docs/PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.3-listagem-dos-looks-salvos.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,7 +28,7 @@ Look _look(String id, String nome, List<String> pecaIds, {bool favorito = false}
       favorito: favorito,
     );
 
-class _PecaServiceVazio extends PecaService {
+class _PecaServiceVazio extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [];
 }

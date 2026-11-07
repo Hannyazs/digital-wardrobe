@@ -2,12 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/sugestao.dart';
 import '../looks/looks_controller.dart'
-    show historicoMesProvider, historicoProvider, lookListProvider;
+    show historicoMesProvider, historicoProvider;
 import '../looks/montar_look_controller.dart' show lookServiceProvider;
 import '../preferences/preferences_controller.dart'
     show preferenciaServiceProvider, preferenciasProvider;
 import '../suggestions/suggestions_controller.dart'
     show mensagemDeErroSugestoes, nomeLookSugerido, sugestaoServiceProvider;
+import '../looks/pastas_controller.dart' show invalidarLooks;
 
 /// Estado do card "Look do dia" (E6.F1.2). Descartes, looks salvos e usos
 /// vivem só em memória ("Outra sugestão" vale durante a sessão).
@@ -155,7 +156,7 @@ class LookDoDiaController extends Notifier<LookDoDiaState> {
           pecaIds: look.pecaIds,
         );
     state = state.copyWith(salvos: {...state.salvos, look.chave: criado.id});
-    ref.invalidate(lookListProvider);
+    invalidarLooks(ref);
     return criado.id;
   }
 

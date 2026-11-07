@@ -1,6 +1,6 @@
 // Testes da tela de preferências e das combinações de cores (E4.F1.2).
 // PreferenciaService falso, nunca bate numa API real.
-// Ver docs/PBIs/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md.
+// Ver docs/PBIs/E4-preferencias-de-estilo/E4-F1-cores-favoritas/E4.F1.2-tela-de-preferencias-e-cores-favoritas.md.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

@@ -2,8 +2,9 @@
 // Mesmo padrão de peca_form_test.dart: PecaService/LookService falsos,
 // nunca bate numa API real. Navega a partir de LooksView (FAB "Montar
 // look"), como no fluxo real do app.
-// Ver docs/PBIs/E3-F1-montagem-manual-looks/E3.F1.2-tela-de-montagem-do-look.md.
+// Ver docs/PBIs/E3-criacao-manual-de-looks/E3-F1-montagem-manual-looks/E3.F1.2-tela-de-montagem-do-look.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,12 +24,12 @@ import 'package:guarda_roupa_app/views/upload/upload_controller.dart' show pecaS
 Peca _peca(String id, String categoria) =>
     Peca(id: id, imagemUrl: '/uploads/$id.png', categoria: categoria);
 
-class _PecaServiceVazio extends PecaService {
+class _PecaServiceVazio extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [];
 }
 
-class _PecaServiceColorido extends PecaService {
+class _PecaServiceColorido extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [
         Peca(id: '1', imagemUrl: '/1.png', categoria: 'Camisetas', corPrincipal: 'Azul'),
@@ -43,7 +44,7 @@ class _PecaServiceColorido extends PecaService {
       ];
 }
 
-class _PecaServiceComDuasPecas extends PecaService {
+class _PecaServiceComDuasPecas extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [
         _peca('1', 'Camisetas'),

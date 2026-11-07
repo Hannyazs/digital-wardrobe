@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,14 +5,11 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../models/peca.dart';
-import '../../services/peca_service.dart';
-import '../looks/looks_controller.dart';
 import '../preferences/preferences_controller.dart'
     show evitadasProvider, mensagemDeErroEvitadas, preferenciaServiceProvider;
 import '../suggestions/suggestions_view.dart';
 import '../upload/peca_form_view.dart';
-import '../upload/upload_controller.dart' show pecaServiceProvider;
-import 'wardrobe_controller.dart';
+import 'acoes_da_peca.dart';
 
 /// Detalhe de uma peça do armário (E1.F3.1): imagem + metadados em modo
 /// leitura, com opções de editar (reaproveita [PecaFormView]) e excluir, e de
@@ -76,96 +72,15 @@ class _PecaDetailViewState extends ConsumerState<PecaDetailView> {
   }
 
   Future<void> _confirmarExclusao() async {
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Excluir peça?'),
-        content: const Text('Essa ação não pode ser desfeita.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
+    final excluiu = await confirmarEExcluirPeca(
+      context,
+      ref,
+      widget.peca,
+      aoMudarOcupado: (ocupado) {
+        if (mounted) setState(() => _excluindo = ocupado);
+      },
     );
-    if (confirmou != true || !mounted) return;
-
-    await _excluir(removerDosLooks: false);
-  }
-
-  Future<void> _excluir({required bool removerDosLooks}) async {
-    setState(() => _excluindo = true);
-    try {
-      await ref
-          .read(pecaServiceProvider)
-          .excluirPeca(widget.peca.id, removerDosLooks: removerDosLooks);
-      ref.invalidate(pecaListProvider);
-      // Os looks que usavam a peça mudaram.
-      ref.invalidate(lookListProvider);
-      // O backend apaga em cascata a peça das evitadas (E4.F4.1).
-      ref.invalidate(evitadasProvider);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-    } on DioException catch (e) {
-      if (!mounted) return;
-      setState(() => _excluindo = false);
-      final emLooks = PecaService.quantidadeDeLooksDoConflito(e);
-      if (emLooks != null) {
-        await _confirmarRemocaoDosLooks(emLooks);
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_mensagemDeErro(e))),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _excluindo = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível excluir a peça. Tente novamente.')),
-      );
-    }
-  }
-
-  /// A peça está em looks salvos: só segue depois de o usuário aceitar que
-  /// ela saia deles (os looks continuam existindo, sem essa peça).
-  Future<void> _confirmarRemocaoDosLooks(int quantidade) async {
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Peça usada em looks'),
-        content: Text(
-          quantidade == 1
-              ? 'Esta peça está em 1 look. Ao excluir, ela será removida desse look, '
-                  'que continuará salvo sem ela. Essa ação não pode ser desfeita.'
-              : 'Esta peça está em $quantidade looks. Ao excluir, ela será removida '
-                  'desses looks, que continuarão salvos sem ela. Essa ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Excluir mesmo assim'),
-          ),
-        ],
-      ),
-    );
-    if (confirmou != true || !mounted) return;
-    await _excluir(removerDosLooks: true);
-  }
-
-  String _mensagemDeErro(DioException e) {
-    if (e.response?.statusCode == 401) {
-      return 'Sessão expirada ou inválida. Não foi possível excluir a peça.';
-    }
-    return 'Não foi possível excluir a peça. Tente novamente.';
+    if (excluiu && mounted) Navigator.of(context).pop();
   }
 
   @override

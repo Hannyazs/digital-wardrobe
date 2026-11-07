@@ -2,6 +2,7 @@
 // tela, área de toque, fonte grande do sistema, formulário e montagem.
 // Serviços falsos, nunca bate numa API real.
 
+import 'support/pagina_da_lista.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +39,7 @@ final _pecas = [
   Peca(id: 'v2', imagemUrl: '/v2.png', categoria: 'Vestidos', subcategoria: 'midi '),
 ];
 
-class _PecaServiceFake extends PecaService {
+class _PecaServiceFake extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => _pecas;
 }

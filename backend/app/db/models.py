@@ -59,6 +59,9 @@ class Peca(Base):
     ocasioes: Mapped[list[str]] = mapped_column(
         ARRAY(String), nullable=False, server_default=text("'{}'::varchar[]")
     )
+    # E13.F1.1 — "Lembrar depois" do aviso de peça parada: fora de
+    # GET /pecas/paradas até esta data (exclusive). Nula = sem adiamento.
+    lembrete_adiado_ate: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -99,9 +102,32 @@ class Look(Base):
         Boolean, nullable=False, server_default=expression.false()
     )
 
+    # E3.F6.1 — no máximo uma pasta; excluir a pasta devolve o look a "Sem pasta".
+    pasta_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("pastas_looks.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     pecas: Mapped[list[Peca]] = relationship(secondary=looks_pecas)
+
+
+class PastaLook(Base):
+    """Separação dos looks escolhida pelo usuário (E3.F6.1), como as coleções
+    do mural. O nome é único por usuário sem diferenciar maiúsculas (índice
+    `uq_pastas_looks_usuario_nome`)."""
+
+    __tablename__ = "pastas_looks"
+    __table_args__ = (
+        Index("uq_pastas_looks_usuario_nome", "usuario_id", func.lower(text("nome")), unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class LookUso(Base):

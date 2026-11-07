@@ -45,11 +45,13 @@ def usuarios():
     with conexao, conexao.cursor() as cursor:
         cursor.execute("DELETE FROM referencias WHERE usuario_id = ANY(%s::uuid[])", (ids,))
         cursor.execute("DELETE FROM colecoes WHERE usuario_id = ANY(%s::uuid[])", (ids,))
+        cursor.execute("DELETE FROM looks_usos WHERE usuario_id = ANY(%s::uuid[])", (ids,))
         cursor.execute(
             "DELETE FROM looks_pecas WHERE look_id IN (SELECT id FROM looks WHERE usuario_id = ANY(%s::uuid[]))",
             (ids,),
         )
         cursor.execute("DELETE FROM looks WHERE usuario_id = ANY(%s::uuid[])", (ids,))
+        cursor.execute("DELETE FROM pastas_looks WHERE usuario_id = ANY(%s::uuid[])", (ids,))
         cursor.execute("DELETE FROM pecas WHERE usuario_id = ANY(%s::uuid[])", (ids,))
     conexao.close()
 

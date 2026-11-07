@@ -3,8 +3,9 @@
 // real. Cobre a navegação a partir do resultado do processamento (E1.F1.3),
 // a validação da categoria obrigatória, e os caminhos de sucesso/erro do
 // envio para POST /pecas.
-// Ver docs/PBIs/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md.
+// Ver docs/PBIs/E1-cadastro-de-roupas/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +24,7 @@ void _telaAlta(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-class _PecaServiceComSucesso extends PecaService {
+class _PecaServiceComSucesso extends PecaService with PaginaDaLista {
   @override
   Future<Peca> criarPeca({
     required String imagemUrl,
@@ -42,7 +43,7 @@ class _PecaServiceComSucesso extends PecaService {
   }
 }
 
-class _PecaServiceComErro extends PecaService {
+class _PecaServiceComErro extends PecaService with PaginaDaLista {
   @override
   Future<Peca> criarPeca({
     required String imagemUrl,

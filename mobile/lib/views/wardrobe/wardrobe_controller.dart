@@ -1,14 +1,188 @@
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/peca_opcoes.dart';
 import '../../models/peca.dart';
 import '../upload/upload_controller.dart' show pecaServiceProvider;
 
-/// Lista de peças do usuário (E2.F1.1). `autoDispose` para rebuscar sozinho
-/// sempre que a tela do armário for recriada (ex: ao voltar do cadastro).
-final pecaListProvider = FutureProvider.autoDispose<List<Peca>>((ref) {
-  return ref.watch(pecaServiceProvider).listarPecas();
+/// Quantas peças cada página traz (E11.F1.2). O servidor aceita até 100.
+const tamanhoDaPaginaDePecas = 20;
+
+/// O que se pede ao servidor: um recorte do armário (por categorias, ou a
+/// gaveta "Outras") com um [FiltroPecas]. É a chave dos providers paginados,
+/// por isso compara por valor.
+class ConsultaPecas {
+  const ConsultaPecas({
+    this.categorias = const {},
+    this.outras = false,
+    this.filtro = const FiltroPecas(),
+  });
+
+  /// Peças de uma gaveta; [gavetaOutras] vira "categorias fora da lista fixa".
+  factory ConsultaPecas.daGaveta(Gaveta gaveta,
+      [FiltroPecas filtro = const FiltroPecas()]) {
+    return identical(gaveta, gavetaOutras)
+        ? ConsultaPecas(outras: true, filtro: filtro)
+        : ConsultaPecas(categorias: gaveta.categorias.toSet(), filtro: filtro);
+  }
+
+  /// Peças de uma categoria; `'Outras'` junta as de categoria desconhecida.
+  factory ConsultaPecas.daCategoria(String categoria,
+      [FiltroPecas filtro = const FiltroPecas()]) {
+    return categoria == 'Outras'
+        ? ConsultaPecas(outras: true, filtro: filtro)
+        : ConsultaPecas(categorias: {categoria}, filtro: filtro);
+  }
+
+  final Set<String> categorias;
+  final bool outras;
+  final FiltroPecas filtro;
+
+  ConsultaPecas comFiltro(FiltroPecas novo) =>
+      ConsultaPecas(categorias: categorias, outras: outras, filtro: novo);
+
+  @override
+  bool operator ==(Object other) =>
+      other is ConsultaPecas &&
+      other.outras == outras &&
+      setEquals(other.categorias, categorias) &&
+      other.filtro == filtro;
+
+  @override
+  int get hashCode =>
+      Object.hash(outras, Object.hashAllUnordered(categorias), filtro);
+}
+
+/// Peças já carregadas de uma [ConsultaPecas], mais o que falta para pedir a
+/// próxima página.
+class PecasPaginadas {
+  const PecasPaginadas({
+    required this.itens,
+    required this.total,
+    required this.recebidas,
+    required this.temMais,
+    this.carregandoMais = false,
+    this.erroProximaPagina,
+  });
+
+  /// Sem repetição de `id`, na ordem do servidor.
+  final List<Peca> itens;
+
+  /// Total que satisfaz a consulta (`X-Total-Count`); `null` se o servidor não informou.
+  final int? total;
+
+  /// Quantas peças o servidor já entregou: é o deslocamento da próxima página.
+  /// Pode passar de `itens.length` quando a lista mudou entre as páginas e a
+  /// deduplicação descartou um item repetido.
+  final int recebidas;
+  final bool temMais;
+  final bool carregandoMais;
+
+  /// Erro da última tentativa de carregar a página seguinte; as [itens] já
+  /// mostradas continuam valendo.
+  final Object? erroProximaPagina;
+
+  PecasPaginadas copyWith({
+    bool? carregandoMais,
+    Object? erroProximaPagina,
+    bool limparErro = false,
+  }) {
+    return PecasPaginadas(
+      itens: itens,
+      total: total,
+      recebidas: recebidas,
+      temMais: temMais,
+      carregandoMais: carregandoMais ?? this.carregandoMais,
+      erroProximaPagina:
+          limparErro ? null : (erroProximaPagina ?? this.erroProximaPagina),
+    );
+  }
+}
+
+/// Carrega peças de uma [ConsultaPecas] aos poucos (E11.F1.2). `build` traz a
+/// primeira página; [carregarMais] acrescenta a seguinte.
+class PecasPaginadasNotifier
+    extends AutoDisposeFamilyAsyncNotifier<PecasPaginadas, ConsultaPecas> {
+  /// Riverpod 2.x não tem `ref.mounted`: depois de descartado, mudar `state` lança.
+  bool _descartado = false;
+
+  @override
+  Future<PecasPaginadas> build(ConsultaPecas arg) async {
+    ref.onDispose(() => _descartado = true);
+    final pagina = await ref
+        .read(pecaServiceProvider)
+        .listarPagina(arg, limite: tamanhoDaPaginaDePecas);
+    return PecasPaginadas(
+      itens: _semRepeticao(const [], pagina.itens),
+      total: pagina.total,
+      recebidas: pagina.itens.length,
+      temMais: _haMais(pagina.itens.length, pagina.itens.length, pagina.total),
+    );
+  }
+
+  /// Pede a próxima página. Ignora o pedido se já há uma em andamento ou se
+  /// não há mais: a tela pode chamar à vontade (ex.: ao construir o rodapé).
+  /// Se falhar, as peças já carregadas ficam e [PecasPaginadas.erroProximaPagina]
+  /// é preenchido; chamar de novo tenta outra vez.
+  Future<void> carregarMais() async {
+    final atual = state.valueOrNull;
+    if (atual == null || !atual.temMais || atual.carregandoMais) return;
+    state = AsyncData(atual.copyWith(carregandoMais: true, limparErro: true));
+    try {
+      final pagina = await ref.read(pecaServiceProvider).listarPagina(
+            arg,
+            limite: tamanhoDaPaginaDePecas,
+            deslocamento: atual.recebidas,
+          );
+      if (_descartado) return;
+      final recebidas = atual.recebidas + pagina.itens.length;
+      final total = pagina.total ?? atual.total;
+      state = AsyncData(PecasPaginadas(
+        itens: _semRepeticao(atual.itens, pagina.itens),
+        total: total,
+        recebidas: recebidas,
+        temMais: _haMais(pagina.itens.length, recebidas, total),
+      ));
+    } catch (erro) {
+      if (_descartado) return;
+      state = AsyncData(
+          atual.copyWith(carregandoMais: false, erroProximaPagina: erro));
+    }
+  }
+
+  /// Página cheia = pode haver mais; se o total é conhecido, só enquanto faltar.
+  bool _haMais(int veioNaPagina, int recebidas, int? total) =>
+      veioNaPagina >= tamanhoDaPaginaDePecas &&
+      (total == null || recebidas < total);
+
+  /// Deduplicação por `id`: a limitação do offset pode repetir uma peça entre páginas.
+  List<Peca> _semRepeticao(List<Peca> jaCarregadas, List<Peca> novas) {
+    final vistos = {for (final p in jaCarregadas) p.id};
+    return [...jaCarregadas, ...novas.where((p) => vistos.add(p.id))];
+  }
+}
+
+/// Peças de uma consulta, paginadas. `autoDispose`: a lista é rebuscada sempre
+/// que nenhuma tela a observa mais (ex.: ao voltar do cadastro).
+final pecasPaginadasProvider = AsyncNotifierProvider.autoDispose
+    .family<PecasPaginadasNotifier, PecasPaginadas, ConsultaPecas>(
+        PecasPaginadasNotifier.new);
+
+/// Quantas peças satisfazem a consulta, sem trazer as peças (pede uma página de
+/// uma peça só e lê `X-Total-Count`). Alimenta "N peças de M" e "Ver N peças".
+final totalDePecasProvider = FutureProvider.autoDispose
+    .family<int, ConsultaPecas>((ref, consulta) async {
+  final pagina =
+      await ref.read(pecaServiceProvider).listarPagina(consulta, limite: 1);
+  return pagina.total ?? pagina.itens.length;
 });
+
+/// Chamar depois de criar, editar ou excluir uma peça: as listas paginadas e
+/// as contagens voltam a ser buscadas. Aceita `WidgetRef` e `Ref`.
+void invalidarPecas(dynamic ref) {
+  ref.invalidate(pecasPaginadasProvider);
+  ref.invalidate(totalDePecasProvider);
+}
 
 /// Agrupa peças por categoria na ordem fixa de [categoriasFixas].
 /// Categoria fora dessa lista (o banco aceita `String` livre) cai num
@@ -126,6 +300,20 @@ class FiltroPecas {
         estacoes: estacoes,
         ocasioes: _alternar(ocasioes, ocasiao),
       );
+
+  @override
+  bool operator ==(Object other) =>
+      other is FiltroPecas &&
+      setEquals(other.cores, cores) &&
+      setEquals(other.estacoes, estacoes) &&
+      setEquals(other.ocasioes, ocasioes);
+
+  @override
+  int get hashCode => Object.hash(
+        Object.hashAllUnordered(cores),
+        Object.hashAllUnordered(estacoes),
+        Object.hashAllUnordered(ocasioes),
+      );
 }
 
 Set<String> _alternar(Set<String> valores, String valor) =>
@@ -147,10 +335,11 @@ final filtroMontagemProvider = StateProvider<FiltroPecas>((ref) => const FiltroP
 /// ao abrir, para não herdar o filtro de uma edição anterior.
 final filtroEdicaoLookProvider = StateProvider<FiltroPecas>((ref) => const FiltroPecas());
 
-/// Aplica o filtro sobre a lista já carregada (filtragem é client-side —
-/// `GET /pecas` não tem query params, a lista inteira já veio de uma vez).
-/// Peça marcada "Todas as estações" serve para qualquer estação filtrada,
-/// como no motor de sugestões.
+/// Aplica o filtro sobre uma lista de peças. Hoje o filtro vale no servidor
+/// (`GET /pecas`, E11.F1.1): esta função é a **referência das regras** que ele
+/// replica (`backend/app/services/peca_consulta.py`) e serve de servidor falso
+/// nos testes. Peça marcada "Todas as estações" serve para qualquer estação
+/// filtrada, como no motor de sugestões.
 List<Peca> filtrarPecas(List<Peca> pecas, FiltroPecas filtro) {
   return pecas.where((peca) {
     // Peça multicolorida aparece no filtro de qualquer uma das suas cores.
@@ -169,13 +358,15 @@ List<Peca> filtrarPecas(List<Peca> pecas, FiltroPecas filtro) {
   }).toList();
 }
 
-/// Valores que existem nas peças, na ordem de [ordem] e depois os demais em
-/// ordem alfabética. [selecionados] entram sempre, para poderem ser desmarcados
+/// Opções de um critério de filtro: a lista fixa inteira (não há endpoint de
+/// facetas, então não dá para saber o que existe nas páginas ainda não
+/// carregadas) e, depois, os valores livres das peças carregadas, em ordem
+/// alfabética. [selecionados] entram sempre, para poderem ser desmarcados
 /// mesmo que nenhuma peça os tenha mais (ex.: depois de editar a peça).
 List<String> _opcoes(Iterable<String> existentes, List<String> ordem, Set<String> selecionados) {
   final valores = {...existentes.where((v) => v.trim().isNotEmpty), ...selecionados};
   final extras = valores.where((v) => !ordem.contains(v)).toList()..sort();
-  return [...ordem.where(valores.contains), ...extras];
+  return [...ordem, ...extras];
 }
 
 List<String> coresDisponiveis(List<Peca> pecas, [Set<String> selecionadas = const {}]) => _opcoes(

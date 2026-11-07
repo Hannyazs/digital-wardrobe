@@ -5,11 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/peca_opcoes.dart';
 import '../../core/widgets/painel_de_filtros.dart';
 import '../../models/look.dart';
+import '../../models/pasta_look.dart';
 import '../wardrobe/widgets/filtros_de_pecas.dart' show BarraDeFiltros;
 import 'editar_pecas_look_view.dart';
 import 'looks_controller.dart';
 import 'montar_look_controller.dart' show lookServiceProvider;
+import 'pastas_controller.dart';
+import 'widgets/chips_de_pastas.dart';
+import 'widgets/dialogos_de_pasta.dart';
 import 'widgets/pecas_do_look.dart';
+import 'widgets/seletor_de_pasta.dart';
 import 'montar_look_view.dart';
 
 /// Looks salvos (E3.F1.3), exibidos na aba "Looks" do Armário — looks prontos
@@ -21,49 +26,72 @@ class LooksView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final looksAsync = ref.watch(lookListProvider);
+    // E3.F6.2: "Todos" usa a lista compartilhada; uma pasta (ou "Sem pasta")
+    // é filtrada no servidor. Favorito e ocasião continuam filtrando aqui.
+    final selecao = ref.watch(pastaSelecionadaProvider);
+    final looksAsync =
+        selecao.eTodos ? ref.watch(lookListProvider) : ref.watch(looksDaPastaProvider(selecao));
     // Histórico só alimenta o rótulo "Usado há N dias": carregando ou com
     // erro vira "sem informação" (sem rótulo), nunca um erro na tela (E3.F4.4).
     final ultimosUsos = ultimoUsoPorLook(ref.watch(historicoProvider).valueOrNull ?? const []);
+    // Nome da pasta no card (E3.F6.3): só fora da própria pasta.
+    final nomesDasPastas = {
+      for (final PastaLook p in ref.watch(pastasProvider).valueOrNull ?? const []) p.id: p.nome,
+    };
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(lookListProvider);
-          ref.invalidate(historicoProvider);
-          await ref.read(lookListProvider.future);
-        },
-        child: looksAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _Erro(
-            mensagem: _mensagemDeErro(error),
-            onTentarNovamente: () => ref.invalidate(lookListProvider),
+      body: Column(
+        children: [
+          const ChipsDePastas(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                invalidarLooks(ref);
+                ref.invalidate(historicoProvider);
+                await (selecao.eTodos
+                    ? ref.read(lookListProvider.future)
+                    : ref.read(looksDaPastaProvider(selecao).future));
+              },
+              child: looksAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => _Erro(
+                  mensagem: _mensagemDeErro(error),
+                  onTentarNovamente: () => invalidarLooks(ref),
+                ),
+                data: (looks) {
+                  if (looks.isEmpty) {
+                    return selecao.eTodos ? const _SemLooks() : _PastaVazia(semPasta: selecao.semPasta);
+                  }
+                  final filtro = ref.watch(filtroLooksProvider);
+                  final filtrados = filtrarLooks(looks, filtro);
+                  final total = looks.length == 1 ? '1 look' : '${looks.length} looks';
+                  return Column(
+                    children: [
+                      BarraDeFiltros(
+                        texto: filtrados.length == looks.length ? total : '${filtrados.length} de $total',
+                        quantidadeFiltros: filtro.ocasioes.length + (filtro.somenteFavoritos ? 1 : 0),
+                        onFiltros: () => _abrirFiltros(context, looks),
+                      ),
+                      Expanded(
+                        child: filtrados.isEmpty
+                            ? _SemResultadoFiltro(
+                                filtro: filtro,
+                                onLimpar: () =>
+                                    ref.read(filtroLooksProvider.notifier).state = const FiltroLooks(),
+                              )
+                            : _ListaDeLooks(
+                                looks: filtrados,
+                                ultimosUsos: ultimosUsos,
+                                nomesDasPastas: selecao.pastaId == null ? nomesDasPastas : const {},
+                              ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
-          data: (looks) {
-            if (looks.isEmpty) return const _SemLooks();
-            final filtro = ref.watch(filtroLooksProvider);
-            final filtrados = filtrarLooks(looks, filtro);
-            final total = looks.length == 1 ? '1 look' : '${looks.length} looks';
-            return Column(
-              children: [
-                BarraDeFiltros(
-                  texto: filtrados.length == looks.length ? total : '${filtrados.length} de $total',
-                  quantidadeFiltros: filtro.ocasioes.length + (filtro.somenteFavoritos ? 1 : 0),
-                  onFiltros: () => _abrirFiltros(context, looks),
-                ),
-                Expanded(
-                  child: filtrados.isEmpty
-                      ? _SemResultadoFiltro(
-                          filtro: filtro,
-                          onLimpar: () =>
-                              ref.read(filtroLooksProvider.notifier).state = const FiltroLooks(),
-                        )
-                      : _ListaDeLooks(looks: filtrados, ultimosUsos: ultimosUsos),
-                ),
-              ],
-            );
-          },
-        ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         // `HomeShell` mantém Armário e Looks montados ao mesmo tempo
@@ -138,12 +166,15 @@ class LooksView extends ConsumerWidget {
 }
 
 class _ListaDeLooks extends StatelessWidget {
-  const _ListaDeLooks({required this.looks, required this.ultimosUsos});
+  const _ListaDeLooks({required this.looks, required this.ultimosUsos, this.nomesDasPastas = const {}});
 
   final List<Look> looks;
 
   /// `lookId` → último dia de uso (E3.F4.4).
   final Map<String, DateTime> ultimosUsos;
+
+  /// `pastaId` → nome (E3.F6.3); vazio quando a lista já é a de uma pasta.
+  final Map<String, String> nomesDasPastas;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +182,14 @@ class _ListaDeLooks extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: looks.length,
-      itemBuilder: (context, index) => _LookCard(look: looks[index], ultimoUso: ultimosUsos[looks[index].id]),
+      itemBuilder: (context, index) {
+        final look = looks[index];
+        return _LookCard(
+          look: look,
+          ultimoUso: ultimosUsos[look.id],
+          nomeDaPasta: look.pastaId == null ? null : nomesDasPastas[look.pastaId],
+        );
+      },
     );
   }
 }
@@ -206,9 +244,12 @@ class _SemResultadoFiltro extends StatelessWidget {
 final registrandoUsoProvider = StateProvider<Set<String>>((ref) => {});
 
 class _LookCard extends ConsumerWidget {
-  const _LookCard({required this.look, this.ultimoUso});
+  const _LookCard({required this.look, this.ultimoUso, this.nomeDaPasta});
 
   final Look look;
+
+  /// Nome da pasta do look (E3.F6.3), quando ela existe e a lista não é a dela.
+  final String? nomeDaPasta;
 
   /// Último dia de uso (E3.F4.4); `null` = nunca usado ou histórico indisponível.
   final DateTime? ultimoUso;
@@ -217,7 +258,7 @@ class _LookCard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(lookServiceProvider).atualizarLook(look.id, {'favorito': !look.favorito});
-      ref.invalidate(lookListProvider);
+      invalidarLooks(ref);
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text(_mensagemFavorito(error))));
     }
@@ -234,7 +275,7 @@ class _LookCard extends ConsumerWidget {
     if (novoNome == null || novoNome == look.nome) return;
     try {
       await ref.read(lookServiceProvider).atualizarLook(look.id, {'nome': novoNome});
-      ref.invalidate(lookListProvider);
+      invalidarLooks(ref);
       // O calendário da Casa mostra o nome do look nos dias de uso.
       ref.invalidate(historicoProvider);
       ref.invalidate(historicoMesProvider);
@@ -270,11 +311,60 @@ class _LookCard extends ConsumerWidget {
     if (confirmou != true) return;
     try {
       await ref.read(lookServiceProvider).excluirLook(look.id);
-      ref.invalidate(lookListProvider);
+      invalidarLooks(ref);
       messenger.showSnackBar(SnackBar(content: Text('Look "${look.nome}" excluído.')));
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text(_mensagemExclusao(error))));
     }
+  }
+
+  /// "Mover para pasta" (E3.F6.3). "Nova pasta…" cria a pasta e já move o look
+  /// para ela. Em falha, o look continua onde estava (a lista só muda ao recarregar).
+  Future<void> _moverParaPasta(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    var pastas = ref.read(pastasProvider).valueOrNull ?? const <PastaLook>[];
+    final escolha = await escolherPasta(context, pastas: pastas, atual: look.pastaId);
+    if (escolha == null || !context.mounted) return;
+
+    var destino = escolha.pastaId;
+    if (escolha.nova) {
+      final nome = await pedirNomeDaPasta(context, titulo: 'Nova pasta');
+      if (nome == null) return;
+      try {
+        final nova = await ref.read(pastasProvider.notifier).criar(nome);
+        destino = nova.id;
+        pastas = [...pastas, nova];
+      } catch (erro) {
+        messenger.showSnackBar(SnackBar(content: Text(mensagemDeErroDaPasta(erro, acao: 'criar'))));
+        return;
+      }
+    }
+    if (destino == look.pastaId) return;
+
+    try {
+      await ref.read(lookServiceProvider).atualizarLook(look.id, {'pasta_id': destino});
+      invalidarLooks(ref);
+      final nomeDestino = pastas.where((p) => p.id == destino).map((p) => p.nome).firstOrNull;
+      messenger.showSnackBar(SnackBar(
+        content: Text(nomeDestino == null
+            ? 'Look "${look.nome}" agora está sem pasta.'
+            : 'Look "${look.nome}" movido para "$nomeDestino".'),
+      ));
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(_mensagemMover(error))));
+    }
+  }
+
+  String _mensagemMover(Object error) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      if (status == 401) return 'Sessão expirada ou inválida. Não foi possível mover o look.';
+      if (status == 404) return 'Look ou pasta não encontrados. Atualize a lista e tente novamente.';
+      if (error.type == DioExceptionType.connectionError) {
+        return 'Sem conexão com o servidor. Não foi possível mover o look.';
+      }
+    }
+    return 'Não foi possível mover o look. Tente novamente.';
   }
 
   String _mensagemExclusao(Object error) {
@@ -300,7 +390,7 @@ class _LookCard extends ConsumerWidget {
     try {
       // Lista vazia limpa as ocasiões no backend (`null` seria recusado).
       await ref.read(lookServiceProvider).atualizarLook(look.id, {'ocasioes': escolha.valores});
-      ref.invalidate(lookListProvider);
+      invalidarLooks(ref);
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text(_mensagemFavorito(error))));
     }
@@ -423,6 +513,8 @@ class _LookCard extends ConsumerWidget {
                                 builder: (_) => EditarPecasLookView(look: look),
                               ),
                             );
+                          case 'pasta':
+                            _moverParaPasta(context, ref);
                           case 'excluir':
                             _excluir(context, ref);
                         }
@@ -433,6 +525,7 @@ class _LookCard extends ConsumerWidget {
                         PopupMenuItem(value: 'ocasiao', child: Text('Alterar ocasião')),
                         PopupMenuItem(value: 'renomear', child: Text('Renomear')),
                         PopupMenuItem(value: 'editar-pecas', child: Text('Editar peças')),
+                        PopupMenuItem(value: 'pasta', child: Text('Mover para pasta')),
                         PopupMenuItem(value: 'excluir', child: Text('Excluir')),
                       ],
                     ),
@@ -449,6 +542,7 @@ class _LookCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                if (nomeDaPasta != null) _RotuloDaPasta(nome: nomeDaPasta!),
                 if (ultimoUso != null) _RotuloDeUso(ultimoUso: ultimoUso!),
                 const SizedBox(height: 8),
                 PecasDoLook(pecas: look.pecas),
@@ -478,6 +572,38 @@ class _AbreMenuAoTocarState extends State<_AbreMenuAoTocar> {
   @override
   Widget build(BuildContext context) =>
       widget.builder(_menuKey, () => _menuKey.currentState?.showButtonMenu());
+}
+
+/// Pasta do look (E3.F6.3), com ícone de pasta.
+class _RotuloDaPasta extends StatelessWidget {
+  const _RotuloDaPasta({required this.nome});
+
+  final String nome;
+
+  @override
+  Widget build(BuildContext context) {
+    final cor = Theme.of(context).hintColor;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Semantics(
+        label: 'Pasta: $nome',
+        excludeSemantics: true,
+        child: Row(
+          children: [
+            Icon(Icons.folder_outlined, size: 16, color: cor),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                nome,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// "Usado há N dias"; em cor de aviso quando o último uso é recente
@@ -653,6 +779,37 @@ class _SemLooks extends StatelessWidget {
                 Text('Você ainda não tem nenhum look salvo'),
                 SizedBox(height: 8),
                 Text('Toque em "Montar look" para criar o primeiro'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pasta escolhida sem nenhum look (E3.F6.2): orientação, não erro.
+class _PastaVazia extends StatelessWidget {
+  const _PastaVazia({required this.semPasta});
+
+  final bool semPasta;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: 300,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.folder_open_outlined, size: 64),
+                const SizedBox(height: 16),
+                Text(semPasta ? 'Todos os seus looks estão em pastas' : 'Esta pasta ainda não tem looks'),
+                const SizedBox(height: 8),
+                const Text('Use "Mover para pasta" no menu de um look', textAlign: TextAlign.center),
               ],
             ),
           ),

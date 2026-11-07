@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../models/peca_parada.dart';
 import '../looks/montar_look_view.dart';
 import '../references/references_view.dart';
 import '../suggestions/suggestions_view.dart';
 import '../wardrobe/wardrobe_view.dart';
 import 'home_view.dart';
+import 'peca_parada_controller.dart';
+import 'widgets/dialogo_peca_parada.dart';
 
 /// Casca de navegação principal do app (redesign visual, Etapa 4) — 5 abas:
 /// Casa (atalhos + calendário de looks), Armário (peças e looks salvos),
@@ -13,15 +17,30 @@ import 'home_view.dart';
 /// (placeholder). Cada aba mantém seu próprio `Scaffold`; esta casca só
 /// adiciona a barra inferior e preserva o estado de cada aba via
 /// `IndexedStack`.
-class HomeShell extends StatefulWidget {
+///
+/// Na primeira vez que aparece na sessão, mostra o aviso de peça parada
+/// (E13.F1.2), se houver alguma.
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell> {
   int _indiceAtual = 0;
+
+  /// Um aviso por sessão, e só com a casca visível: nunca por cima de uma
+  /// tela empilhada (se houver uma, o aviso fica para a próxima abertura).
+  void _talvezAvisarPecaParada(PecaParada? parada) {
+    if (parada == null || ref.read(avisoPecaParadaMostradoProvider)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || ref.read(avisoPecaParadaMostradoProvider)) return;
+      if (ModalRoute.of(context)?.isCurrent == false) return;
+      ref.read(avisoPecaParadaMostradoProvider.notifier).state = true;
+      mostrarDialogoPecaParada(context, parada);
+    });
+  }
 
   static const _telas = [
     HomeView(),
@@ -33,6 +52,10 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<PecaParada?>>(
+      pecaParadaProvider,
+      (_, proximo) => _talvezAvisarPecaParada(proximo.valueOrNull),
+    );
     return Scaffold(
       body: IndexedStack(index: _indiceAtual, children: _telas),
       bottomNavigationBar: BottomNavigationBar(

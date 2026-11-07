@@ -11,6 +11,9 @@ class Look {
   /// Um look pode servir a várias ocasiões (backend, migração 0008).
   final List<String> ocasioes;
 
+  /// Pasta do look (E3.F6.1); `null` = "Sem pasta".
+  final String? pastaId;
+
   Look({
     required this.id,
     required this.nome,
@@ -18,6 +21,7 @@ class Look {
     required this.pecas,
     this.favorito = false,
     this.ocasioes = const [],
+    this.pastaId,
   });
 
   factory Look.fromJson(Map<String, dynamic> json) {
@@ -30,6 +34,7 @@ class Look {
           .toList(),
       favorito: json['favorito'] as bool? ?? false,
       ocasioes: ((json['ocasioes'] as List?) ?? const []).map((o) => o as String).toList(),
+      pastaId: json['pasta_id'] as String?,
     );
   }
 }

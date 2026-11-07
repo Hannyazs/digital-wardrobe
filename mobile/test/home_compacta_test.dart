@@ -2,6 +2,7 @@
 // acesso discreto às preferências, card compacto e calendário recolhido.
 // Serviços falsos, nunca bate numa API real.
 
+import 'support/pagina_da_lista.dart';
 import 'dart:ui' show Tristate;
 
 import 'package:dio/dio.dart';
@@ -74,7 +75,7 @@ class _LookServiceComHistorico extends LookServiceSemHistorico {
   }
 }
 
-class _PecaServiceVazio extends PecaService {
+class _PecaServiceVazio extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [];
 }

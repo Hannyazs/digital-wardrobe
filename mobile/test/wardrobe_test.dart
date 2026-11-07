@@ -2,14 +2,16 @@
 // Mesmo padrão dos demais: PecaService falso, nunca bate numa API real.
 // `agruparPorCategoria` é testada isoladamente (função pura); os estados
 // de carregamento/vazio/erro/com dados da tela são cobertos com widget
-// tests. Ver docs/PBIs/E2-F1-listagem-do-armario/E2.F1.1-listagem-agrupada-por-categoria.md.
+// tests. Ver docs/PBIs/E2-organizacao-por-categorias/E2-F1-listagem-do-armario/E2.F1.1-listagem-agrupada-por-categoria.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:guarda_roupa_app/core/constants/peca_opcoes.dart' show gavetasDoArmario;
+import 'package:guarda_roupa_app/core/constants/peca_opcoes.dart'
+    show coresFixas, estacoesFixas, gavetasDoArmario, ocasioesFixas;
 import 'package:guarda_roupa_app/models/look.dart';
 import 'package:guarda_roupa_app/models/peca.dart';
 import 'support/look_service_sem_historico.dart';
@@ -43,7 +45,7 @@ Peca _peca(
       ocasioes: ocasiao == null ? const [] : [ocasiao],
     );
 
-class _PecaServiceLento extends PecaService {
+class _PecaServiceLento extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async {
     await Future<void>.delayed(const Duration(seconds: 1));
@@ -51,12 +53,12 @@ class _PecaServiceLento extends PecaService {
   }
 }
 
-class _PecaServiceVazio extends PecaService {
+class _PecaServiceVazio extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [];
 }
 
-class _PecaServiceComDados extends PecaService {
+class _PecaServiceComDados extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [
         _peca('1', 'Camisetas'),
@@ -64,7 +66,7 @@ class _PecaServiceComDados extends PecaService {
       ];
 }
 
-class _PecaServiceComVariedade extends PecaService {
+class _PecaServiceComVariedade extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [
         _peca('1', 'Camisetas', corPrincipal: 'Azul', estacao: 'Verão', ocasiao: 'Trabalho'),
@@ -73,7 +75,7 @@ class _PecaServiceComVariedade extends PecaService {
       ];
 }
 
-class _PecaServiceGavetas extends PecaService {
+class _PecaServiceGavetas extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [
         _peca('1', 'Camisetas', corPrincipal: 'Azul'),
@@ -94,7 +96,7 @@ Future<void> _fecharFiltros(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-class _PecaServiceComErro extends PecaService {
+class _PecaServiceComErro extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async {
     throw DioException(
@@ -186,11 +188,21 @@ void main() {
       expect(f.quantidade, 3);
     });
 
-    test('opções vêm só das peças, na ordem das listas fixas; marcadas sempre aparecem', () {
-      expect(coresDisponiveis(pecas), ['Preto', 'Bege', 'Azul']);
-      expect(estacoesDisponiveis(pecas), ['Verão', 'Inverno', 'Todas as estações']);
-      expect(ocasioesDisponiveis(pecas), ['Trabalho', 'Faculdade', 'Festa']);
-      expect(ocasioesDisponiveis(pecas, {'Praia'}), ['Trabalho', 'Faculdade', 'Festa', 'Praia']);
+    test('opções são as listas fixas inteiras (E11.F1.2: não há facetas no servidor)', () {
+      expect(coresDisponiveis(pecas), [for (final c in coresFixas) c.nome]);
+      expect(estacoesDisponiveis(pecas), estacoesFixas);
+      expect(ocasioesDisponiveis(pecas), ocasioesFixas);
+    });
+
+    test('valores livres das peças carregadas e os marcados vêm depois das listas fixas', () {
+      final livres = [
+        _peca('1', 'Camisetas', corPrincipal: 'Turquesa', ocasiao: 'Casamento'),
+        _peca('2', 'Camisetas', corPrincipal: 'Azul', ocasiao: 'Trabalho'),
+      ];
+      expect(coresDisponiveis(livres).last, 'Turquesa');
+      expect(ocasioesDisponiveis(livres).last, 'Casamento');
+      expect(ocasioesDisponiveis(livres, {'Aniversário'}).sublist(ocasioesFixas.length),
+          ['Aniversário', 'Casamento']);
     });
   });
 
@@ -487,12 +499,24 @@ void main() {
 
     await _abrirFiltros(tester);
     await tester.tap(find.widgetWithText(FilterChip, 'Preto'));
+    // Com as listas fixas inteiras o painel é maior que a tela: rola até a opção.
+    await tester.dragUntilVisible(
+      find.widgetWithText(FilterChip, 'Festa'),
+      find.descendant(of: find.byType(BottomSheet), matching: find.byType(ListView)),
+      const Offset(0, -150),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilterChip, 'Festa'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Limpar tudo'));
     await tester.pumpAndSettle();
 
     expect(find.text('Ver 3 peças'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.widgetWithText(FilterChip, 'Preto'),
+      find.descendant(of: find.byType(BottomSheet), matching: find.byType(ListView)),
+      const Offset(0, 150),
+    );
     expect(tester.widget<FilterChip>(find.widgetWithText(FilterChip, 'Preto')).selected, isFalse);
   });
 

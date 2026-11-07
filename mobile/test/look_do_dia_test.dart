@@ -1,5 +1,5 @@
 // Testes do card "Look do dia" na Casa (E6.F1.2). Serviços falsos, nunca bate numa API real.
-// Ver docs/PBIs/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md.
+// Ver docs/PBIs/E6-sugestoes-automaticas/E6-F1-look-do-dia/E6.F1.2-card-look-do-dia.md.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

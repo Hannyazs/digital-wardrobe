@@ -2,12 +2,13 @@
 // O teste original aqui era o boilerplate padrão do `flutter create`
 // (referenciava uma classe `MyApp` de contador que nunca existiu neste
 // projeto) — substituído durante a implementação da PBI E1.F1.1, ver
-// docs/PBIs/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md.
+// docs/PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md.
 //
 // Os testes de "envio da foto" (E1.F1.3) usam um PecaService falso — nunca
 // batem numa API real — para exercitar os estados de carregamento e erro
-// da UploadView. Ver docs/PBIs/E1-F1-adicionar-foto/E1.F1.3-envio-e-exibicao-do-resultado.md.
+// da UploadView. Ver docs/PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.3-envio-e-exibicao-do-resultado.md.
 
+import 'support/pagina_da_lista.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -45,7 +46,7 @@ class _FotoJaSelecionadaController extends UploadPhotoController {
 
 /// Armário sem peças, usado nos testes que só precisam renderizar
 /// `WardrobeView`/`HomeShell` sem bater numa API real (E2.F1.1).
-class _PecaServiceArmarioVazio extends PecaService {
+class _PecaServiceArmarioVazio extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [];
 }
@@ -58,7 +59,7 @@ class _PecaServiceComSucesso extends _PecaServiceArmarioVazio {
   }
 }
 
-class _PecaServiceComErro extends PecaService {
+class _PecaServiceComErro extends PecaService with PaginaDaLista {
   @override
   Future<Map<String, dynamic>> processarImagem(XFile imagem) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -71,7 +72,7 @@ class _PecaServiceComErro extends PecaService {
 
 /// Processamento sempre falha, mas o fallback de upload sem remoção de
 /// fundo (E1.F1.4) funciona — cobre o botão "Continuar sem remoção de fundo".
-class _PecaServiceComFallback extends PecaService {
+class _PecaServiceComFallback extends PecaService with PaginaDaLista {
   @override
   Future<Map<String, dynamic>> processarImagem(XFile imagem) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -90,7 +91,7 @@ class _PecaServiceComFallback extends PecaService {
 
 /// Tanto o processamento quanto o fallback falham — não pode virar um beco
 /// sem saída dentro do beco sem saída.
-class _PecaServiceTudoFalha extends PecaService {
+class _PecaServiceTudoFalha extends PecaService with PaginaDaLista {
   @override
   Future<Map<String, dynamic>> processarImagem(XFile imagem) async {
     await Future<void>.delayed(const Duration(milliseconds: 50));

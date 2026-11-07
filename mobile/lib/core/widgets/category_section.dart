@@ -20,6 +20,7 @@ class CategorySection extends StatelessWidget {
     this.altura = 120,
     this.larguraItem = 110,
     this.onTap,
+    this.rodape,
   });
 
   final String titulo;
@@ -36,6 +37,11 @@ class CategorySection extends StatelessWidget {
 
   /// Quando informado, o título vira um link (com seta) — ex.: abrir a gaveta.
   final VoidCallback? onTap;
+
+  /// Item depois do último card (ex.: indicador de "carregando mais"). Como a
+  /// lista é preguiçosa, ele só é construído quando a rolagem chega perto do
+  /// fim: é o gatilho do carregamento da próxima página.
+  final Widget? rodape;
 
   static const _espaco = 10.0;
   static const _margem = 20.0;
@@ -98,15 +104,26 @@ class CategorySection extends StatelessWidget {
                 return ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: _margem),
-                  itemCount: itemCount + vazios,
-                  separatorBuilder: (context, index) => const SizedBox(width: _espaco),
-                  itemBuilder: (context, index) => index < itemCount
-                      ? itemBuilder(context, index)
-                      : _EspacoVazio(
-                          largura: larguraItem,
-                          // Cada espaço seguinte um pouco mais apagado.
-                          opacidade: (0.9 - (index - itemCount) * 0.25).clamp(0.25, 0.9),
-                        ),
+                  itemCount: itemCount + (rodape == null ? 0 : 1) + vazios,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: _espaco),
+                  itemBuilder: (context, index) {
+                    if (index < itemCount) return itemBuilder(context, index);
+                    final aposItens = index - itemCount;
+                    if (rodape != null) {
+                      if (aposItens == 0) return rodape!;
+                      return _EspacoVazio(
+                        largura: larguraItem,
+                        opacidade:
+                            (0.9 - (aposItens - 1) * 0.25).clamp(0.25, 0.9),
+                      );
+                    }
+                    return _EspacoVazio(
+                      largura: larguraItem,
+                      // Cada espaço seguinte um pouco mais apagado.
+                      opacidade: (0.9 - aposItens * 0.25).clamp(0.25, 0.9),
+                    );
+                  },
                 );
               },
             ),

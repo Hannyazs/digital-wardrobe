@@ -219,13 +219,13 @@ class _PecaFormViewState extends ConsumerState<PecaFormView> {
           // Diferente da criação: já estamos dentro da pilha do HomeShell
           // (armário -> detalhe -> este formulário), só volta pra ele —
           // reconstruí-lo do zero não faz sentido aqui.
-          ref.invalidate(pecaListProvider);
+          invalidarPecas(ref);
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else {
           // Só chega aqui depois do backend confirmar o salvamento. Invalida a
           // lista para o armário buscar a peça nova em vez de reaproveitar o
           // cache do `HomeShell` anterior (que ainda está sendo descartado).
-          ref.invalidate(pecaListProvider);
+          invalidarPecas(ref);
           // Substitui a pilha pelo armário: impede reabrir esta tela (ou a
           // de resultado do processamento) pelo botão "voltar" do navegador
           // e reenviar a mesma peça duas vezes.
@@ -306,7 +306,14 @@ class _PecaFormViewState extends ConsumerState<PecaFormView> {
                 ),
                 _SubcategoriasUsadas(
                   opcoes: subcategoriasUsadas(
-                    ref.watch(pecaListProvider).valueOrNull ?? const [],
+                    _categoria == null
+                        ? const []
+                        : ref
+                                .watch(pecasPaginadasProvider(
+                                    ConsultaPecas.daCategoria(_categoria!)))
+                                .valueOrNull
+                                ?.itens ??
+                            const [],
                     _categoria,
                     atual: _subcategoriaController.text,
                   ),

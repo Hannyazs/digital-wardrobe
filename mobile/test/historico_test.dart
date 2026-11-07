@@ -1,8 +1,9 @@
 // Testes do histórico de looks utilizados, em formato de calendário (E3.F4.3).
 // O calendário fica na Casa (reorganização da interface): os testes abrem a
 // `HomeView`, onde ele é exibido. LookService falso, nunca bate numa API real.
-// Ver docs/PBIs/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md.
+// Ver docs/PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.3-tela-de-historico-de-looks.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,7 +72,7 @@ class _LookServiceHistorico extends LookService {
   }
 }
 
-class _PecaServiceVazio extends PecaService {
+class _PecaServiceVazio extends PecaService with PaginaDaLista {
   @override
   Future<List<Peca>> listarPecas() async => [];
 }

@@ -1,13 +1,13 @@
 ---
 name: implementar-pbi
-description: Implementa uma PBI já detalhada em docs/PBIs/, seguindo o padrão de execução, verificação honesta e log de implementação estabelecido no projeto — o exemplo canônico é docs/PBIs/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md (releia-o antes de aplicar este skill, ele é a fonte de verdade). Use quando o usuário pedir para implementar, desenvolver, codar ou executar uma PBI específica. Complementa o skill `criar-pbi` (que cria o arquivo detalhado antes deste existir).
+description: Implementa uma PBI já detalhada em docs/PBIs/, seguindo o padrão de execução, verificação honesta e log de implementação estabelecido no projeto — o exemplo canônico é docs/PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.1-captura-e-selecao-de-foto.md (releia-o antes de aplicar este skill, ele é a fonte de verdade). Use quando o usuário pedir para implementar, desenvolver, codar ou executar uma PBI específica. Complementa o skill `criar-pbi` (que cria o arquivo detalhado antes deste existir).
 ---
 
 # Implementar PBI
 
 ## Antes de implementar
 
-1. **Localize o arquivo detalhado da PBI** em `docs/PBIs/E<épico>-F<feature>-<slug>/`. Se o usuário só deu um ID (ex: "E1.F1.3") e o arquivo não existir ainda, **pare e avise** — sugira rodar o skill `criar-pbi` primeiro. Não implemente a partir de uma descrição resumida do `backlog.md` só; o arquivo detalhado é o que define escopo, "como será feito" e critérios de aceite.
+1. **Localize o arquivo detalhado da PBI** em `docs/PBIs/E<épico>-<slug-do-épico>/E<épico>-F<feature>-<slug>/` (pasta do épico, e dentro dela a da feature). Se o usuário só deu um ID (ex: "E1.F1.3") e o arquivo não existir ainda, **pare e avise** — sugira rodar o skill `criar-pbi` primeiro. Não implemente a partir de uma descrição resumida do `backlog.md` só; o arquivo detalhado é o que define escopo, "como será feito" e critérios de aceite.
 2. Leia junto o `docs/backlog.md` e as PBIs vizinhas da mesma feature, pra não reabrir uma sobreposição de escopo já resolvida antes (isso já aconteceu neste projeto entre E1.F1.2 e E1.F1.4).
 3. Confira `CLAUDE.md` e `docs/arquitetura.md` pelas convenções de stack já registradas (camadas, gerenciamento de estado, etc.) antes de tomar qualquer decisão técnica não especificada na PBI.
 

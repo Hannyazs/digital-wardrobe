@@ -1,11 +1,9 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/peca_opcoes.dart' show Gaveta;
+import '../../core/constants/peca_opcoes.dart'
+    show gavetaOutras, gavetasDoArmario;
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/app_button.dart';
-import '../../core/widgets/category_section.dart';
 import '../../core/widgets/clothing_card.dart';
 import '../../core/widgets/screen_header.dart';
 import '../../models/peca.dart';
@@ -14,6 +12,7 @@ import '../upload/upload_view.dart';
 import 'gaveta_view.dart';
 import 'peca_detail_view.dart';
 import 'wardrobe_controller.dart';
+import 'widgets/carrosseis_paginados.dart';
 import 'widgets/filtros_de_pecas.dart';
 
 enum AbaArmario { pecas, looks }
@@ -91,97 +90,56 @@ class _AbaPecas extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pecasAsync = ref.watch(pecaListProvider);
+    final filtro = ref.watch(filtroArmarioProvider);
+    // Total do armário sem filtro (o "de M") e total que satisfaz o filtro.
+    final totalGeral =
+        ref.watch(totalDePecasProvider(const ConsultaPecas())).valueOrNull;
+    final totalFiltrado = filtro.ativo
+        ? ref
+            .watch(totalDePecasProvider(ConsultaPecas(filtro: filtro)))
+            .valueOrNull
+        : totalGeral;
+    final carregadas = pecasCarregadas(ref, gruposPorGaveta, filtro);
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(pecaListProvider);
-        await ref.read(pecaListProvider.future);
-      },
-      child: pecasAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _Erro(
-          mensagem: mensagemDeErroArmario(error),
-          onTentarNovamente: () => ref.invalidate(pecaListProvider),
-        ),
-        data: (pecas) => pecas.isEmpty ? const _ArmarioVazio() : _ArmarioFiltravel(pecas: pecas),
-      ),
-    );
-  }
-}
-
-String mensagemDeErroArmario(Object error) {
-  if (error is DioException) {
-    if (error.response?.statusCode == 401) {
-      return 'Sessão expirada ou inválida. Não foi possível carregar seu armário.';
-    }
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return 'A busca demorou demais. Verifique sua conexão e tente novamente.';
-      case DioExceptionType.connectionError:
-        return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
-      default:
-        return 'Não foi possível carregar seu armário. Tente novamente.';
-    }
-  }
-  return 'Não foi possível carregar seu armário. Tente novamente.';
-}
-
-class _ArmarioFiltravel extends ConsumerWidget {
-  const _ArmarioFiltravel({required this.pecas});
-
-  final List<Peca> pecas;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filtro = ref.watch(filtroArmarioProvider);
-    final filtrados = filtrarPecas(pecas, filtro);
-
-    return Column(
-      children: [
-        BarraDeFiltros(
-          texto: rotuloQuantidadePecas(filtrados.length, pecas.length),
-          quantidadeFiltros: filtro.quantidade,
-          onFiltros: () => abrirFiltrosDePecas(context, filtroArmarioProvider, pecas),
-        ),
-        Expanded(
-          child: filtrados.isEmpty
-              ? SemResultadoFiltro(
-                  onLimpar: () =>
-                      ref.read(filtroArmarioProvider.notifier).state = const FiltroPecas(),
-                )
-              : _Gavetas(grupos: agruparPorGaveta(filtrados)),
-        ),
-      ],
-    );
-  }
-}
-
-class _Gavetas extends StatelessWidget {
-  const _Gavetas({required this.grupos});
-
-  final Map<Gaveta, List<Peca>> grupos;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      key: const Key('armario-lista-categorias'),
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 4, bottom: 88),
-      children: [
-        for (final entry in grupos.entries)
-          CategorySection(
-            titulo: entry.key.nome,
-            contagem: entry.value.length,
-            itemCount: entry.value.length,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => GavetaView(gaveta: entry.key)),
+      onRefresh: () => recarregarGrupos(ref, gruposPorGaveta, filtro),
+      child: Column(
+        children: [
+          // Armário vazio não tem o que filtrar: a orientação ocupa a tela.
+          if (totalGeral != 0)
+            BarraDeFiltros(
+              texto: totalFiltrado == null
+                  ? ''
+                  : rotuloQuantidadePecas(
+                      totalFiltrado, totalGeral ?? totalFiltrado),
+              quantidadeFiltros: filtro.quantidade,
+              onFiltros: () => abrirFiltrosDePecas(
+                  context, filtroArmarioProvider, carregadas),
             ),
-            itemBuilder: (context, index) => cardDaPeca(context, entry.value[index]),
+          Expanded(
+            child: ListaDeCarrosseis(
+              listKey: const Key('armario-lista-categorias'),
+              grupos: gruposPorGaveta,
+              filtro: filtro,
+              mostrarContagem: true,
+              padding: const EdgeInsets.only(top: 4, bottom: 88),
+              itemBuilder: cardDaPeca,
+              vazio: const _ArmarioVazio(),
+              aoLimparFiltro: () => ref
+                  .read(filtroArmarioProvider.notifier)
+                  .state = const FiltroPecas(),
+              aoAbrirGrupo: (grupo) {
+                final gaveta = [...gavetasDoArmario, gavetaOutras]
+                    .firstWhere((g) => g.nome == grupo.titulo);
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                      builder: (_) => GavetaView(gaveta: gaveta)),
+                );
+              },
+            ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -218,37 +176,6 @@ class _ArmarioVazio extends StatelessWidget {
                 Text('Seu armário está vazio'),
                 SizedBox(height: 8),
                 Text('Toque no botão de câmera para adicionar sua primeira peça'),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Erro extends StatelessWidget {
-  const _Erro({required this.mensagem, required this.onTentarNovamente});
-
-  final String mensagem;
-  final VoidCallback onTentarNovamente;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(
-          height: 400,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, color: AppColors.error, size: 40),
-                const SizedBox(height: 12),
-                Text(mensagem, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                AppButton(label: 'Tentar novamente', onPressed: onTentarNovamente),
               ],
             ),
           ),

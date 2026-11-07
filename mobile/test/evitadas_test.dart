@@ -1,8 +1,9 @@
 // Testes de marcar peça como evitada (E4.F4.2): ação no detalhe da peça e
 // seção "Peças que evito" na tela de preferências. Serviços falsos, nunca
 // batem numa API real.
-// Ver docs/PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md.
+// Ver docs/PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.2-marcar-peca-evitada-no-app.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,7 +72,7 @@ class _PreferenciaServiceEvitadas extends PreferenciaServiceSemEvitadas {
 }
 
 /// Excluir a peça também a tira das evitadas, como o CASCADE do backend.
-class _PecaServiceExclui extends PecaService {
+class _PecaServiceExclui extends PecaService with PaginaDaLista {
   _PecaServiceExclui(this.preferencias);
 
   final _PreferenciaServiceEvitadas preferencias;

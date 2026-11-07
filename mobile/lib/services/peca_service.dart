@@ -3,6 +3,18 @@ import 'package:image_picker/image_picker.dart';
 
 import '../core/network/api_client.dart';
 import '../models/peca.dart';
+import '../models/peca_parada.dart';
+import 'look_service.dart' show formatarDataApi;
+import '../views/wardrobe/wardrobe_controller.dart' show ConsultaPecas;
+
+/// Uma página de peças e, quando o servidor informou, o total que satisfaz os
+/// filtros (cabeçalho `X-Total-Count`).
+class PaginaDePecas {
+  const PaginaDePecas(this.itens, this.total);
+
+  final List<Peca> itens;
+  final int? total;
+}
 
 /// Chama os endpoints de app/api/v1/pecas.py no backend.
 class PecaService {
@@ -12,9 +24,55 @@ class PecaService {
   /// extensão do arquivo salvo a partir dele, e o recorte é sempre PNG.
   String _nomeDoArquivo(XFile imagem) => imagem.name.isEmpty ? 'recorte.png' : imagem.name;
 
+  /// Todas as peças de uma vez, sem paginar. As telas usam [listarPagina];
+  /// este método sobrou para quem precisa do armário inteiro.
   Future<List<Peca>> listarPecas() async {
     final response = await _dio.get('/pecas');
     return (response.data as List).map((json) => Peca.fromJson(json)).toList();
+  }
+
+  /// Uma página de `GET /pecas` (E11.F1.2): [limite] e [deslocamento] (offset)
+  /// mais os filtros da [consulta], aplicados no servidor com as mesmas regras
+  /// de `filtrarPecas`. O total vem em `X-Total-Count`.
+  Future<PaginaDePecas> listarPagina(
+    ConsultaPecas consulta, {
+    required int limite,
+    int deslocamento = 0,
+  }) async {
+    final response = await _dio.get('/pecas', queryParameters: {
+      'limite': limite,
+      'deslocamento': deslocamento,
+      if (consulta.categorias.isNotEmpty)
+        'categoria': consulta.categorias.toList(),
+      if (consulta.outras) 'outras': true,
+      if (consulta.filtro.cores.isNotEmpty)
+        'cor': consulta.filtro.cores.toList(),
+      if (consulta.filtro.estacoes.isNotEmpty)
+        'estacao': consulta.filtro.estacoes.toList(),
+      if (consulta.filtro.ocasioes.isNotEmpty)
+        'ocasiao': consulta.filtro.ocasioes.toList(),
+    });
+    final itens =
+        (response.data as List).map((json) => Peca.fromJson(json)).toList();
+    return PaginaDePecas(
+        itens, int.tryParse(response.headers.value('x-total-count') ?? ''));
+  }
+
+  /// Peças sem uso há 90 dias ou mais, da mais parada para a menos (E13.F1.1).
+  /// [hoje] vai como data local: o servidor não assume o fuso do usuário.
+  Future<List<PecaParada>> listarParadas({required DateTime hoje, int limite = 1}) async {
+    final response = await _dio.get('/pecas/paradas', queryParameters: {
+      'hoje': formatarDataApi(hoje),
+      'limite': limite,
+    });
+    return (response.data as List)
+        .map((json) => PecaParada.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// "Lembrar depois" (E13.F1.1): a peça sai da lista de paradas por 30 dias.
+  Future<void> adiarLembrete(String id, {required DateTime hoje}) async {
+    await _dio.post('/pecas/$id/adiar-lembrete', queryParameters: {'hoje': formatarDataApi(hoje)});
   }
 
   Future<Map<String, dynamic>> processarImagem(XFile imagem) async {

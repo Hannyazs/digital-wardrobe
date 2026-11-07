@@ -15,7 +15,7 @@ import 'upload_controller.dart';
 /// e a E1.F1.3 (envio pro backend + exibição do resultado).
 /// Revisão/edição dos metadados sugeridos e o `POST /pecas` final ficam para
 /// a Feature 2 (fora do escopo desta tela por ora).
-/// Ver docs/PBIs/E1-F1-adicionar-foto/.
+/// Ver docs/PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/.
 class UploadView extends ConsumerWidget {
   const UploadView({super.key});
 

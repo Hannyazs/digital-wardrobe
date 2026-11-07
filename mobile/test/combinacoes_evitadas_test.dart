@@ -1,7 +1,8 @@
 // Testes das combinações de peças evitadas (E4.F4.3): seção na tela de
 // preferências e escolha do par (`EscolherParView`). Serviços falsos.
-// Ver docs/PBIs/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md.
+// Ver docs/PBIs/E4-preferencias-de-estilo/E4-F4-pecas-e-combinacoes-evitadas/E4.F4.3-combinacoes-evitadas-no-app.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,7 @@ class _PreferenciaServicePares extends PreferenciaServiceSemEvitadas {
   }
 }
 
-class _PecaServiceArmario extends PecaService {
+class _PecaServiceArmario extends PecaService with PaginaDaLista {
   _PecaServiceArmario(this.pecas);
 
   final List<Peca> pecas;

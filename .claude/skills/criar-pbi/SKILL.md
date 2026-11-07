@@ -5,7 +5,7 @@ description: Cria um PBI (Product Backlog Item) detalhado para este projeto, no 
 
 # Criar PBI
 
-Gera um PBI detalhado seguindo exatamente o padrão já usado no projeto — o exemplo canônico e sempre atualizado é `docs/PBIs/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md`. Leia esse arquivo antes de criar um novo, em vez de confiar só na descrição das seções abaixo — se o padrão real evoluir, esse arquivo é a fonte de verdade, não este skill.
+Gera um PBI detalhado seguindo exatamente o padrão já usado no projeto — o exemplo canônico e sempre atualizado é `docs/PBIs/E1-cadastro-de-roupas/E1-F2-metadados-da-peca/E1.F2.1-formulario-e-cadastro-da-peca.md`. Leia esse arquivo antes de criar um novo, em vez de confiar só na descrição das seções abaixo — se o padrão real evoluir, esse arquivo é a fonte de verdade, não este skill.
 
 ## Regra central: seja conciso
 
@@ -34,7 +34,7 @@ Todo PBI usa o ID `E<épico>.F<feature>.<número>` (ex: `E1.F1.3`). Para descobr
 
 1. **Confirme que existe uma entrada resumida em `docs/backlog.md`** para essa PBI (`### E<x>.F<y>.<n> — <título>` com Descrição/Critérios de aceite/Status/Estimativa/Dependências). Se não existir, crie-a primeiro, seguindo o mesmo formato das PBIs vizinhas naquele arquivo — não pule direto para o arquivo detalhado sem isso, ele é o que mantém a visão geral da feature coerente.
 
-2. **Determine a pasta**: `docs/PBIs/E<épico>-F<feature>-<slug-curto-da-feature>/`. Se a pasta já existe pra essa feature (outras PBIs dela já foram detalhadas), reuse-a. Se não existe, crie-a — o slug é o nome da feature (de `docs/requisitos.md`) resumido em 2-4 palavras, minúsculo, sem acento, com hífen (ex: "Adicionar peça por foto, com remoção automática de fundo" → `adicionar-foto`).
+2. **Determine a pasta**: as PBIs ficam em dois níveis, primeiro o épico e dentro dele a feature: `docs/PBIs/E<épico>-<slug-do-épico>/E<épico>-F<feature>-<slug-curto-da-feature>/` (ex: `docs/PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/`). Reuse a pasta do épico e a da feature quando já existirem. Se faltar alguma, crie-a — o slug é o nome do épico ou da feature (de `docs/requisitos.md`) resumido em 2-4 palavras, minúsculo, sem acento, com hífen (ex: épico "Cadastro de roupas (manual)" → `cadastro-de-roupas`; feature "Adicionar peça por foto, com remoção automática de fundo" → `adicionar-foto`).
 
 3. **Nomeie o arquivo**: `E<épico>.F<feature>.<número>-<slug-curto-do-título-da-pbi>.md` (ex: `E1.F1.1-captura-e-selecao-de-foto.md`).
 
@@ -42,8 +42,9 @@ Todo PBI usa o ID `E<épico>.F<feature>.<número>` (ex: `E1.F1.3`). Para descobr
 
 5. **Atualize `docs/backlog.md`**: adicione, logo abaixo do título `### E<x>.F<y>.<n> — ...`, a linha de link pro arquivo detalhado, no mesmo formato usado para E1.F1.1:
    ```markdown
-   Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E<x>-F<y>-<slug>/E<x>.F<y>.<n>-<slug>.md](PBIs/E<x>-F<y>-<slug>/E<x>.F<y>.<n>-<slug>.md).
+   Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E<x>-<slug-épico>/E<x>-F<y>-<slug>/E<x>.F<y>.<n>-<slug>.md](PBIs/E<x>-<slug-épico>/E<x>-F<y>-<slug>/E<x>.F<y>.<n>-<slug>.md).
    ```
+   Dentro do arquivo detalhado, os links de volta para os documentos de `docs/` sobem três níveis: `../../../backlog.md`, `../../../requisitos.md`.
 
 ## Estrutura do arquivo detalhado (seções, nesta ordem)
 

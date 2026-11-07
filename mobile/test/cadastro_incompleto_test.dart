@@ -1,6 +1,7 @@
 // Testes do aviso de cadastro incompleto (E5.F4.1). Serviços falsos, nunca bate numa API real.
-// Ver docs/PBIs/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md.
+// Ver docs/PBIs/E5-sugestoes-sob-demanda/E5-F4-cadastro-incompleto/E5.F4.1-aviso-de-cadastro-incompleto.md.
 
+import 'support/pagina_da_lista.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +37,7 @@ Peca _peca(
     );
 
 /// Fake com estado: `atualizarPeca` muda o que `listarPecas` devolve.
-class _PecaServiceArmario extends PecaService {
+class _PecaServiceArmario extends PecaService with PaginaDaLista {
   _PecaServiceArmario(this.pecas);
 
   List<Peca> pecas;

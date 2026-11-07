@@ -1,5 +1,5 @@
 // Testes do aviso de repetição recente nos cards de look (E3.F4.4).
-// Ver docs/PBIs/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md.
+// Ver docs/PBIs/E3-criacao-manual-de-looks/E3-F4-historico-de-looks/E3.F4.4-aviso-de-repeticao-recente.md.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

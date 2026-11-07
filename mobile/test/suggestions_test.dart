@@ -1,6 +1,6 @@
 // Testes da tela de sugestões (E5.F2.1) e das sugestões a partir de uma peça
 // (E5.F2.2). Serviços falsos: nunca bate numa API real.
-// Ver docs/PBIs/E5-F2-sugestoes-no-app/.
+// Ver docs/PBIs/E5-sugestoes-sob-demanda/E5-F2-sugestoes-no-app/.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';

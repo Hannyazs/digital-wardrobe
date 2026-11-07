@@ -1,5 +1,5 @@
 // Testes de renomear look salvo (E5.F3.1). LookService falso, nunca bate numa API real.
-// Ver docs/PBIs/E5-F3-renomear-look/E5.F3.1-renomear-look.md.
+// Ver docs/PBIs/E5-sugestoes-sob-demanda/E5-F3-renomear-look/E5.F3.1-renomear-look.md.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -74,8 +74,8 @@ void main() {
         .widgetList<PopupMenuItem<String>>(find.byType(PopupMenuItem<String>))
         .map((i) => i.value)
         .toList();
-    // "Editar peças" (E3.F5.2) e "Excluir" (E3.F5.1) entraram depois.
-    expect(itens, ['hoje', 'outra', 'ocasiao', 'renomear', 'editar-pecas', 'excluir']);
+    // "Editar peças" (E3.F5.2), "Mover para pasta" (E3.F6.3) e "Excluir" (E3.F5.1) entraram depois.
+    expect(itens, ['hoje', 'outra', 'ocasiao', 'renomear', 'editar-pecas', 'pasta', 'excluir']);
   });
 
   testWidgets('"Renomear" abre com o nome atual; salvar envia o nome sem espaços e atualiza o card', (

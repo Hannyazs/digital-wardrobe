@@ -9,13 +9,16 @@ import '../../../models/peca.dart';
 import '../wardrobe_controller.dart';
 
 /// Painel de filtros de peças (cor, estação, ocasião), usado no armário, nas
-/// gavetas e na montagem de look. As opções saem de [pecas] — só aparece o
-/// que existe nas peças daquela tela.
+/// gavetas e na montagem de look. As opções são as listas fixas mais os valores
+/// livres que aparecem em [pecas] (as já carregadas). O "Ver N peças" vem do
+/// servidor: [escopo] diz de que recorte do armário (uma gaveta, uma lista…)
+/// é a contagem; o padrão é o armário inteiro.
 Future<void> abrirFiltrosDePecas(
   BuildContext context,
   StateProvider<FiltroPecas> provider,
-  List<Peca> pecas,
-) {
+  List<Peca> pecas, {
+  ConsultaPecas escopo = const ConsultaPecas(),
+}) {
   void atualizar(WidgetRef ref, FiltroPecas Function(FiltroPecas) mudar) =>
       ref.read(provider.notifier).update(mudar);
 
@@ -47,7 +50,10 @@ Future<void> abrirFiltrosDePecas(
     ativo: (ref) => ref.watch(provider).ativo,
     limpar: (ref) => ref.read(provider.notifier).state = const FiltroPecas(),
     rotuloResultado: (ref) {
-      final total = filtrarPecas(pecas, ref.watch(provider)).length;
+      final total = ref
+          .watch(totalDePecasProvider(escopo.comFiltro(ref.watch(provider))))
+          .valueOrNull;
+      if (total == null) return 'Ver peças';
       return total == 1 ? 'Ver 1 peça' : 'Ver $total peças';
     },
   );

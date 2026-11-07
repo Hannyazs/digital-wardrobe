@@ -10,6 +10,7 @@ from app.core.security import get_current_user_id
 from app.db.models import Look, LookUso, Peca
 from app.db.session import get_db
 from app.schemas.look import LookCreate, LookRead, LookUpdate, UsoLookCreate, UsoLookRead
+from app.services import pasta_service
 
 router = APIRouter(prefix="/looks", tags=["looks"])
 
@@ -153,6 +154,10 @@ async def atualizar_look(
     look = await _look_ativo(db, look_id, usuario_id)
 
     campos = dados.model_dump(exclude_unset=True)
+    if campos.get("pasta_id") is not None:
+        # E3.F6.1: pasta inexistente ou de outro usuário = 404, sem dizer qual.
+        if await pasta_service.pasta_do_usuario(db, campos["pasta_id"], usuario_id) is None:
+            raise HTTPException(status_code=404, detail="Pasta não encontrada.")
     peca_ids = campos.pop("peca_ids", None)
     if peca_ids is not None:
         # E3.F5.2: substitui as peças do look.
@@ -187,13 +192,21 @@ async def excluir_look(
 
 @router.get("", response_model=list[LookRead])
 async def listar_looks(
+    pasta_id: uuid.UUID | None = Query(None, description="Só os looks desta pasta (E3.F6.1)."),
+    sem_pasta: bool = Query(False, description="Só os looks fora de qualquer pasta (E3.F6.1)."),
     usuario_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    resultado = await db.execute(
-        select(Look)
-        .options(selectinload(Look.pecas))
-        .where(Look.usuario_id == usuario_id, Look.arquivado.is_(False))
-        .order_by(Look.criado_em.desc())
+    if pasta_id is not None and sem_pasta:
+        raise HTTPException(status_code=422, detail="Use `pasta_id` ou `sem_pasta`, não os dois.")
+    consulta = select(Look).options(selectinload(Look.pecas)).where(
+        Look.usuario_id == usuario_id, Look.arquivado.is_(False)
     )
+    if pasta_id is not None:
+        if await pasta_service.pasta_do_usuario(db, pasta_id, usuario_id) is None:
+            raise HTTPException(status_code=404, detail="Pasta não encontrada.")
+        consulta = consulta.where(Look.pasta_id == pasta_id)
+    elif sem_pasta:
+        consulta = consulta.where(Look.pasta_id.is_(None))
+    resultado = await db.execute(consulta.order_by(Look.criado_em.desc()))
     return resultado.scalars().all()

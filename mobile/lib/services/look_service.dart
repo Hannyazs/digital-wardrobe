@@ -33,9 +33,20 @@ class LookService {
     return (response.data as List).map((json) => Look.fromJson(json)).toList();
   }
 
+  /// Só os looks de uma pasta ([pastaId]) ou só os sem pasta ([semPasta])
+  /// (E3.F6.2), filtrados no servidor. Sem nenhum dos dois = [listarLooks].
+  Future<List<Look>> listarLooksDaPasta({String? pastaId, bool semPasta = false}) async {
+    final response = await _dio.get('/looks', queryParameters: {
+      if (pastaId != null) 'pasta_id': pastaId,
+      if (semPasta) 'sem_pasta': true,
+    });
+    return (response.data as List).map((json) => Look.fromJson(json)).toList();
+  }
+
   /// `PATCH /looks/{id}` (E3.F2.1). Recebe um mapa de campos: `favorito`
   /// (E3.F2.2) e `ocasioes` (E3.F3.2, lista). Para limpar as ocasiões, enviar
   /// `[]` (chave omitida = "não mexer"; `null` é recusado pelo backend).
+  /// Exceção: `pasta_id` (E3.F6.3) aceita `null`, que tira o look da pasta.
   Future<Look> atualizarLook(String id, Map<String, dynamic> campos) async {
     final response = await _dio.patch('/looks/$id', data: campos);
     return Look.fromJson(response.data as Map<String, dynamic>);

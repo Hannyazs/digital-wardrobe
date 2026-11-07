@@ -149,7 +149,7 @@ Ter tudo aberto antes da sessão: Postgres (Docker), API, Ollama com o `gemma3:4
 ### 2.5 Checklist antes da defesa
 
 - [ ] Relatório no modelo do Manual Institucional, em ABNT, com os diagramas exportados como figuras.
-- [ ] Indicar ao orientador o nome do segundo membro da banca.
+- [X] Indicar ao orientador o nome do segundo membro da banca.
 - [ ] Enviar o relatório à banca pelo menos 1 semana antes.
 - [ ] Ensaiar a fala dentro do tempo combinado.
 - [ ] Gravar o vídeo de backup da demonstração.
