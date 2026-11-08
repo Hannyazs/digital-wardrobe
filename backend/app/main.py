@@ -10,7 +10,9 @@ app = FastAPI(title="Guarda-Roupa Virtual API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    # O app manda o token no cabeçalho Authorization, não em cookie: não há
+    # credencial de navegador para liberar (E9.F3.2).
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     # Sem isto o Flutter Web não consegue ler a contagem da paginação de /pecas.

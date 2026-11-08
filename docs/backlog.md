@@ -1005,12 +1005,12 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 Planejamento aprovado em 2026-11-05 (nenhuma PBI iniciada). **Ordem recomendada:** Épico 9 → Épico 10 → Épico 11 (o 11 é independente tecnicamente e pode vir antes do 10); o Épico 12 é pesquisa e corre em paralelo. A análise de concorrentes e a auditoria das referências do TCC **não são épicos**: são tarefas em [checklist-tcc.md](checklist-tcc.md). Estimativa: P = baixa, M = média, G = alta. O banco PostgreSQL **continua fora do Supabase**: só Auth e Storage migram. Login social não é requisito. Não entram neste ciclo: CI, Ruff, mypy, pgvector, processamento assíncrono e paginação de referências.
 
-**Decisões ainda pendentes (não são requisitos):** confirmação de e-mail no cadastro (decidir na configuração do Supabase); dados existentes (de teste ou a preservar — verificar antes de decidir qualquer migração); contagem por gaveta (manter se não trouxer complexidade desnecessária); endpoint de subcategorias (só se a paginação prejudicar as sugestões); estratégia de cache de imagens (após medir URLs assinadas e egress); pausa do plano gratuito do Supabase após 1 semana sem uso (verificar antes da apresentação do TCC); Modesona e acesso ao `MANUAL_DE_TCC.pdf` (ambos agora no [checklist-tcc.md](checklist-tcc.md)).
+**Decisões ainda pendentes (não são requisitos):** ~~confirmação de e-mail no cadastro~~ (decidido em 2026-11-07: desligada no projeto de desenvolvimento; o app trata os dois casos, ver E9.F2.1); ~~dados existentes~~ (decidido em 2026-11-07: descartáveis, ver E9.F1.2); contagem por gaveta (manter se não trouxer complexidade desnecessária); endpoint de subcategorias (só se a paginação prejudicar as sugestões); estratégia de cache de imagens (após medir URLs assinadas e egress); pausa do plano gratuito do Supabase após 1 semana sem uso (verificar antes da apresentação do TCC); Modesona e acesso ao `MANUAL_DE_TCC.pdf` (ambos agora no [checklist-tcc.md](checklist-tcc.md)).
 
 **Lacunas e riscos já existentes (verificados na auditoria de 2026-11-05; nenhum está resolvido):**
 - `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação** — corrigir na **E10.F2.2**.
 - `DELETE /pecas/{id}` não apaga o arquivo da imagem — tratar na **E10.F3.2**.
-- **Não há testes de integração das rotas** `pecas`, `looks`, `preferencias` e `sugestoes` (só `referencias` e `colecoes` têm) — cobrir na **E9.F3.1** (e a E1.F1.5 continua pendente para `processar-imagem`).
+- ~~**Não há testes de integração das rotas** `pecas`, `looks`, `preferencias` e `sugestoes`~~ — **resolvido em 2026-11-08 (E9.F3.1)**: todas as rotas com dados de usuário têm teste de dois usuários em `tests/test_isolamento.py` (a E1.F1.5 continua pendente para `processar-imagem`).
 
 **Limitação do projeto — exclusão de conta e privacidade (sem PBI):** a exclusão completa da conta e dos dados associados está **fora do escopo atual**. A autenticação ficará no Supabase e o PostgreSQL continuará separado, sem chave estrangeira entre eles: excluir um usuário no Supabase **não remove** suas peças, looks, preferências, referências e imagens. **Isto precisa ser resolvido antes da disponibilização do aplicativo para terceiros em escala**, e deve constar como limitação no TCC.
 
@@ -1026,7 +1026,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Token válido do projeto passa e o `usuario_id` é o `sub`; expirado, de chave/emissor/audiência errados ou sem `sub` → 401.
 - JWKS inacessível → erro estruturado, nunca 500 cru.
 
-**Status**: não iniciada.
+**Status**: **concluída em 2026-11-07; validada com login real no Chrome em 2026-11-08**. Correção pós-entrega: `iat` não é mais conferido e há tolerância de 30 s no `exp` (relógio do PC 12 min atrasado derrubava todo login). Tokens ES256 validados pelo JWKS do projeto (algoritmo confirmado no projeto real); tokens de teste HS256 só com `SUPABASE_JWT_SECRET` preenchido; JWKS fora do ar → 503. `tests/test_security.py` (25 testes); suíte com 351 testes passando.
 **Estimativa**: M.
 **Dependências**: projeto Supabase criado (decisão do usuário).
 
@@ -1040,7 +1040,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Decisão "teste ou preservar" registrada; `--dry-run` lista linhas por tabela sem alterar nada.
 - Conflito (ex.: `preferencias` do destino) aborta antes de qualquer alteração; contagens batem e não resta UUID antigo (em banco de teste).
 
-**Status**: não iniciada.
+**Status**: **concluída em 2026-11-07 — dados descartáveis** (decisão do usuário); nenhum script criado, nada executado. Inventário atualizado com `pastas_looks`.
 **Estimativa**: M.
 **Dependências**: E9.F1.1.
 
@@ -1054,7 +1054,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Sem autorização ou sem backup confirmado, não executa; falha desfaz a transação.
 - Ao final, contagens batem e não resta linha com o UUID antigo.
 
-**Status**: não iniciada.
+**Status**: **não aplicável** (a E9.F1.2 concluiu em 2026-11-07 que os dados são descartáveis).
 **Estimativa**: P.
 **Dependências**: E9.F1.2, E9.F2.1.
 
@@ -1070,7 +1070,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Cadastro e login com credenciais válidas entram no app; credenciais erradas mostram mensagem clara.
 - A sessão persiste ao reabrir; o logout volta ao login sem dados do usuário anterior.
 
-**Status**: não iniciada.
+**Status**: **concluída — implementada em 2026-11-07, validada no Chrome pelo usuário em 2026-11-08**. Tela de login/cadastro no visual do app, sessão do `supabase_flutter`, logout no cabeçalho da Casa com confirmação; a raiz do app recria o `ProviderScope` a cada troca de usuário (todo estado em memória é descartado). Confirmação de e-mail desligada no projeto. `test/auth_test.dart` (17 testes). As requisições ainda usam o `DEV_AUTH_TOKEN` até a E9.F2.2.
 **Estimativa**: M.
 **Dependências**: projeto Supabase criado, E9.F1.1.
 
@@ -1084,7 +1084,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Requisições vão com o token do usuário; token vencido renova e repete a requisição uma vez.
 - Sessão que não renova leva ao login com aviso; não resta `DEV_AUTH_TOKEN` no app.
 
-**Status**: não iniciada.
+**Status**: **concluída — implementada em 2026-11-07, validada no Chrome pelo usuário em 2026-11-08** (duas contas, cada uma vendo só os próprios dados). `AuthInterceptor` envia o token da sessão, renova e repete uma vez no 401 (renovação compartilhada entre requisições simultâneas, `FormData` clonado), e leva ao login com "Sua sessão expirou". `DEV_AUTH_TOKEN` removido do app e do README do app. `test/auth_interceptor_test.dart` (8 testes).
 **Estimativa**: M.
 **Dependências**: E9.F2.1.
 
@@ -1098,7 +1098,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Pedido não revela se o e-mail existe; o link leva à tela de nova senha e o login funciona com ela.
 - Link expirado ou inválido mostra mensagem clara com opção de pedir outro.
 
-**Status**: não iniciada.
+**Status**: **concluída — implementada em 2026-11-07, validada no Chrome pelo usuário em 2026-11-08**. "Esqueci minha senha" no login, tela de senha nova ao voltar pelo link (evento `passwordRecovery`), aviso para link vencido ou aberto em outro navegador. Limitações: abrir no mesmo navegador (PKCE), só Chrome (sem link profundo no celular), envio de e-mail padrão do Supabase limitado.
 **Estimativa**: M.
 **Dependências**: E9.F2.1.
 
@@ -1108,13 +1108,13 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E9-autenticacao/E9-F3-seguranca-e-isolamento/E9.F3.1-testes-de-isolamento-entre-usuarios.md](PBIs/E9-autenticacao/E9-F3-seguranca-e-isolamento/E9.F3.1-testes-de-isolamento-entre-usuarios.md).
 
-**Descrição**: suíte `pytest` com dois usuários cobrindo `pecas`, `looks`, `preferencias`, `referencias`, `colecoes` e `sugestoes`: ler, alterar e excluir recurso alheio. **Lacuna que esta PBI cobre:** hoje só `referencias` e `colecoes` têm testes de rota; **`pecas`, `looks`, `preferencias` e `sugestoes` não têm testes de integração** (as verificações de "dois usuários" registradas nas PBIs antigas foram manuais). **Prioridade**: alta · **Tipo**: técnica.
+**Descrição**: suíte `pytest` com dois usuários cobrindo `pecas` (incluindo peças paradas), `looks`, `pastas` (incluída em 2026-11-07), `preferencias`, `referencias`, `colecoes` e `sugestoes`: ler, alterar e excluir recurso alheio. **Lacuna que esta PBI cobre:** hoje só `referencias` e `colecoes` têm testes de rota; **`pecas`, `looks`, `preferencias` e `sugestoes` não têm testes de integração** (as verificações de "dois usuários" registradas nas PBIs antigas foram manuais). **Prioridade**: alta · **Tipo**: técnica.
 
 **Critérios de aceite:**
 - Recurso de outro usuário → 404 e nada muda; listagens sem dados alheios; relações cruzadas rejeitadas.
 - Vazamento encontrado é corrigido na mesma PBI.
 
-**Status**: não iniciada.
+**Status**: **concluída em 2026-11-08**. `tests/test_isolamento.py` (51 testes): 35 das 37 rotas (todas com dados de usuário), listagens de B sem nenhum id de A, 20 tentativas diretas → 404, 11 relações cruzadas → 404/422 "não encontrado", estado de A idêntico no fim. **Nenhum vazamento encontrado.** Limpeza dos testes passou a apagar preferências e evitadas.
 **Estimativa**: M.
 **Dependências**: E9.F1.1.
 
@@ -1128,7 +1128,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Produção aceita só as origens do app; repositório e app sem segredos nem chave de serviço.
 - README separa o que é de desenvolvimento do que é de produção.
 
-**Status**: não iniciada.
+**Status**: **concluída em 2026-11-08**. `AMBIENTE=producao` impede a API de subir com `SUPABASE_JWT_SECRET` preenchido, `SUPABASE_URL` não-https ou `CORS_ORIGINS` com `*`/http/localhost; CORS sem credenciais de navegador; `gerar_token_teste.py` recusa rodar em produção; repositório e app verificados sem segredos; checklist de produção no README. `tests/test_config.py` (14 testes).
 **Estimativa**: P.
 **Dependências**: E9.F1.1.
 
@@ -1509,14 +1509,14 @@ Registrado em 2026-11-06 como ideia futura: **sem PBIs, sem estimativa e sem pra
 | E8.F5.1 | Estreitar candidatos do armário a partir das etiquetas (backend) | Concluída (`pytest`) |
 | E8.F5.2 | Sugerir o look da referência comparando com o Gemma (backend) | Concluída (`pytest` + Ollama real; precisão média) |
 | E8.F5.3 | "Ligar a um look": manual ou automático (mobile) | Concluída (validação manual no Chrome pendente) |
-| E9.F1.1 | Validação do JWT por chaves públicas (JWKS) | Não iniciada |
-| E9.F1.2 | Plano e script de migração dos dados existentes | Não iniciada |
-| E9.F1.3 | Execução supervisionada da migração de dados | Não iniciada |
-| E9.F2.1 | Cadastro, login e logout no app | Não iniciada |
-| E9.F2.2 | Token real, renovação e sessão expirada | Não iniciada |
-| E9.F2.3 | Recuperação de senha | Não iniciada |
-| E9.F3.1 | Testes de isolamento entre usuários | Não iniciada |
-| E9.F3.2 | Endurecimento de configuração | Não iniciada |
+| E9.F1.1 | Validação do JWT por chaves públicas (JWKS) | Concluída |
+| E9.F1.2 | Plano e script de migração dos dados existentes | Concluída (dados descartáveis, sem script) |
+| E9.F1.3 | Execução supervisionada da migração de dados | Não aplicável |
+| E9.F2.1 | Cadastro, login e logout no app | Concluída |
+| E9.F2.2 | Token real, renovação e sessão expirada | Concluída |
+| E9.F2.3 | Recuperação de senha | Concluída (só Chrome) |
+| E9.F3.1 | Testes de isolamento entre usuários | Concluída |
+| E9.F3.2 | Endurecimento de configuração | Concluída |
 | E10.F1.1 | Bucket privado e convenção de chaves | Não iniciada |
 | E10.F1.2 | Adaptador do Supabase Storage com a mesma interface | Não iniciada |
 | E10.F2.1 | Assinatura centralizada nas respostas da API | Não iniciada |

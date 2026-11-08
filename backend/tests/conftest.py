@@ -1,4 +1,4 @@
-"""Fixtures das rotas do mural (referências e coleções), contra o Postgres local.
+"""Fixtures dos testes de rota, contra o Postgres local.
 
 Cada teste usa usuários novos e apaga as linhas deles no fim; as imagens vão
 para uma pasta temporária. Sem o Postgres do `docker compose` no ar, os testes
@@ -52,6 +52,10 @@ def usuarios():
         )
         cursor.execute("DELETE FROM looks WHERE usuario_id = ANY(%s::uuid[])", (ids,))
         cursor.execute("DELETE FROM pastas_looks WHERE usuario_id = ANY(%s::uuid[])", (ids,))
+        # Preferências e evitadas (E9.F3.1): antes das peças, por causa das chaves estrangeiras.
+        cursor.execute("DELETE FROM combinacoes_evitadas WHERE usuario_id = ANY(%s::uuid[])", (ids,))
+        cursor.execute("DELETE FROM pecas_evitadas WHERE usuario_id = ANY(%s::uuid[])", (ids,))
+        cursor.execute("DELETE FROM preferencias WHERE usuario_id = ANY(%s::uuid[])", (ids,))
         cursor.execute("DELETE FROM pecas WHERE usuario_id = ANY(%s::uuid[])", (ids,))
     conexao.close()
 
