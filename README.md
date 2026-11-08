@@ -124,9 +124,31 @@ Regra prática pro time:
   ```
   Revise o arquivo gerado em `alembic/versions/`, rode `alembic upgrade head` pra aplicar localmente, e comite o model **junto** com o arquivo de migração — sem os dois juntos, quem puxar seu código fica com o model sem a tabela correspondente.
 
-## Testando endpoints autenticados (antes do Supabase Auth existir)
+## Login e endpoints autenticados
 
-Quase todos os endpoints exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. **Exceção conhecida (limitação de segurança, ainda não corrigida):** `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação**; a correção está prevista na PBI E10.F2.2 (ver [docs/backlog.md](docs/backlog.md)). Enquanto não existe um projeto Supabase real, gere um token de teste localmente, assinado com o mesmo `SUPABASE_JWT_SECRET` do seu `.env`:
+Quase todos os endpoints exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. A API aceita dois tipos de token (E9.F1.1): o **token real do Supabase** (ES256, validado pelas chaves públicas do projeto em `SUPABASE_URL`) e o **token de teste** abaixo (HS256, só enquanto `SUPABASE_JWT_SECRET` estiver preenchido; em produção ele fica vazio). **Exceção conhecida (limitação de segurança, ainda não corrigida):** `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação**; a correção está prevista na PBI E10.F2.2 (ver [docs/backlog.md](docs/backlog.md)).
+
+### Login no app (E9.F2.1–E9.F2.3)
+
+O app abre na tela de login quando não há sessão; cada conta vê só os próprios dados. Cadastro, login e "Esqueci minha senha" usam o Supabase Auth do projeto de desenvolvimento, configurado em [mobile/lib/core/auth/auth_config.dart](mobile/lib/core/auth/auth_config.dart). A URL e a chave **pública** (publishable) já vêm como padrão; para outro projeto, use `--dart-define=SUPABASE_URL=...` e `--dart-define=SUPABASE_PUBLISHABLE_KEY=...`. A chave secreta do Supabase nunca vai no app.
+
+```bash
+cd mobile
+flutter run -d chrome --web-port=8080
+```
+
+O app manda o token da sessão em toda chamada à API, renova quando vence e, se não der para renovar, volta ao login com o aviso "Sua sessão expirou" (E9.F2.2). O backend precisa estar com `SUPABASE_URL` no `.env` (reinicie o `uvicorn` depois de mudar o `.env`).
+
+No Supabase (Authentication → URL Configuration), deixe `http://localhost:8080` como **Site URL** e na lista de **Redirect URLs**: é para lá que voltam os links de e-mail. A confirmação de e-mail está **desligada** no projeto de desenvolvimento; se for ligada, o app mostra "Confirme seu e-mail" depois do cadastro.
+
+**Recuperação de senha (E9.F2.3):** "Esqueci minha senha" na tela de login envia um link por e-mail; ao abrir o link, o app pede a senha nova. Limitações:
+- Abra o link **no mesmo navegador** em que pediu a redefinição (o Supabase usa o fluxo PKCE, que guarda um código no navegador do pedido). Em outro navegador, o app mostra o aviso e oferece pedir outro link.
+- Sem SMTP próprio configurado no Supabase, o envio padrão de e-mail tem limite baixo por hora e, em projetos novos, só entrega para e-mails da equipe do projeto. Para testar com qualquer e-mail, configure um SMTP em Authentication → Emails.
+- No celular (Android/iOS) ainda não há link profundo configurado: o link abre o "Site URL" no navegador. Só o Chrome foi validado.
+
+### Token de teste (só desenvolvimento, sem o app)
+
+Para chamar a API direto (Swagger, curl, testes manuais), gere um token de teste localmente, assinado com o mesmo `SUPABASE_JWT_SECRET` do seu `.env`:
 
 ```bash
 cd backend
@@ -135,18 +157,7 @@ python scripts/gerar_token_teste.py
 
 Use o token impresso no header `Authorization: Bearer <token>`, ou cole ele no botão **"Authorize"** do Swagger (`/docs`). Por padrão vale 30 dias e usa um `usuario_id` aleatório — dá pra fixar um usuário específico com `--usuario-id <uuid>` (útil pra sempre testar como "o mesmo usuário") ou ajustar a validade com `--dias`.
 
-Isso é só uma ferramenta de desenvolvimento — some assim que o projeto Supabase real existir e os tokens passarem a vir do login de verdade.
-
-### Usando o token no app mobile (E1.F2.1)
-
-O `ApiClient` (mobile) injeta esse token via `--dart-define`:
-
-```bash
-cd mobile
-flutter run -d chrome --web-port=8080 --dart-define=DEV_AUTH_TOKEN=<token-copiado>
-```
-
-> Token gerado em 2026-10-02, válido por 30 dias (expirou por volta de 2026-11-01). Gere um novo com `python scripts/gerar_token_teste.py` quando precisar. O login real com Supabase Auth ainda **não existe** (Épico 9, não iniciado): até lá, o app depende deste `DEV_AUTH_TOKEN`.
+É só uma ferramenta de desenvolvimento: o app não usa mais esse token (desde a E9.F2.2 ele envia o token do login real).
 
 ## Visualizando o banco (opcional)
 
@@ -179,22 +190,46 @@ Alternativas equivalentes: [DBeaver](https://dbeaver.io/) (gratuito, suporta vá
 | Rodar a API | `uvicorn app.main:app --reload` |
 | Rodar o app Flutter | `flutter run` (dentro de `mobile/`) |
 | Atualizar dependências Flutter | `flutter pub get` |
-| Rodar os testes do backend | `pytest` (dentro de `backend/`, venv ativada; os testes de `referencias` e `colecoes` precisam do Postgres no ar e são pulados sem ele) |
+| Rodar os testes do backend | `pytest` (dentro de `backend/`, venv ativada; os testes de rota, incluindo o de isolamento entre usuários, precisam do Postgres no ar e são pulados sem ele) |
 | Rodar os testes do app | `flutter test` (dentro de `mobile/`) |
 
 ## Variáveis de ambiente (`backend/.env`)
 
 | Variável | Para quê serve |
 | --- | --- |
+| `AMBIENTE` | `desenvolvimento` (padrão) ou `producao`. Em produção a API não sobe com configuração de desenvolvimento (ver "Desenvolvimento x produção" abaixo) |
 | `DATABASE_URL` | Conexão da aplicação com o Postgres (driver assíncrono `asyncpg`) |
 | `ALEMBIC_DATABASE_URL` | Conexão do Alembic com o Postgres (driver síncrono `psycopg2`, exigido pelas migrações) |
-| `SUPABASE_JWT_SECRET` | Valida o token JWT emitido pelo Supabase Auth |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | Credenciais do projeto Supabase (auth/storage) — preencher quando o projeto Supabase for criado |
+| `SUPABASE_URL` | URL da API do projeto Supabase (`https://<ref>.supabase.co`, não a do painel). A API busca as chaves públicas em `<SUPABASE_URL>/auth/v1/.well-known/jwks.json` para validar o login real |
+| `SUPABASE_JWT_SECRET` | **Só desenvolvimento:** segredo dos tokens de teste (`scripts/gerar_token_teste.py`). Vazio desliga os tokens de teste — é o valor de produção |
+| `SUPABASE_SERVICE_KEY` | Chave de serviço do Supabase (storage, Épico 10). Só no backend, nunca no app |
 | `OLLAMA_URL` / `OLLAMA_MODELO` / `OLLAMA_TIMEOUT_S` | Ollama local (padrão `http://localhost:11434`, `gemma3:4b`, 30 s) — sugestão de metadados da peça; sem ele a sugestão vem vazia |
 | `UPLOAD_DIR` | Pasta local onde as imagens são salvas e de onde `/uploads` as serve, **sem autenticação** (MVP; a troca por bucket privado do Supabase Storage está planejada no Épico 10, não iniciado) |
 | `CORS_ORIGINS` | Origens permitidas a chamar a API, separadas por vírgula |
 
 O `.env` **não é versionado** (está no `.gitignore`) — cada pessoa cria o seu localmente a partir do `.env.example`, que sim é versionado com valores padrão de desenvolvimento.
+
+### Desenvolvimento x produção (E9.F3.2)
+
+| | Desenvolvimento | Produção |
+| --- | --- | --- |
+| `AMBIENTE` | `desenvolvimento` | `producao` |
+| `SUPABASE_URL` | URL do projeto de desenvolvimento | URL `https://` do projeto de produção (obrigatória) |
+| `SUPABASE_JWT_SECRET` | qualquer valor (habilita o `gerar_token_teste.py`) | **vazio** (tokens de teste desligados) |
+| `CORS_ORIGINS` | `http://localhost:8080` | só as URLs `https://` do app publicado; sem `*`, sem `localhost` |
+| `SUPABASE_SERVICE_KEY` | vazio por enquanto | só no servidor da API (variável de ambiente do provedor), nunca no app nem no repositório |
+| `scripts/gerar_token_teste.py` | disponível | recusa rodar |
+
+Com `AMBIENTE=producao`, a API **falha ao subir** e lista o que está errado se alguma linha da coluna "Produção" não for cumprida. Assim, um deploy esquecido com a configuração de desenvolvimento não chega ao ar.
+
+**Checklist antes de publicar:**
+- [ ] Variáveis de produção definidas no provedor (não em arquivo versionado) e `AMBIENTE=producao`.
+- [ ] No Supabase de produção: "Site URL" e "Redirect URLs" com a URL `https://` do app (não `localhost`).
+- [ ] `--dart-define=SUPABASE_URL=...` e `--dart-define=SUPABASE_PUBLISHABLE_KEY=...` do projeto de produção no build do app; a chave **secreta** nunca vai no app.
+- [ ] `alembic upgrade head` rodado como passo do deploy.
+- [ ] Limitações ainda abertas: dois endpoints de imagem sem login e `/uploads` público (E10.F2.2), exclusão de conta fora do escopo.
+
+O app manda o token no cabeçalho `Authorization` (não usa cookie), por isso o CORS não libera credenciais de navegador (`allow_credentials=False`).
 
 ## Solução de problemas comuns
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/auth/auth_controller.dart';
 import '../../core/widgets/screen_header.dart';
 import '../looks/looks_controller.dart';
 import '../looks/montar_look_view.dart';
@@ -11,7 +12,8 @@ import 'widgets/calendario_recolhivel.dart';
 import 'widgets/card_look_do_dia.dart';
 
 /// Tela inicial do app — aba "Casa". Do mais para o menos usado: saudação com
-/// o acesso discreto às preferências de estilo (ícone no cabeçalho), as duas
+/// o acesso discreto às preferências de estilo e ao "Sair da conta" (ícones no
+/// cabeçalho), as duas
 /// ações principais lado a lado (adicionar peça, montar um look), o card
 /// compacto do "Look do dia" (E6.F1.2) e o calendário de looks (E3.F4.3),
 /// recolhido até a pessoa querer vê-lo.
@@ -20,6 +22,29 @@ class HomeView extends ConsumerWidget {
 
   void _abrir(BuildContext context, Widget tela) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => tela));
+  }
+
+  /// Logout com confirmação (E9.F2.1). Ao sair, a raiz do app troca de
+  /// escopo e volta ao login, sem nenhum dado desta conta em memória.
+  Future<void> _sair(BuildContext context, WidgetRef ref) async {
+    final auth = ref.read(authServiceProvider);
+    final email = auth.email;
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        title: const Text('Sair da conta?'),
+        content: Text(
+          email == null
+              ? 'Você vai precisar entrar de novo para ver seu armário.'
+              : 'Você está conectado como $email. Vai precisar entrar de novo para ver seu armário.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogo).pop(false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.of(dialogo).pop(true), child: const Text('Sair')),
+        ],
+      ),
+    );
+    if (confirmou == true) await auth.sair();
   }
 
   @override
@@ -42,10 +67,20 @@ class HomeView extends ConsumerWidget {
               titulo: 'Olá!',
               subtitulo: 'Vamos escolher o que vestir.',
               compacto: true,
-              acao: IconButton(
-                tooltip: 'Preferências de estilo',
-                icon: const Icon(Icons.tune),
-                onPressed: () => _abrir(context, const PreferencesView()),
+              acao: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Preferências de estilo',
+                    icon: const Icon(Icons.tune),
+                    onPressed: () => _abrir(context, const PreferencesView()),
+                  ),
+                  IconButton(
+                    tooltip: 'Sair da conta',
+                    icon: const Icon(Icons.logout),
+                    onPressed: () => _sair(context, ref),
+                  ),
+                ],
               ),
             ),
             Padding(

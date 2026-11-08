@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:guarda_roupa_app/core/auth/auth_controller.dart';
 import 'package:guarda_roupa_app/main.dart';
 import 'package:guarda_roupa_app/models/peca.dart';
 import 'package:guarda_roupa_app/services/peca_service.dart';
@@ -26,6 +27,7 @@ import 'package:guarda_roupa_app/views/upload/upload_controller.dart';
 import 'package:guarda_roupa_app/views/upload/upload_view.dart';
 import 'package:guarda_roupa_app/views/suggestions/suggestions_controller.dart' show sugestaoServiceProvider;
 
+import 'support/auth_service_falso.dart';
 import 'support/look_service_sem_historico.dart';
 import 'support/sugestao_service_sem_look_do_dia.dart';
 
@@ -116,6 +118,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          // Com sessão: o app abre direto na Casa (E9.F2.1).
+          authServiceProvider.overrideWithValue(AuthServiceFalso(logadoComo: 'ana@exemplo.com')),
           pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio()),
           // A Casa mostra o calendário de looks, que busca o histórico.
           lookServiceProvider.overrideWithValue(LookServiceSemHistorico()),
@@ -142,6 +146,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          authServiceProvider.overrideWithValue(AuthServiceFalso(logadoComo: 'ana@exemplo.com')),
           pecaServiceProvider.overrideWithValue(_PecaServiceArmarioVazio()),
           // A Casa mostra o calendário de looks, que busca o histórico.
           lookServiceProvider.overrideWithValue(LookServiceSemHistorico()),

@@ -1,9 +1,9 @@
-"""Gera um JWT de teste, assinado com o SUPABASE_JWT_SECRET do .env local.
+"""Gera um JWT de teste (HS256), assinado com o SUPABASE_JWT_SECRET do .env local.
 
-Uso apenas para desenvolvimento, ANTES de existir um projeto Supabase real —
-a API valida esse token normalmente porque foi assinado com o mesmo segredo
-que ela usa (ver app/core/security.py). Quando o Supabase Auth real entrar
-em cena, use o token emitido por ele, não este script.
+Uso apenas para desenvolvimento. A API aceita esse token enquanto
+SUPABASE_JWT_SECRET estiver preenchido (ver app/core/security.py); os tokens
+reais do Supabase (ES256) são validados pelas chaves públicas do projeto.
+Em produção o segredo fica vazio e este script deixa de servir.
 
 Uso:
     python scripts/gerar_token_teste.py
@@ -26,6 +26,9 @@ def main() -> None:
     parser.add_argument("--usuario-id", default=None, help="UUID do usuário de teste (default: aleatório)")
     parser.add_argument("--dias", type=int, default=30, help="Validade do token em dias (default: 30)")
     args = parser.parse_args()
+
+    if os.getenv("AMBIENTE", "desenvolvimento") == "producao":
+        raise SystemExit("Token de teste é só para desenvolvimento (AMBIENTE=producao).")
 
     secret = os.getenv("SUPABASE_JWT_SECRET")
     if not secret:
