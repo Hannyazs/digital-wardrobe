@@ -82,13 +82,13 @@ A justificativa do Akkyeo apoia-se em três dimensões.
 
 **Relevância para a Engenharia de Computação.** O projeto integra, em uma aplicação real, conteúdos centrais da formação: desenvolvimento móvel multiplataforma, integração entre aplicação e API, modelagem relacional e migrações de banco de dados, segurança e isolamento de dados por usuário, processamento de imagens e um sistema de recomendação com critérios explícitos e testáveis. Soma-se a isso o uso de inteligência artificial multimodal — o Gemma 3, capaz de interpretar imagens — para apoiar o cadastro das peças e a análise das referências visuais. O projeto foi concebido para que o sucesso não dependa de a IA executar todas as funções: o reconhecimento de imagens reduz o trabalho de catalogação, enquanto a recomendação permanece em um sistema determinístico, verificável por testes automatizados (seção 2.5).
 
-### 1.6 Público-alvo
+### 1.6 Público-alvo (REVISAR)
 
 Público geral. Como referência para as decisões de projeto, foi criada a persona *Marina*, 29 anos, que trabalha em horário comercial, tem pouco tempo e sente que "sempre usa as mesmas cinco peças". Ela valoriza rapidez e praticidade e não quer comprar roupas novas apenas para ter o que vestir.
 
 Por se destinar ao público geral, o projeto considera também usuários com diferentes necessidades, em especial pessoas com daltonismo ou dificuldade para distinguir determinadas cores, para quem um aplicativo centrado em combinações cromáticas precisa oferecer informação que não dependa apenas da percepção visual das cores (seção 5.10).
 
-### 1.7 Resultados esperados
+### 1.7 Resultados esperados (REVISAR)
 
 - protótipo funcional (aplicativo, API e banco) que demonstre o fluxo cadastro → acervo → combinação → recomendação;
 - cadastro assistido pelo Gemma 3, com sugestões de atributos revisáveis pelo usuário;
@@ -100,7 +100,7 @@ Por se destinar ao público geral, o projeto considera também usuários com dif
 
 Como benefícios esperados — cuja efetividade será objeto de avaliação, e não pressuposto —, destacam-se: maior conhecimento do usuário sobre o próprio acervo, decisões cotidianas mais rápidas, maior variedade de peças efetivamente usadas e estímulo à experimentação de novas combinações.
 
-### 1.8 Escopo: implementado, planejado e evolução futura
+### 1.8 Escopo: implementado, planejado e evolução futura (REVISAR)
 
 Para evitar ambiguidade sobre o estado do projeto, as funcionalidades são classificadas em três grupos:
 
@@ -645,7 +645,7 @@ Fonte: elaborado pela autora (2026).
 
 ---
 
-## 9 Evoluções futuras
+## 9 Evoluções futuras (REVISAR)
 
 As funcionalidades desta seção **não fazem parte do escopo da versão inicial** e não são requisitos obrigatórios do TCC. Elas indicam caminhos de evolução do Akkyeo após a consolidação das funcionalidades planejadas.
 
@@ -657,7 +657,7 @@ As funcionalidades desta seção **não fazem parte do escopo da versão inicial
 
 ---
 
-## 10 Considerações finais
+## 10 Considerações finais (REVISAR)
 
 O Akkyeo atingiu o objetivo de oferecer um ciclo completo de gestão do vestuário pessoal: cadastrar peças por fotografia com apoio de inteligência artificial, organizar o acervo, compor e registrar combinações, declarar preferências e receber recomendações que usam apenas peças do próprio usuário e priorizam as esquecidas. O mural de referências estendeu esse ciclo à inspiração visual, sempre traduzida para o acervo real. Com isso, o produto enfrenta diretamente o problema de subutilização do vestuário descrito na introdução.
 
@@ -669,7 +669,7 @@ A mensagem que orienta o projeto é que renovar a forma de se vestir não exige,
 
 ---
 
-## Referências
+## Referências (REVISAR)
 
 ACLOSET. *Acloset - AI Fashion Assistant*. App Store. Disponível em: <https://apps.apple.com/us/app/acloset-ai-fashion-assistant/id1542311809>. Acesso em: out. 2026.
 

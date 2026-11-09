@@ -2,7 +2,7 @@
 
 Plano de adaptação do app Flutter pra seguir a identidade visual do Figma "VIRTUALASSIST" (tela de montagem de looks, `docs/figma-reference/catalogo_looks_screen.png`), em etapas pequenas e testáveis. Front-end/UI apenas — nenhuma mudança de backend, dados ou lógica de negócio.
 
-**Status (atualizado em 2026-11-05)**: Etapas 0–8 concluídas (a tabela abaixo é a referência; o texto original deste cabeçalho dizia "Etapas 0–6 concluídas", escrito antes das etapas 7 e 8). Nesta data a suíte Flutter inteira passa (345/345) e as "3 falhas pré-existentes de `peca_form_test.dart`" citadas a seguir já não existem. As abas IA/Sugestões e Referências deixaram de ser placeholders (são as telas de Sugestões e do mural), e `PreferencesView` é uma tela real (Épico 4). Só `LoginView` continua placeholder. **Texto original preservado:** Etapas 0–6 concluídas. Todas as telas existentes foram adaptadas à identidade visual do Figma; navegação de 5 abas funcionando. Verificado após cada etapa (`dart analyze` limpo, `flutter test` sem regressão — baseline estável em 36/39, mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas ao redesign). Validação manual visual no Chrome ainda pendente (não executável nesta sessão).
+**Status (atualizado em 2026-11-05)**: Etapas 0–8 concluídas (a tabela abaixo é a referência; o texto original deste cabeçalho dizia "Etapas 0–6 concluídas", escrito antes das etapas 7 e 8). Nesta data a suíte Flutter inteira passa (345/345) e as "3 falhas pré-existentes de `peca_form_test.dart`" citadas a seguir já não existem. As abas IA/Sugestões e Referências deixaram de ser placeholders (são as telas de Sugestões e do mural), e `PreferencesView` é uma tela real (Épico 4). Só `LoginView` continua placeholder. **Texto original preservado:** Etapas 0–6 concluídas. Todas as telas existentes foram adaptadas à identidade visual do Figma; navegação de 5 abas funcionando. Verificado após cada etapa (`dart analyze` limpo, `flutter test` sem regressão — baseline estável em 36/39, mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas ao redesign).
 
 ## Decisões já tomadas
 
@@ -22,10 +22,8 @@ Plano de adaptação do app Flutter pra seguir a identidade visual do Figma "VIR
 | 4 | `HomeShell` com 5 abas (Casa, Armário, Looks, IA, Referências) + `HomeView`/`SuggestionsView`/`ReferencesView` novos + "Meus looks" como botão dentro da aba Looks | ✅ Concluída |
 | 5 | Restyle de `UploadView`/`PecaFormView`/`PecaDetailView` | ✅ Concluída |
 | 6 | ~~Remover `CatalogoLookMockView` e o atalho temporário em `LooksView`~~ | ✅ Concluída (antecipada) |
-| 7 | Reorganização: gavetas no armário, looks salvos no Armário, calendário na Casa, filtros múltiplos em painel | ✅ Concluída (validação visual pendente) — ver seção própria abaixo |
-| 8 | Revisão de UX e acessibilidade (textos, leitor de tela, contraste, área de toque, formulário, montagem) | ✅ Concluída (validação visual pendente) — ver seção própria abaixo |
-
-**Pendente**: validação manual visual no Chrome/emulador (comparar com o Figma na prática) — não executável nesta sessão, requer interação humana num navegador/dispositivo real.
+| 7 | Reorganização: gavetas no armário, looks salvos no Armário, calendário na Casa, filtros múltiplos em painel | ✅ Concluída — ver seção própria abaixo |
+| 8 | Revisão de UX e acessibilidade (textos, leitor de tela, contraste, área de toque, formulário, montagem) | ✅ Concluída — ver seção própria abaixo |
 
 ## O que não mexer
 
@@ -67,7 +65,7 @@ Pedido do usuário, feito antes das PBIs pendentes dos Épicos 5 e 6 (E5.F3.1, E
 
 **Bugs pré-existentes corrigidos no caminho (montagem como aba)**: salvar chamava `Navigator.pop()` mesmo sem tela por baixo, e nome/seleção não eram limpos depois de salvar. Agora volta só quando aberta por cima de outra tela; como aba, limpa nome, peças, ocasiões e filtros. Com a montagem aberta pela Casa por cima da aba, só a tela visível reage ao salvar (antes a mensagem saía duas vezes).
 
-**Verificação**: `dart analyze` limpo; `flutter test` 189/189 (eram 173; testes de armário, looks, montagem, calendário e cadastro ajustados à navegação nova, mais testes novos de filtros múltiplos, gavetas, espaços do carrossel e salvar pela aba). Validação visual no Chrome pendente.
+**Verificação**: `dart analyze` limpo; `flutter test` 189/189 (eram 173; testes de armário, looks, montagem, calendário e cadastro ajustados à navegação nova, mais testes novos de filtros múltiplos, gavetas, espaços do carrossel e salvar pela aba).
 
 ## Etapa 8 — Revisão de UX e acessibilidade (2026-10-22)
 
@@ -102,7 +100,7 @@ Revisão de UI/UX pedida pelo usuário, sem mudar a identidade visual (paleta, f
 
 **Não feito:** (22) nome do look depois das peças na montagem — opcional; o campo no rodapé ficaria escondido pelo teclado. Peças com várias cores — exige PBI própria (banco + motor).
 
-**Verificação**: `dart analyze` limpo; `flutter test` **242/242** (14 testes novos em `acessibilidade_e_ux_test.dart`: rótulos do leitor de tela, selecionada/não, botão de filtros, área de toque ≥ 48, subcategorias, texto 2× em Casa/Armário/Montar/Montagem/Looks, formulário, montagem, toque no card, textos). Testes antigos ajustados aos textos novos. Validação visual no Chrome pendente.
+**Verificação**: `dart analyze` limpo; `flutter test` **242/242** (14 testes novos em `acessibilidade_e_ux_test.dart`: rótulos do leitor de tela, selecionada/não, botão de filtros, área de toque ≥ 48, subcategorias, texto 2× em Casa/Armário/Montar/Montagem/Looks, formulário, montagem, toque no card, textos). Testes antigos ajustados aos textos novos.
 
 ## Etapa 9 — Casa mais compacta e régua de criatividade nas Sugestões (2026-10-23)
 

@@ -6,34 +6,18 @@ local. Routers não chamam os adapters diretamente (CLAUDE.md, "Camadas do
 backend").
 """
 
-import io
 import logging
 
-from PIL import Image, UnidentifiedImageError
-
 from app.adapters import ollama_adapter, storage_adapter
-from app.core.exceptions import ImagemInvalidaError
+from app.services.validacao_imagem import TAMANHO_MAX_BYTES, validar_imagem
 
 logger = logging.getLogger(__name__)
-
-TAMANHO_MAX_BYTES = 10 * 1024 * 1024
-FORMATOS_ACEITOS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
 
 
 def salvar_imagem_referencia(imagem_bytes: bytes) -> str:
     """Valida (formato real da imagem, não o nome do arquivo) e salva.
     Devolve a URL pública relativa."""
-    if len(imagem_bytes) > TAMANHO_MAX_BYTES:
-        raise ImagemInvalidaError("A imagem passa de 10 MB.")
-    try:
-        with Image.open(io.BytesIO(imagem_bytes)) as imagem:
-            formato = imagem.format
-            imagem.verify()
-    except (UnidentifiedImageError, OSError, SyntaxError) as exc:
-        raise ImagemInvalidaError("O arquivo não é uma imagem válida.") from exc
-    extensao = FORMATOS_ACEITOS.get(formato or "")
-    if extensao is None:
-        raise ImagemInvalidaError("Use uma imagem JPEG, PNG ou WebP.")
+    extensao = validar_imagem(imagem_bytes)
     return storage_adapter.save_image(imagem_bytes, extensao=extensao)
 
 

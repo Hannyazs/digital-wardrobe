@@ -1,7 +1,6 @@
 import logging
 import uuid
 from datetime import date
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -22,6 +21,7 @@ from app.schemas.peca import (
 )
 from app.services import pecas_paradas
 from app.services.image_service import processar_imagem_peca, salvar_imagem_original
+from app.services.validacao_imagem import TAMANHO_MAX_BYTES
 from app.services.peca_consulta import (
     LIMITE_MAXIMO,
     condicoes_de_filtro,
@@ -35,10 +35,15 @@ router = APIRouter(prefix="/pecas", tags=["pecas"])
 
 
 @router.post("/processar-imagem", response_model=ImagemProcessadaResponse)
-async def processar_imagem(arquivo: UploadFile):
+async def processar_imagem(
+    arquivo: UploadFile,
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+):
     """Recebe a foto, remove o fundo e devolve uma sugestão de metadados
-    para o usuário revisar antes de confirmar o cadastro (POST /pecas)."""
-    imagem_bytes = await arquivo.read()
+    para o usuário revisar antes de confirmar o cadastro (POST /pecas).
+    Exige login (E1.F1.7); o `usuario_id` só barra anônimos por enquanto."""
+    # Lê no máximo o limite + 1 byte: um envio gigante é recusado sem ir à memória.
+    imagem_bytes = await arquivo.read(TAMANHO_MAX_BYTES + 1)
     try:
         # Despachada em threadpool: rembg é CPU-bound e síncrono, chamá-la
         # direto aqui bloquearia o event loop inteiro durante o processamento.
@@ -54,13 +59,20 @@ async def processar_imagem(arquivo: UploadFile):
 
 
 @router.post("/upload-original", response_model=ImagemOriginalResponse)
-async def upload_imagem_original(arquivo: UploadFile):
+async def upload_imagem_original(
+    arquivo: UploadFile,
+    usuario_id: uuid.UUID = Depends(get_current_user_id),
+):
     """Salva a foto original sem processamento — usado quando
     /processar-imagem falhou e o usuário optou por continuar sem
-    remoção de fundo (E1.F1.4)."""
-    imagem_bytes = await arquivo.read()
-    extensao = Path(arquivo.filename or "").suffix.lstrip(".") or "jpg"
-    imagem_url = await run_in_threadpool(salvar_imagem_original, imagem_bytes, extensao)
+    remoção de fundo (E1.F1.4). Exige login, valida o tipo real e ignora
+    o nome enviado (E1.F1.7)."""
+    imagem_bytes = await arquivo.read(TAMANHO_MAX_BYTES + 1)
+    try:
+        imagem_url = await run_in_threadpool(salvar_imagem_original, imagem_bytes)
+    except ImagemInvalidaError as exc:
+        logger.warning("Imagem inválida recebida em /upload-original: %s", exc)
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return ImagemOriginalResponse(imagem_url=imagem_url)
 
 

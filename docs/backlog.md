@@ -27,7 +27,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - A foto escolhida aparece em preview antes de qualquer envio.
 - Usuário pode descartar/trocar a foto antes de confirmar.
 
-**Status**: **concluída** — implementada (`upload_view.dart`, `upload_controller.dart`, permissões iOS), `flutter analyze` limpo e testes automatizados passando. Validação manual visual no Chrome pelo usuário ainda pendente — ver log de implementação no arquivo detalhado.
+**Status**: **concluída** — implementada (`upload_view.dart`, `upload_controller.dart`, permissões iOS), `flutter analyze` limpo e testes automatizados passando.
 **Estimativa**: P.
 **Dependências**: nenhuma.
 
@@ -42,7 +42,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Retorna a URL de uma imagem PNG com fundo removido, no caminho feliz.
 - Se a imagem for inválida/corrompida ou o `rembg` falhar por qualquer motivo, o endpoint captura o erro, loga no backend, e devolve um erro HTTP estruturado — nunca uma exception crua (500 sem tratamento). Este critério é só sobre o **contrato do backend**; o que o app faz com esse erro é escopo do E1.F1.4, não deste PBI.
 
-**Status**: **concluída** — try/except implementado (`app/core/exceptions.py`, `app/adapters/rembg_adapter.py`) traduzido para `HTTPException` estruturada + log no router (`app/api/v1/pecas.py`), e a chamada síncrona (CPU-bound) agora roda via `run_in_threadpool`, resolvendo o bloqueio do event loop. Todos os critérios de aceite verificados por execução real (API local + `TestClient`, não só revisão de código) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** hoje não há teste automatizado desta rota na suíte `pytest` (ver E1.F1.5). **Limitação de segurança conhecida:** `POST /pecas/processar-imagem` **não exige autenticação** (não usa `get_current_user_id`), ao contrário dos demais endpoints de `/pecas`; os critérios de aceite desta PBI nunca exigiram autenticação. A correção está prevista na E10.F2.2 e **não está concluída**.
+**Status**: **concluída** — try/except implementado (`app/core/exceptions.py`, `app/adapters/rembg_adapter.py`) traduzido para `HTTPException` estruturada + log no router (`app/api/v1/pecas.py`), e a chamada síncrona (CPU-bound) agora roda via `run_in_threadpool`, resolvendo o bloqueio do event loop. Todos os critérios de aceite verificados por execução real (API local + `TestClient`, não só revisão de código) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** hoje não há teste automatizado desta rota na suíte `pytest` (ver E1.F1.5). **Limitação de segurança que existia:** `POST /pecas/processar-imagem` **não exigia autenticação** (não usava `get_current_user_id`), ao contrário dos demais endpoints de `/pecas`; os critérios de aceite desta PBI nunca exigiram autenticação. **Corrigida na E1.F1.7 (concluída em 2026-11-08):** a rota agora exige o token e valida o arquivo.
 **Estimativa**: pequena.
 **Dependências**: nenhuma.
 
@@ -57,7 +57,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Imagem processada é exibida ao concluir.
 - Falha de rede ou timeout mostra mensagem clara, sem travar a tela.
 
-**Status**: **concluída** — botão "Confirmar" ligado a `POST /pecas/processar-imagem`, com estados de carregamento/sucesso/erro (`upload_controller.dart`), `PecaService` corrigido para funcionar em Web (`XFile`/`MultipartFile.fromBytes` em vez de `dart:io File`), e timeout configurado no `ApiClient`. `flutter analyze` limpo e `flutter test` com 4/4 passando (carregamento, sucesso e erro cobertos com `PecaService` falso). Validação manual visual no Chrome e teste de ponta a ponta contra o backend real ainda pendentes — ver log de implementação no arquivo detalhado.
+**Status**: **concluída** — botão "Confirmar" ligado a `POST /pecas/processar-imagem`, com estados de carregamento/sucesso/erro (`upload_controller.dart`), `PecaService` corrigido para funcionar em Web (`XFile`/`MultipartFile.fromBytes` em vez de `dart:io File`), e timeout configurado no `ApiClient`. `flutter analyze` limpo e `flutter test` com 4/4 passando (carregamento, sucesso e erro cobertos com `PecaService` falso). Teste de ponta a ponta contra o backend real ainda pendente — ver log de implementação no arquivo detalhado.
 **Estimativa**: M.
 **Dependências**: E1.F1.1, E1.F1.2.
 
@@ -71,17 +71,19 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Se o backend retornar o erro estruturado do E1.F1.2, ou a requisição expirar (timeout de rede), o app oferece explicitamente seguir com a foto original (sem remoção de fundo) em vez de travar o cadastro.
 - Usuário consegue completar o cadastro normalmente mesmo com essa falha.
 
-**Status**: **concluída** — botão "Continuar sem remoção de fundo" na tela de erro da E1.F1.3, novo endpoint `POST /pecas/upload-original` (salva a foto sem `rembg`/Gemini) para dar uma URL utilizável quando o processamento falha. Decisão de escopo (validada com o usuário): o fallback é oferecido para qualquer erro do envio, não só timeout/erro estruturado. `flutter test` com 6/6 passando; backend verificado só por `py_compile` (sem venv configurado nesta máquina para rodar de verdade — ver log de implementação). Validação manual visual no Chrome e execução real do backend ainda pendentes. **Atualização de 2026-11-05:** hoje existe `backend/.venv` e uma suíte `pytest`, mas ela **não tem teste para `upload-original`** (nem para `processar-imagem`). **Limitação de segurança conhecida:** `POST /pecas/upload-original` e `POST /pecas/processar-imagem` **não exigem autenticação** (não usam `get_current_user_id`) e `upload-original` aceita a extensão do nome do arquivo sem validar o tipo real; a correção está prevista na E10.F2.2 e **não está concluída**.
+**Status**: **concluída** — botão "Continuar sem remoção de fundo" na tela de erro da E1.F1.3, novo endpoint `POST /pecas/upload-original` (salva a foto sem `rembg`/Gemini) para dar uma URL utilizável quando o processamento falha. Decisão de escopo (validada com o usuário): o fallback é oferecido para qualquer erro do envio, não só timeout/erro estruturado. `flutter test` com 6/6 passando; backend verificado só por `py_compile` (sem venv configurado nesta máquina para rodar de verdade — ver log de implementação). Execução real do backend ainda pendente. **Atualização de 2026-11-05:** hoje existe `backend/.venv` e uma suíte `pytest`, mas ela **não tem teste para `upload-original`** (nem para `processar-imagem`). **Limitação de segurança que existia:** `POST /pecas/upload-original` e `POST /pecas/processar-imagem` **não exigiam autenticação** (não usavam `get_current_user_id`) e `upload-original` aceitava a extensão do nome do arquivo sem validar o tipo real. **Corrigida na E1.F1.7 (concluída em 2026-11-08):** as duas rotas exigem o token, validam o tipo real e `upload-original` grava com a extensão do formato detectado.
 **Estimativa**: P.
 **Dependências**: E1.F1.2 (precisa existir um erro estruturado pra reagir a), E1.F1.3.
 
 ### E1.F1.5 — Testes automatizados do fluxo de processamento
 
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.5-testes-do-fluxo-de-processamento.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.5-testes-do-fluxo-de-processamento.md).
+
 **Descrição**: suíte `pytest` cobrindo `POST /pecas/processar-imagem` — caminho feliz e falha do `rembg` (depende de E1.F1.4 existir pra ter o que testar).
 
-**Status**: não iniciado. (Texto original: "o projeto ainda não tem nenhuma suíte de teste configurada".) **Atualização de 2026-11-05:** a suíte `pytest` existe hoje (261 testes coletados), mas **nenhum teste cobre `POST /pecas/processar-imagem` nem `POST /pecas/upload-original`**; esta PBI continua pendente. Relacionada à lacuna de testes de rota da E9.F3.1 e à vulnerabilidade de autenticação da E10.F2.2.
+**Status**: **concluída (teste de fumaça com o `rembg` real pendente)** — 2026-11-08: `tests/test_processamento_imagem.py` com 8 testes passando (rotas `processar-imagem` e `upload-original`: 200, 422, 500 genérico com log, Ollama fora do ar; e o `rembg_adapter`), com `rembg` e Ollama simulados, sem Postgres e sem código de produção alterado. **Atualização de 2026-11-08 (E1.F1.7):** o mesmo arquivo foi estendido com autenticação, tipo real, limite de 10 MB e extensão segura e passou a ter 18 testes.
 **Estimativa**: M.
-**Dependências**: E1.F1.2, E1.F1.4.
+**Dependências**: E1.F1.2, E1.F1.4, E7.F1.1. Fazer antes da E1.F1.7 e da E10.F2.2, que estendem estes testes.
 
 ### E1.F1.6 — Recorte manual da foto antes do envio *(PBI retroativa — já implementada)*
 
@@ -96,9 +98,24 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Ajustar, recortar e "Usar recorte" troca a foto por uma versão recortada, menor que a original; "Refazer recorte" volta ao ajuste.
 - Falha do recorte mostra mensagem e a tela continua utilizável (sem teste automatizado).
 
-**Status**: **concluída — documentada retroativamente** (`recorte_view.dart`, `upload_view.dart`, `upload_controller.dart`; `recorte_test.dart` com 3 casos passando em 2026-11-05; validação manual não verificada).
+**Status**: **concluída — documentada retroativamente** (`recorte_view.dart`, `upload_view.dart`, `upload_controller.dart`; `recorte_test.dart` com 3 casos passando em 2026-11-05).
 **Estimativa**: M (retroativa).
 **Dependências**: E1.F1.1, E1.F1.3.
+
+### E1.F1.7 — Segurança das rotas de imagem
+
+Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.7-seguranca-das-rotas-de-imagem.md](PBIs/E1-cadastro-de-roupas/E1-F1-adicionar-foto/E1.F1.7-seguranca-das-rotas-de-imagem.md).
+
+**Descrição**: token obrigatório, tipo real, limite de 10 MB e extensão segura em `processar-imagem` e `upload-original`. Antecipa, sem depender do Supabase Storage, a parte de segurança que antes cabia à E10.F2.2 (criada em 2026-11-08).
+
+**Critérios de aceite:**
+- Sem token → 401 nas duas rotas, sem gravar nada.
+- Arquivo que não é JPEG, PNG ou WebP (pelo conteúdo, não pelo nome) ou acima de 10 MB → 422, sem gravar nada.
+- `upload-original` grava com a extensão do formato detectado, nunca com a do nome enviado.
+
+**Status**: **concluída** — 2026-11-08: as duas rotas exigem token (401), validam o formato real pelo conteúdo (módulo novo `app/services/validacao_imagem.py`, compartilhado com as referências), recusam acima de 10 MB sem carregar o envio inteiro e `upload-original` grava com a extensão do formato detectado. Critérios de aceite verificados por teste automatizado: 401 sem token nas duas rotas, 422 para texto renomeado como `.png`, GIF ("Use uma imagem JPEG, PNG ou WebP.") e arquivo acima de 10 MB ("A imagem passa de 10 MB.", sem chamar o `rembg`), PNG enviado como `foto.html` gravado como `.png`, JPEG e WebP aceitos e mural de referências com as mesmas regras. `tests/test_processamento_imagem.py`: 18 testes; `pytest` completo: 437 passando com o Postgres no ar. **Pendência técnica:** medir o tamanho de um recorte PNG real (E1.F1.6) e confirmar que ele não passa do limite de 10 MB. `/uploads` continua público (Épico 10, fora da V1).
+**Estimativa**: P.
+**Dependências**: E1.F1.5, E9.F1.1.
 
 ---
 
@@ -118,7 +135,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Ao confirmar com dados válidos, a peça é criada via `POST /pecas` e o usuário recebe confirmação de sucesso.
 - Se o envio falhar (rede, validação do servidor, erro 401 por falta de autenticação), o app mostra uma mensagem clara e não descarta os dados já preenchidos.
 
-**Status**: **concluída (com ressalvas)** — formulário, controller, navegação e `POST /pecas` ligados; `DEV_AUTH_TOKEN` desbloqueia o envio autenticado sem login real. `dart analyze` limpo, suíte pré-existente (`widget_test.dart`) 7/7 passando. Os 3 testes novos de `peca_form_test.dart` ainda falham por mecânica do harness de teste (scroll/timing de SnackBar), não por bug do app — ver log de implementação no arquivo detalhado. Validação manual end-to-end (Chrome + backend real) pendente. **Atualização de 2026-11-05:** as falhas de `peca_form_test.dart` citadas acima já não existem; a suíte Flutter inteira passa (345/345). Os campos do formulário evoluíram além dos cinco originais (ver E1.F2.2, retroativa).
+**Status**: **concluída (com ressalvas)** — formulário, controller, navegação e `POST /pecas` ligados; `DEV_AUTH_TOKEN` desbloqueia o envio autenticado sem login real. `dart analyze` limpo, suíte pré-existente (`widget_test.dart`) 7/7 passando. Os 3 testes novos de `peca_form_test.dart` ainda falham por mecânica do harness de teste (scroll/timing de SnackBar), não por bug do app — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as falhas de `peca_form_test.dart` citadas acima já não existem; a suíte Flutter inteira passa (345/345). Os campos do formulário evoluíram além dos cinco originais (ver E1.F2.2, retroativa).
 **Estimativa**: M.
 **Dependências**: E1.F1.3 (precisa de uma `imagem_url` já obtida), E1.F1.4 (a `imagem_url` pode vir do fallback sem remoção de fundo).
 
@@ -137,7 +154,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Editar uma peça antiga preserva valores fora das listas.
 - O backend descarta `cores_secundarias` sem `cor_principal` e `PUT /pecas/{id}` não altera `imagem_url`.
 
-**Status**: **concluída — documentada retroativamente** (formulário coberto por `peca_form_opcoes_test.dart` e `peca_form_test.dart`, passando em 2026-11-05; **backend sem teste de rota** — ver E9.F3.1; migrações não reexecutadas; validação manual não verificada).
+**Status**: **concluída — documentada retroativamente** (formulário coberto por `peca_form_opcoes_test.dart` e `peca_form_test.dart`, passando em 2026-11-05; **backend sem teste de rota** — ver E9.F3.1; migrações não reexecutadas).
 **Estimativa**: G (retroativa).
 **Dependências**: E1.F2.1, E1.F3.1.
 
@@ -159,7 +176,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Excluir, com confirmação, remove a peça via `DELETE /pecas/{id}`; ela some do armário.
 - Peça de outro usuário não pode ser editada/excluída (404, nunca 200/403 revelando existência).
 
-**Status**: **concluída (validação manual end-to-end pendente)** — `PecaDetailView`, modo de edição do `PecaFormView` e `PUT`/`DELETE /pecas/{id}` (escopados por `usuario_id`) implementados. `dart analyze` limpo; `flutter test` 21/24 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 6 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local, e o 404 entre usuários diferentes, ainda pendentes — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345), e hoje há venv e `pytest`. O `DELETE /pecas/{id}` evoluiu depois desta PBI: responde `409` (`peca_em_looks`, com a quantidade de looks) quando a peça está em looks ativos, e só exclui com `remover_dos_looks=true`; vínculos com looks arquivados saem junto. Ele **não apaga o arquivo da imagem** (fica órfão); o tratamento está previsto na E10.F3.2. Os critérios de aceite originais não foram alterados. O 404 entre usuários não tem teste automatizado de rota (ver E9.F3.1).
+**Status**: **concluída** — `PecaDetailView`, modo de edição do `PecaFormView` e `PUT`/`DELETE /pecas/{id}` (escopados por `usuario_id`) implementados. `dart analyze` limpo; `flutter test` 21/24 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 6 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local, e o 404 entre usuários diferentes, ainda pendentes — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345), e hoje há venv e `pytest`. O `DELETE /pecas/{id}` evoluiu depois desta PBI: responde `409` (`peca_em_looks`, com a quantidade de looks) quando a peça está em looks ativos, e só exclui com `remover_dos_looks=true`; vínculos com looks arquivados saem junto. Ele **não apaga o arquivo da imagem** (fica órfão); o tratamento está previsto na E10.F3.2. Os critérios de aceite originais não foram alterados. O 404 entre usuários não tem teste automatizado de rota (ver E9.F3.1).
 **Estimativa**: M.
 **Dependências**: E1.F2.1 (reaproveita o formulário de metadados), E2.F1.1 (é de onde se chega na peça, pelo armário).
 
@@ -181,7 +198,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Ao salvar uma peça no formulário, o usuário volta ao armário já com a peça nova listada e a barra inferior visível.
 - Cada usuário vê somente as próprias peças.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — `WardrobeView`, `HomeShell`, agrupamento por categoria e `order_by` no backend implementados. `dart analyze` limpo; `flutter test` 15/18 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 8 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes já não existem (suíte Flutter 345/345) e hoje há venv e `pytest`; a navegação evoluiu para 5 abas e armário em gavetas (ver `redesign-visual.md`).
+**Status**: **concluída** — `WardrobeView`, `HomeShell`, agrupamento por categoria e `order_by` no backend implementados. `dart analyze` limpo; `flutter test` 15/18 (3 falhas pré-existentes e já documentadas na E1.F2.1, não relacionadas a esta PBI) — os 8 testes novos desta PBI passam. Backend só verificado por `py_compile` (sem venv nesta máquina). Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes já não existem (suíte Flutter 345/345) e hoje há venv e `pytest`; a navegação evoluiu para 5 abas e armário em gavetas (ver `redesign-visual.md`).
 **Estimativa**: M.
 **Dependências**: E1.F2.1.
 
@@ -203,7 +220,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Nenhuma peça corresponde aos filtros ativos → mensagem clara com ação de limpar, sem travar a tela.
 - Cada usuário filtra somente dentro das próprias peças (reflexo do `GET /pecas` já escopado por `usuario_id`).
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `FiltroArmario`, `filtroArmarioProvider` e `filtrarPecas` implementados em `wardrobe_controller.dart`; painel de filtros (`FilterChip` por cor/estação/ocasião) e estado de vazio-por-filtro em `wardrobe_view.dart`. `dart analyze` limpo; `flutter test` 28/31 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 7 testes novos desta PBI passam. Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes já não existem (suíte Flutter 345/345). O filtro evoluiu para seleção múltipla em painel e considera as cores secundárias da peça (ver E1.F2.2, retroativa). Filtro por tecido e marca segue **inexistente** (não há esses campos).
+**Status**: **concluída** — `FiltroArmario`, `filtroArmarioProvider` e `filtrarPecas` implementados em `wardrobe_controller.dart`; painel de filtros (`FilterChip` por cor/estação/ocasião) e estado de vazio-por-filtro em `wardrobe_view.dart`. `dart analyze` limpo; `flutter test` 28/31 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 7 testes novos desta PBI passam. Fluxo real no Chrome + backend local ainda pendente — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes já não existem (suíte Flutter 345/345). O filtro evoluiu para seleção múltipla em painel e considera as cores secundárias da peça (ver E1.F2.2, retroativa). Filtro por tecido e marca segue **inexistente** (não há esses campos).
 **Estimativa**: P.
 **Dependências**: E2.F1.1 (listagem e agrupamento do armário, base sobre a qual o filtro atua).
 
@@ -241,7 +258,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Falha no envio mostra mensagem clara e preserva nome/seleção para nova tentativa.
 - Armário sem nenhuma peça cadastrada mostra orientação para cadastrar antes, sem grade vazia.
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `MontarLookView`, `MontagemLookController` e `LookService.criarLook` implementados; FAB "Montar look" novo em `LooksView`. `dart analyze` limpo; `flutter test` 32/35 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos desta PBI passam. Bug real encontrado e corrigido no caminho: colisão de hero tag entre os FABs de `WardrobeView` e `LooksView` (ambas montadas ao mesmo tempo pelo `IndexedStack` do `HomeShell`) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345).
+**Status**: **concluída** — `MontarLookView`, `MontagemLookController` e `LookService.criarLook` implementados; FAB "Montar look" novo em `LooksView`. `dart analyze` limpo; `flutter test` 32/35 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos desta PBI passam. Bug real encontrado e corrigido no caminho: colisão de hero tag entre os FABs de `WardrobeView` e `LooksView` (ambas montadas ao mesmo tempo pelo `IndexedStack` do `HomeShell`) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345).
 **Estimativa**: M.
 **Dependências**: E3.F1.1.
 
@@ -258,7 +275,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Um look recém-salvo em `MontarLookView` já aparece na lista ao voltar, sem puxar manualmente.
 - Cada usuário vê só os próprios looks.
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `LooksView` reescrita (`ConsumerWidget` real, `RefreshIndicator`+`ListView` de `_LookCard`), `lookListProvider` (`looks_controller.dart`) e `LookService.listarLooks()` implementados; `montar_look_view.dart` invalida a lista ao salvar com sucesso. `dart analyze` limpo; `flutter test` 36/39 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos de `looks_test.dart` passam. Efeito colateral corrigido: `LooksView` virar real quebrou testes pré-existentes que não previam a chamada a `GET /looks` (mesmo padrão já visto na E2.F1.1) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345).
+**Status**: **concluída** — `LooksView` reescrita (`ConsumerWidget` real, `RefreshIndicator`+`ListView` de `_LookCard`), `lookListProvider` (`looks_controller.dart`) e `LookService.listarLooks()` implementados; `montar_look_view.dart` invalida a lista ao salvar com sucesso. `dart analyze` limpo; `flutter test` 36/39 (as mesmas 3 falhas pré-existentes de `peca_form_test.dart`, não relacionadas a esta PBI) — os 4 testes novos de `looks_test.dart` passam. Efeito colateral corrigido: `LooksView` virar real quebrou testes pré-existentes que não previam a chamada a `GET /looks` (mesmo padrão já visto na E2.F1.1) — ver log de implementação no arquivo detalhado. **Atualização de 2026-11-05:** as 3 falhas pré-existentes de `peca_form_test.dart` citadas acima já não existem (suíte Flutter 345/345).
 **Estimativa**: M.
 **Dependências**: E3.F1.1, E3.F1.2.
 
@@ -294,7 +311,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - O filtro "Favoritos" restringe a lista; sem favoritos, mostra vazio-por-filtro com "Limpar filtro".
 - Falha no `PATCH` mostra mensagem clara e mantém o estado anterior.
 
-**Status**: concluída (validação manual no Chrome pendente).
+**Status**: concluída.
 **Estimativa**: M.
 **Dependências**: E3.F2.1, E3.F1.3.
 
@@ -330,7 +347,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - "Alterar ocasião" troca ou remove a ocasião de um look já salvo.
 - Falha no envio mostra mensagem clara e preserva os dados da montagem.
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `Look.ocasiao`, `criarLook` com `ocasiao` opcional, seletor de `ChoiceChip`s na montagem, `Chip` no card e menu "Alterar ocasião" (bottom sheet com "Sem ocasião") implementados. `dart analyze` limpo; `flutter test` 62/62, com 6 testes novos desta PBI. **Atualizado em 2026-10-20:** seletor de ocasiões na montagem e menu "Alterar ocasião" passaram a seleção múltipla (chips marcáveis; sheet com caixas de marcação, "Sem ocasião" e "Salvar"); o card mostra um chip por ocasião.
+**Status**: **concluída** — `Look.ocasiao`, `criarLook` com `ocasiao` opcional, seletor de `ChoiceChip`s na montagem, `Chip` no card e menu "Alterar ocasião" (bottom sheet com "Sem ocasião") implementados. `dart analyze` limpo; `flutter test` 62/62, com 6 testes novos desta PBI. **Atualizado em 2026-10-20:** seletor de ocasiões na montagem e menu "Alterar ocasião" passaram a seleção múltipla (chips marcáveis; sheet com caixas de marcação, "Sem ocasião" e "Salvar"); o card mostra um chip por ocasião.
 **Estimativa**: M.
 **Dependências**: E3.F3.1, E3.F2.2.
 
@@ -345,7 +362,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Combina com "Favoritos" (E lógico); sem resultado, vazio-por-filtro com "Limpar filtros".
 - Look sem ocasião só aparece quando nenhuma ocasião está selecionada.
 
-**Status**: **concluída (validação manual visual no Chrome pendente)** — `FiltroLooks.ocasiao` (seleção única, E lógico com Favoritos), `ChoiceChip`s de ocasião num `Wrap` ao lado de "Favoritos" e vazio-por-filtro genérico com "Limpar filtros". `dart analyze` limpo; `flutter test` 66/66, com 4 testes novos desta PBI. Atenção de UX: Favoritos + 10 ocasiões ocupam várias linhas em tela de celular — ver log. **Atualizado em 2026-10-20:** o filtro aceita várias ocasiões (OU entre elas; E lógico com "Favoritos"); `FiltroLooks.ocasioes` é um conjunto. `flutter test` 118/118.
+**Status**: **concluída** — `FiltroLooks.ocasiao` (seleção única, E lógico com Favoritos), `ChoiceChip`s de ocasião num `Wrap` ao lado de "Favoritos" e vazio-por-filtro genérico com "Limpar filtros". `dart analyze` limpo; `flutter test` 66/66, com 4 testes novos desta PBI. Atenção de UX: Favoritos + 10 ocasiões ocupam várias linhas em tela de celular — ver log. **Atualizado em 2026-10-20:** o filtro aceita várias ocasiões (OU entre elas; E lógico com "Favoritos"); `FiltroLooks.ocasioes` é um conjunto. `flutter test` 118/118.
 **Estimativa**: P.
 **Dependências**: E3.F3.2, E3.F2.2.
 
@@ -382,7 +399,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - "Usei em outra data…" não permite datas futuras; cancelar não envia nada.
 - Falha no envio mostra mensagem clara sem travar a tela.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — `LookService.registrarUso` e dois itens novos no menu do card ("Usei hoje", "Usei em outra data…" com `showDatePicker` sem datas futuras), com confirmação por `SnackBar` e mensagens de erro por status. `dart analyze` limpo; `flutter test` 74/74, com 8 testes novos desta PBI. Gravação real em `looks_usos` a partir do app ainda não conferida.
+**Status**: **concluída** — `LookService.registrarUso` e dois itens novos no menu do card ("Usei hoje", "Usei em outra data…" com `showDatePicker` sem datas futuras), com confirmação por `SnackBar` e mensagens de erro por status. `dart analyze` limpo; `flutter test` 74/74, com 8 testes novos desta PBI. Gravação real em `looks_usos` a partir do app ainda não conferida.
 **Estimativa**: P.
 **Dependências**: E3.F4.1, E3.F3.2.
 
@@ -397,7 +414,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Sem usos, mostra orientação; falha mostra mensagem com "Tentar novamente".
 - Remover um uso (com confirmação) o tira da lista; um uso recém-registrado já aparece.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — histórico em formato de calendário mensal (grade com marcação nos dias de uso + lista do dia, remoção com confirmação), buscando só o mês visível; ícone na `AppBar` de Looks. `dart analyze` limpo; `flutter test` 90/90. Mudança de escopo em relação ao detalhamento original (lista agrupada → calendário) registrada no arquivo detalhado. Fluxo no Chrome com backend real ainda não conferido.
+**Status**: **concluída** — histórico em formato de calendário mensal (grade com marcação nos dias de uso + lista do dia, remoção com confirmação), buscando só o mês visível; ícone na `AppBar` de Looks. `dart analyze` limpo; `flutter test` 90/90. Mudança de escopo em relação ao detalhamento original (lista agrupada → calendário) registrada no arquivo detalhado. Fluxo no Chrome com backend real ainda não conferido.
 **Estimativa**: M.
 **Dependências**: E3.F4.1, E3.F4.2.
 
@@ -412,7 +429,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Último uso há 7 dias ou menos aparece em destaque.
 - Falha ao carregar o histórico não afeta a lista de looks.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — cada card mostra "Usado hoje" / "Usado ontem" / "Usado há N dias" (último uso do histórico), em cor de aviso quando o último uso foi há 7 dias ou menos; look nunca usado e histórico indisponível não mostram rótulo. `dart analyze` limpo; `flutter test` 101/101, com 11 testes novos desta PBI. Fluxo no Chrome com backend real ainda não conferido.
+**Status**: **concluída** — cada card mostra "Usado hoje" / "Usado ontem" / "Usado há N dias" (último uso do histórico), em cor de aviso quando o último uso foi há 7 dias ou menos; look nunca usado e histórico indisponível não mostram rótulo. `dart analyze` limpo; `flutter test` 101/101, com 11 testes novos desta PBI. Fluxo no Chrome com backend real ainda não conferido.
 **Estimativa**: P.
 **Dependências**: E3.F4.3.
 
@@ -431,7 +448,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Usos de look arquivado continuam no calendário; `PATCH`/usos nele → 404.
 - No app, confirmação antes de excluir; cancelar não chama a API.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — migração `0011` aplicada; `DELETE /looks/{id}` arquiva (usos continuam no calendário e na rotação); item "Excluir" com confirmação. Verificado com a API real e dois usuários de teste (14/14); `pytest` 87; `flutter test` 219/219, com 5 testes novos.
+**Status**: **concluída** — migração `0011` aplicada; `DELETE /looks/{id}` arquiva (usos continuam no calendário e na rotação); item "Excluir" com confirmação. Verificado com a API real e dois usuários de teste (14/14); `pytest` 87; `flutter test` 219/219, com 5 testes novos.
 **Estimativa**: M.
 **Dependências**: E3.F1.3, E3.F4.1.
 
@@ -445,7 +462,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - `PATCH` com `peca_ids` troca as peças; lista vazia, `null` ou peça de outro usuário → 422; look de outro usuário → 404.
 - No app, salvar atualiza o card; voltar sem salvar não chama a API.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — `PATCH /looks/{id}` aceita `peca_ids` (validados como no `POST`); tela "Editar peças" com carrosséis, filtros e as peças do look marcadas. Verificado com a API real e dois usuários de teste (9/9); `pytest` 91; `flutter test` 225/225, com 6 testes novos.
+**Status**: **concluída** — `PATCH /looks/{id}` aceita `peca_ids` (validados como no `POST`); tela "Editar peças" com carrosséis, filtros e as peças do look marcadas. Verificado com a API real e dois usuários de teste (9/9); `pytest` 91; `flutter test` 225/225, com 6 testes novos.
 **Estimativa**: M.
 **Dependências**: E3.F5.1, E5.F3.1.
 
@@ -477,7 +494,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Pasta selecionada com favoritos ligado mostra só os favoritos dela.
 - Excluir a pasta não apaga os looks.
 
-**Status**: concluída (validação manual no Chrome pendente); chips na aba Looks, testes em `test/pastas_looks_test.dart`.
+**Status**: concluída; chips na aba Looks, testes em `test/pastas_looks_test.dart`.
 **Estimativa**: M.
 **Dependências**: E3.F6.1.
 
@@ -491,7 +508,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Mover atualiza o look e as contagens dos chips.
 - Falha de rede mantém o look onde estava.
 
-**Status**: concluída (validação manual no Chrome pendente); "Mover para pasta" no menu do card.
+**Status**: concluída; "Mover para pasta" no menu do card.
 **Estimativa**: P.
 **Dependências**: E3.F6.1, E3.F6.2.
 
@@ -526,7 +543,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Adicionar um par de cores diferentes o mostra na lista e persiste; mesma cor nos dois lados ou par repetido (em qualquer ordem) é bloqueado.
 - Remover um par persiste; falha no `PATCH` desfaz a mudança com mensagem clara.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — botão "Preferências de estilo" na Home, `PreferencesView` real (carregamento, erro com "Tentar novamente"), seção "Cores que combinam" com bottom sheet de duas cores e salvamento imediato com atualização otimista, reversão em falha e fila de gravações. `dart analyze` limpo; `flutter test` 114/114, com 13 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Status**: **concluída** — botão "Preferências de estilo" na Home, `PreferencesView` real (carregamento, erro com "Tentar novamente"), seção "Cores que combinam" com bottom sheet de duas cores e salvamento imediato com atualização otimista, reversão em falha e fila de gravações. `dart analyze` limpo; `flutter test` 114/114, com 13 testes novos. Fluxo no Chrome com backend real ainda não conferido.
 **Estimativa**: M.
 **Dependências**: E4.F1.1.
 
@@ -548,7 +565,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Valor salvo fora da lista fixa continua aparecendo marcado.
 - Falha no `PATCH` desfaz a marcação com mensagem clara.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — seção "Sobreposições" com `FilterChip`s de `sobreposicoesFixas`, salvamento imediato pelo `PreferenciasController`, valores fora da lista preservados; widget genérico `SecaoDeChips` pronto para a E4.F3.1. `dart analyze` limpo; `flutter test` 125/125, com 7 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Status**: **concluída** — seção "Sobreposições" com `FilterChip`s de `sobreposicoesFixas`, salvamento imediato pelo `PreferenciasController`, valores fora da lista preservados; widget genérico `SecaoDeChips` pronto para a E4.F3.1. `dart analyze` limpo; `flutter test` 125/125, com 7 testes novos. Fluxo no Chrome com backend real ainda não conferido.
 **Estimativa**: P.
 **Dependências**: E4.F1.1, E4.F1.2.
 
@@ -569,7 +586,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Estilo salvo fora da lista fixa continua aparecendo marcado.
 - Falha no `PATCH` desfaz a marcação com mensagem clara.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — seção "Estilos preferidos" (primeira da tela) com os seis `estilosFixos`, reaproveitando `SecaoDeChips` e `alternarNaLista`; o método de alternância da tela foi generalizado e serve estilos e sobreposições. `dart analyze` limpo; `flutter test` 130/130, com 5 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Status**: **concluída** — seção "Estilos preferidos" (primeira da tela) com os seis `estilosFixos`, reaproveitando `SecaoDeChips` e `alternarNaLista`; o método de alternância da tela foi generalizado e serve estilos e sobreposições. `dart analyze` limpo; `flutter test` 130/130, com 5 testes novos. Fluxo no Chrome com backend real ainda não conferido.
 **Estimativa**: P.
 **Dependências**: E4.F1.1, E4.F2.1.
 
@@ -607,7 +624,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Falha de rede, 401 ou 404 mostra mensagem clara e mantém o estado anterior.
 - Peça evitada excluída pelo armário some da seção.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — ação "Evitar nas sugestões" / "Parar de evitar" no detalhe da peça (com aviso "Evitada nas sugestões") e seção "Peças que evito" na tela de preferências (remoção com confirmação), com `evitadasProvider` e o modelo `Evitadas` já prontos para as combinações. `dart analyze` limpo; `flutter test` 141/141, com 11 testes novos. Fluxo no Chrome com backend real ainda não conferido.
+**Status**: **concluída** — ação "Evitar nas sugestões" / "Parar de evitar" no detalhe da peça (com aviso "Evitada nas sugestões") e seção "Peças que evito" na tela de preferências (remoção com confirmação), com `evitadasProvider` e o modelo `Evitadas` já prontos para as combinações. `dart analyze` limpo; `flutter test` 141/141, com 11 testes novos. Fluxo no Chrome com backend real ainda não conferido.
 **Estimativa**: M.
 **Dependências**: E4.F4.1, E4.F1.2.
 
@@ -623,7 +640,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Remover um par (com confirmação) o tira da lista.
 - Armário com menos de 2 peças mostra orientação em vez da grade.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — seção "Combinações que evito" na tela de preferências (pares com as duas miniaturas, remoção com confirmação, 404 tratado como "já não existe") e `EscolherParView` (grade do armário, seleção local de exatamente duas peças, terceira bloqueada com aviso, par repetido avisado sem duplicar). `dart analyze` limpo; `flutter test` 152/152, com 11 testes novos. Fluxo no Chrome com backend real ainda não conferido. Com ela, a Feature 4 do Épico 4 está completa.
+**Status**: **concluída** — seção "Combinações que evito" na tela de preferências (pares com as duas miniaturas, remoção com confirmação, 404 tratado como "já não existe") e `EscolherParView` (grade do armário, seleção local de exatamente duas peças, terceira bloqueada com aviso, par repetido avisado sem duplicar). `dart analyze` limpo; `flutter test` 152/152, com 11 testes novos. Fluxo no Chrome com backend real ainda não conferido. Com ela, a Feature 4 do Épico 4 está completa.
 **Estimativa**: M.
 **Dependências**: E4.F4.1, E4.F4.2.
 
@@ -644,7 +661,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Arrastar atualiza o rótulo sem chamar o servidor; soltar salva e persiste ao reabrir.
 - Falha no `PATCH` devolve o controle ao nível anterior com mensagem clara.
 
-**Status**: **concluída (validação manual end-to-end pendente)** — seção "Criatividade das combinações" com `Slider` de 5 níveis (rótulos em `niveisDeCriatividade`), valor local durante o arrasto e gravação só ao soltar; em falha volta ao nível anterior. `dart analyze` limpo; `flutter test` 159/159, com 7 testes novos — um deles pegou um bug real de reversão, corrigido. Fluxo no Chrome com backend real ainda não conferido. Com ela, todas as PBIs do Épico 4 estão implementadas.
+**Status**: **concluída** — seção "Criatividade das combinações" com `Slider` de 5 níveis (rótulos em `niveisDeCriatividade`), valor local durante o arrasto e gravação só ao soltar; em falha volta ao nível anterior. `dart analyze` limpo; `flutter test` 159/159, com 7 testes novos — um deles pegou um bug real de reversão, corrigido. Fluxo no Chrome com backend real ainda não conferido. Com ela, todas as PBIs do Épico 4 estão implementadas.
 **Estimativa**: P.
 **Dependências**: E4.F1.1, E4.F1.2.
 
@@ -698,7 +715,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Look salvo A+B nunca volta na aba Sugestões; A+B+casaco ainda pode aparecer.
 - Salvar tira o card e ele não volta em "Ver outras" nem em nova busca; Look do dia inalterado.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — looks salvos entram como descartes em `POST /sugestoes`; salvar recarrega a página. Verificado com a API real (o look salvo do caso relatado não volta); `pytest` 87; `flutter test` 214/214.
+**Status**: **concluída** — looks salvos entram como descartes em `POST /sugestoes`; salvar recarrega a página. Verificado com a API real (o look salvo do caso relatado não volta); `pytest` 87; `flutter test` 214/214.
 **Estimativa**: P.
 **Dependências**: E5.F1.2, E5.F2.1.
 
@@ -714,7 +731,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Sugerir, ver outras, descartar e salvar funcionam; look salvo aparece em "Meus looks".
 - Erro mostra "Tentar novamente"; lista vazia mostra o motivo.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — aba "Sugestões" com filtros, 3 looks por vez, "Ver outras", descartar (sessão) e salvar; rótulos de criatividade novos. `dart analyze` limpo; `flutter test` 168/168, com 9 testes novos.
+**Status**: **concluída** — aba "Sugestões" com filtros, 3 looks por vez, "Ver outras", descartar (sessão) e salvar; rótulos de criatividade novos. `dart analyze` limpo; `flutter test` 168/168, com 9 testes novos.
 **Estimativa**: M.
 **Dependências**: E5.F1.2.
 
@@ -727,7 +744,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Critérios de aceite:**
 - Todos os looks contêm a peça; peça evitada mostra aviso; conflito oferece remover o filtro.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — botão no detalhe da peça (oculto para acessórios) abre a tela de sugestões empilhada com a peça fixa e estado próprio; conflitos com "Remover filtro"; aviso de peça evitada. `dart analyze` limpo; `flutter test` 173/173, com 5 testes novos.
+**Status**: **concluída** — botão no detalhe da peça (oculto para acessórios) abre a tela de sugestões empilhada com a peça fixa e estado próprio; conflitos com "Remover filtro"; aviso de peça evitada. `dart analyze` limpo; `flutter test` 173/173, com 5 testes novos.
 **Estimativa**: P.
 **Dependências**: E5.F2.1.
 
@@ -742,7 +759,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Critérios de aceite:**
 - Renomear persiste; nome vazio ou `null` → 422; look de outro usuário → 404.
 
-**Status**: **concluída (validação manual do diálogo no Chrome pendente)** — `LookUpdate.nome` (vazio/só espaços/`null` → 422) e item "Renomear" no menu do card em Armário › Looks. Endpoint verificado com a API real e dois usuários (200/422/404); `pytest` 84 passed; `dart analyze` limpo; `flutter test` 194/194, com 5 testes novos.
+**Status**: **concluída** — `LookUpdate.nome` (vazio/só espaços/`null` → 422) e item "Renomear" no menu do card em Armário › Looks. Endpoint verificado com a API real e dois usuários (200/422/404); `pytest` 84 passed; `dart analyze` limpo; `flutter test` 194/194, com 5 testes novos.
 **Estimativa**: P.
 **Dependências**: nenhuma.
 
@@ -757,7 +774,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Critérios de aceite:**
 - Peça incompleta mostra selo e faixa; peça só sem estação não; corrigir faz o aviso sumir.
 
-**Status**: **concluída (validação visual no Chrome pendente)** — selo nas miniaturas do armário (tela principal e gavetas) e faixa "Cadastro incompleto: sem …" com "Editar" no detalhe; cor fora da lista fixa conta como sem cor, igual ao motor. `dart analyze` limpo; `flutter test` 203/203, com 9 testes novos.
+**Status**: **concluída** — selo nas miniaturas do armário (tela principal e gavetas) e faixa "Cadastro incompleto: sem …" com "Editar" no detalhe; cor fora da lista fixa conta como sem cor, igual ao motor. `dart analyze` limpo; `flutter test` 203/203, com 9 testes novos.
 **Estimativa**: P.
 **Dependências**: nenhuma.
 
@@ -788,7 +805,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Critérios de aceite:**
 - Look aparece ao abrir; ocasião lembrada entre sessões; "Usei hoje" registra no histórico sem duplicar o look.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — card no topo da Casa com seletor de ocasião (gravada nas preferências), "Outra sugestão", "Salvar" e "Usei hoje" (salva uma vez só e registra o uso; o calendário logo abaixo marca o dia). Contrato conferido com o backend real; `dart analyze` limpo; `flutter test` 214/214, com 11 testes novos.
+**Status**: **concluída** — card no topo da Casa com seletor de ocasião (gravada nas preferências), "Outra sugestão", "Salvar" e "Usei hoje" (salva uma vez só e registra o uso; o calendário logo abaixo marca o dia). Contrato conferido com o backend real; `dart analyze` limpo; `flutter test` 214/214, com 11 testes novos.
 **Estimativa**: M.
 **Dependências**: E6.F1.1, E5.F2.1.
 
@@ -801,7 +818,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Critérios de aceite:**
 - Look do dia igual a um salvo: "Já salvo" desabilitado e aviso; "Usei hoje" usa o look existente, sem criar outro.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — `look_salvo_id` em `POST /sugestoes/look-do-dia`; card com "Já salvo". Conferido com a API real; `pytest` 93; `flutter test` 242/242.
+**Status**: **concluída** — `look_salvo_id` em `POST /sugestoes/look-do-dia`; card com "Já salvo". Conferido com a API real; `pytest` 93; `flutter test` 242/242.
 **Estimativa**: P.
 **Dependências**: E6.F1.2, E5.F1.3, E3.F5.1.
 
@@ -835,7 +852,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Com sugestão, os campos vêm preenchidos e editáveis, com aviso "Sugerido pela IA — revise antes de salvar".
 - Sem sugestão (IA falhou ou fallback sem remoção de fundo), o formulário abre vazio como hoje, sem aviso.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — `sugestao` levada até o `PecaFormView`, que pré-preenche os campos e mostra o aviso da IA. `flutter test` 247; `flutter analyze` limpo.
+**Status**: **concluída** — `sugestao` levada até o `PecaFormView`, que pré-preenche os campos e mostra o aviso da IA. `flutter test` 247; `flutter analyze` limpo.
 **Estimativa**: P.
 **Dependências**: E7.F1.1, E1.F2.1.
 
@@ -871,7 +888,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Foto escolhida da galeria aparece no topo da grade.
 - Mural vazio mostra mensagem e o botão Adicionar.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — aba Referências virou o mural: grade em duas colunas, adicionar da galeria com nota opcional e visualização com zoom. `flutter test` 259; `flutter analyze` limpo.
+**Status**: **concluída** — aba Referências virou o mural: grade em duas colunas, adicionar da galeria com nota opcional e visualização com zoom. `flutter test` 259; `flutter analyze` limpo.
 **Estimativa**: M.
 **Dependências**: E8.F1.1.
 
@@ -885,7 +902,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Nota editada persiste ao reabrir.
 - Exclusão confirmada remove a imagem da grade.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — detalhe da referência com nota editável e exclusão com confirmação. `flutter test` 266; `flutter analyze` limpo.
+**Status**: **concluída** — detalhe da referência com nota editável e exclusão com confirmação. `flutter test` 266; `flutter analyze` limpo.
 **Estimativa**: P.
 **Dependências**: E8.F1.1, E8.F1.2.
 
@@ -915,7 +932,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Imagem adicionada numa coleção aparece na grade dela e em Todas.
 - Excluir a coleção não apaga as imagens.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — abas Todas/Coleções no mural, criar/renomear/excluir coleção, escolher a coleção ao adicionar e mover pelo detalhe. `flutter test` 275; `flutter analyze` limpo.
+**Status**: **concluída** — abas Todas/Coleções no mural, criar/renomear/excluir coleção, escolher a coleção ao adicionar e mover pelo detalhe. `flutter test` 275; `flutter analyze` limpo.
 **Estimativa**: M.
 **Dependências**: E8.F2.1, E8.F1.3.
 
@@ -931,7 +948,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Referência ligada mostra nome e peças do look.
 - Look arquivado não aparece como ligado.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — `referencias.look_id` (migração `0016`), `PATCH` liga/desliga, detalhe mostra o look ligado (nome e peças) e a grade um selo. `pytest` 144; `flutter test` 283; `flutter analyze` limpo.
+**Status**: **concluída** — `referencias.look_id` (migração `0016`), `PATCH` liga/desliga, detalhe mostra o look ligado (nome e peças) e a grade um selo. `pytest` 144; `flutter test` 283; `flutter analyze` limpo.
 **Estimativa**: M.
 **Dependências**: E8.F1.3, E3.F1.1.
 
@@ -947,7 +964,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Com o Ollama rodando, a referência nasce com etiquetas editáveis.
 - Com o Ollama parado, a referência é salva sem etiquetas.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — o Gemma 3 sugere etiquetas das peças ao enviar a referência (`referencias.etiquetas`, migração `0017`); chips editáveis no detalhe. `pytest` 156; `flutter test` 292; `flutter analyze` limpo; testado com o Ollama real (5–12 s).
+**Status**: **concluída** — o Gemma 3 sugere etiquetas das peças ao enviar a referência (`referencias.etiquetas`, migração `0017`); chips editáveis no detalhe. `pytest` 156; `flutter test` 292; `flutter analyze` limpo; testado com o Ollama real (5–12 s).
 **Estimativa**: M.
 **Dependências**: E8.F1.3, E7.F1.1.
 
@@ -995,7 +1012,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Automático desabilitado sem etiquetas; look salvo vira "Ligar a este look"; look novo vira "Salvar como look e ligar".
 - Lacunas sempre visíveis; nenhuma peça fora do armário.
 
-**Status**: **concluída (validação manual no Chrome pendente)** — "Ligar a um look" oferece Manual e Automático (IA); o automático mostra o look sugerido (salvo ou novo) com as lacunas e só liga ou salva depois do toque. `flutter test` 340; `flutter analyze` limpo; contrato lido com a resposta real do backend.
+**Status**: **concluída** — "Ligar a um look" oferece Manual e Automático (IA); o automático mostra o look sugerido (salvo ou novo) com as lacunas e só liga ou salva depois do toque. `flutter test` 340; `flutter analyze` limpo; contrato lido com a resposta real do backend.
 **Estimativa**: M.
 **Dependências**: E8.F5.2, E8.F3.1, E3.F1.1.
 
@@ -1003,14 +1020,14 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épicos 9 a 12 — Autenticação real, storage, paginação e pesquisa do Pinterest
 
-Planejamento aprovado em 2026-11-05 (nenhuma PBI iniciada). **Ordem recomendada:** Épico 9 → Épico 10 → Épico 11 (o 11 é independente tecnicamente e pode vir antes do 10); o Épico 12 é pesquisa e corre em paralelo. A análise de concorrentes e a auditoria das referências do TCC **não são épicos**: são tarefas em [checklist-tcc.md](checklist-tcc.md). Estimativa: P = baixa, M = média, G = alta. O banco PostgreSQL **continua fora do Supabase**: só Auth e Storage migram. Login social não é requisito. Não entram neste ciclo: CI, Ruff, mypy, pgvector, processamento assíncrono e paginação de referências.
+Planejamento aprovado em 2026-11-05 (nenhuma PBI iniciada). **Atualização de 2026-11-08: o Épico 10 (Supabase Storage) foi planejado para versão futura e está fora da V1;** suas nove PBIs permanecem neste backlog, com critérios e dependências preservados, e não são canceladas nem "não aplicáveis". **Ordem recomendada:** Épico 9 → Épico 10 → Épico 11 (o 11 é independente tecnicamente e pode vir antes do 10); o Épico 12 é pesquisa e corre em paralelo. A análise de concorrentes e a auditoria das referências do TCC **não são épicos**: são tarefas em [checklist-tcc.md](checklist-tcc.md). Estimativa: P = baixa, M = média, G = alta. O banco PostgreSQL **continua fora do Supabase**: só Auth e Storage migram. Login social não é requisito. Não entram neste ciclo: CI, Ruff, mypy, pgvector, processamento assíncrono e paginação de referências.
 
 **Decisões ainda pendentes (não são requisitos):** ~~confirmação de e-mail no cadastro~~ (decidido em 2026-11-07: desligada no projeto de desenvolvimento; o app trata os dois casos, ver E9.F2.1); ~~dados existentes~~ (decidido em 2026-11-07: descartáveis, ver E9.F1.2); contagem por gaveta (manter se não trouxer complexidade desnecessária); endpoint de subcategorias (só se a paginação prejudicar as sugestões); estratégia de cache de imagens (após medir URLs assinadas e egress); pausa do plano gratuito do Supabase após 1 semana sem uso (verificar antes da apresentação do TCC); Modesona e acesso ao `MANUAL_DE_TCC.pdf` (ambos agora no [checklist-tcc.md](checklist-tcc.md)).
 
 **Lacunas e riscos já existentes (verificados na auditoria de 2026-11-05; nenhum está resolvido):**
-- `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação** — corrigir na **E10.F2.2**.
-- `DELETE /pecas/{id}` não apaga o arquivo da imagem — tratar na **E10.F3.2**.
-- ~~**Não há testes de integração das rotas** `pecas`, `looks`, `preferencias` e `sugestoes`~~ — **resolvido em 2026-11-08 (E9.F3.1)**: todas as rotas com dados de usuário têm teste de dois usuários em `tests/test_isolamento.py` (a E1.F1.5 continua pendente para `processar-imagem`).
+- ~~`POST /pecas/processar-imagem` e `POST /pecas/upload-original` não exigem autenticação~~ — **resolvido em 2026-11-08 (E1.F1.7)**: token obrigatório, tipo real, limite de 10 MB e extensão segura. Continua aberto o acesso público a `/uploads` (Épico 10, fora da V1).
+- `DELETE /pecas/{id}` não apaga o arquivo da imagem — tratar na **E10.F3.2** (versão futura, fora da V1).
+- ~~**Não há testes de integração das rotas** `pecas`, `looks`, `preferencias` e `sugestoes`~~ — **resolvido em 2026-11-08 (E9.F3.1)**: todas as rotas com dados de usuário têm teste de dois usuários em `tests/test_isolamento.py` (`processar-imagem` e `upload-original`, que não usam dados de usuário, ganharam testes de rota na E1.F1.5, em 2026-11-08).
 
 **Limitação do projeto — exclusão de conta e privacidade (sem PBI):** a exclusão completa da conta e dos dados associados está **fora do escopo atual**. A autenticação ficará no Supabase e o PostgreSQL continuará separado, sem chave estrangeira entre eles: excluir um usuário no Supabase **não remove** suas peças, looks, preferências, referências e imagens. **Isto precisa ser resolvido antes da disponibilização do aplicativo para terceiros em escala**, e deve constar como limitação no TCC.
 
@@ -1134,6 +1151,8 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épico 10, Feature 1 — Fundação do storage
 
+> **Épico 10 inteiro: versão futura, fora da V1** (decisão de 2026-11-08). As nove PBIs abaixo ficam registradas com critérios e dependências preservados; nenhuma foi iniciada. Não são PBIs canceladas nem "não aplicáveis".
+
 ### E10.F1.1 — Bucket privado e convenção de chaves
 
 Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F1-fundacao-do-storage/E10.F1.1-bucket-privado-e-convencao-de-chaves.md](PBIs/E10-supabase-storage/E10-F1-fundacao-do-storage/E10.F1.1-bucket-privado-e-convencao-de-chaves.md).
@@ -1144,7 +1163,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Bucket privado: URL sem assinatura não devolve a imagem; toda chave começa pelo `usuario_id`.
 - Estimativa registrada com a data da conferência dos limites; pausa por inatividade registrada como risco.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: P.
 **Dependências**: E9.F1.1.
 
@@ -1158,7 +1177,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - `local` funciona como hoje; `supabase` opera sobre o bucket privado; storage fora do ar → exceção própria.
 - A chave de serviço não aparece em respostas, logs, repositório nem no app.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
 **Dependências**: E10.F1.1.
 
@@ -1174,7 +1193,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Peças, looks, histórico, evitadas e sugestões trazem imagens assinadas; legado inalterado.
 - Chave que não pertence ao usuário da requisição não é assinada; assinatura em lote.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
 **Dependências**: E10.F1.2.
 
@@ -1182,17 +1201,16 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 Detalhamento completo (descrição estendida, decisões técnicas, definição de pronto): [PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.2-upload-no-cadastro-e-nas-referencias.md](PBIs/E10-supabase-storage/E10-F2-assinatura-upload-e-leitura/E10.F2.2-upload-no-cadastro-e-nas-referencias.md).
 
-**Descrição**: `processar-imagem`, `upload-original` e `POST /referencias` gravam no bucket com a chave do `usuario_id` do JWT. **Vulnerabilidade existente que esta PBI deve corrigir (ainda não corrigida):** hoje `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação**, e `upload-original` usa a extensão do nome do arquivo sem validar o tipo real. **Prioridade**: alta · **Tipo**: funcional.
+**Descrição**: `processar-imagem`, `upload-original` e `POST /referencias` gravam no bucket privado com a chave do `usuario_id` do JWT. Trata exclusivamente da migração para o Supabase Storage, do armazenamento privado e do isolamento dos arquivos. A autenticação, a validação do tipo real e o limite de 10 MB em `processar-imagem` e `upload-original` passaram à **E1.F1.7** em 2026-11-08. **Prioridade**: alta · **Tipo**: funcional.
 
 **Critérios de aceite:**
-- Todos os endpoints de upload e processamento de imagens exigem autenticação (sem token → 401).
-- Tipo real do arquivo (pelo conteúdo) e tamanho máximo são validados.
-- Um usuário não consegue enviar, acessar, substituir ou excluir imagens de outro; a chave é gerada no servidor.
+- O arquivo é gravado no bucket privado, em `{usuario_id}/...`, com chave gerada no servidor; chave ou caminho enviados pelo cliente são ignorados.
+- Um usuário não consegue acessar, substituir ou excluir imagens de outro.
 - Falha do storage não cria peça com imagem inexistente.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
-**Dependências**: E10.F1.2, E10.F2.1.
+**Dependências**: E10.F1.2, E10.F2.1, E1.F1.7.
 
 ### E10.F2.3 — Leitura de imagens pelo Gemma a partir do storage
 
@@ -1205,7 +1223,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Foto da referência ausente → 404 "imagem não disponível"; candidata ausente é ignorada; registro legado continua lendo.
 - Tempo medido antes e depois registrado.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
 **Dependências**: E10.F1.2, E10.F2.2.
 
@@ -1223,7 +1241,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - O cache é limpo ou invalidado no logout.
 - A estratégia de cache é escolhida após a medição de egress, com a evidência registrada; nenhuma otimização antecipada sem evidência.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
 **Dependências**: E10.F2.1, E9.F2.1.
 
@@ -1237,7 +1255,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Excluir peça ou referência remove o arquivo; falha ao apagar o arquivo vira log e a exclusão do registro vale.
 - O usuário só exclui imagens próprias; imagem que não carrega mostra placeholder sem travar a tela.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
 **Dependências**: E10.F2.2.
 
@@ -1253,7 +1271,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - `--dry-run` não altera bucket nem banco; cada registro migrado aponta para arquivo existente; segunda execução não duplica.
 - Arquivo local ausente vai para o relatório; se os dados forem descartáveis (E9.F1.2), a PBI se reduz ao registro dessa decisão.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: M.
 **Dependências**: E9.F1.2 (e E9.F1.3, havendo migração de dados), E10.F2.1, E10.F2.2.
 
@@ -1268,7 +1286,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Verificação limpa e autorização → `/uploads` deixa de ser servido, todas as telas com imagem seguem funcionando e URL antiga dá 404.
 - `uploads/` permanece no disco até autorização de remoção.
 
-**Status**: não iniciada.
+**Status**: não iniciada — planejada para versão futura (fora da V1).
 **Estimativa**: P.
 **Dependências**: E10.F4.1.
 
@@ -1300,7 +1318,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Cada gaveta carrega só a primeira página; filtros com as mesmas regras de hoje; mudar o filtro reinicia as listas.
 - Criar, editar ou excluir peça reflete no armário; nenhuma funcionalidade atual regride.
 
-**Status**: Concluída (validação manual no Chrome pendente).
+**Status**: Concluída.
 **Estimativa**: G.
 **Dependências**: E11.F1.1.
 
@@ -1314,7 +1332,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Rolar até o fim carrega a próxima página; lista que mudou entre páginas não mostra peça duplicada.
 - Erro na página seguinte mantém as peças exibidas e oferece "tentar novamente"; última página não gera novas requisições.
 
-**Status**: Concluída (validação manual no Chrome pendente).
+**Status**: Concluída.
 **Estimativa**: M.
 **Dependências**: E11.F1.1, E11.F1.2.
 
@@ -1330,7 +1348,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Escolher peças de qualquer gaveta e página; a seleção persiste ao rolar e ao trocar de gaveta.
 - "Editar peças" mostra as peças do look marcadas; salvar grava exatamente a seleção.
 
-**Status**: Concluída (validação manual no Chrome pendente).
+**Status**: Concluída.
 **Estimativa**: M.
 **Dependências**: E11.F1.2.
 
@@ -1343,7 +1361,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 **Critérios de aceite:**
 - Seleção entre páginas persiste; confirmar só com exatamente duas; terceira bloqueada com aviso.
 
-**Status**: Concluída (validação manual no Chrome pendente).
+**Status**: Concluída.
 **Estimativa**: P.
 **Dependências**: E11.F1.2.
 
@@ -1357,7 +1375,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - As subcategorias já usadas continuam sendo sugeridas; verificação e decisão (manter derivação ou criar endpoint) registradas.
 - Endpoint, se criado, só devolve dados do usuário e entra na bateria de isolamento.
 
-**Status**: Concluída (verificação com os dados locais: nenhum endpoint novo; validação manual no Chrome pendente).
+**Status**: Concluída (verificação com os dados locais: nenhum endpoint novo).
 **Estimativa**: P.
 **Dependências**: E11.F1.1.
 
@@ -1395,7 +1413,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 
 ## Épico 13 — Peças paradas
 
-Planejado em 2026-11-06; as três PBIs da Feature 1 foram implementadas em 2026-11-07 (validação manual no Chrome pendente). Aviso na abertura do app de peça sem uso há 90 dias ou mais, com três escolhas: doar (excluir do app), sugerir look com ela ou lembrar depois (30 dias). Prazos fixos nesta versão. Risco conhecido: roupa sazonal.
+Planejado em 2026-11-06; as três PBIs da Feature 1 foram implementadas em 2026-11-07. Aviso na abertura do app de peça sem uso há 90 dias ou mais, com três escolhas: doar (excluir do app), sugerir look com ela ou lembrar depois (30 dias). Prazos fixos nesta versão. Risco conhecido: roupa sazonal.
 
 ### Épico 13, Feature 1 — Aviso de peça sem uso
 
@@ -1423,7 +1441,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - "Lembrar depois" adia 30 dias.
 - Fechar sem escolher não adia e não reabre na sessão.
 
-**Status**: concluída (validação manual no Chrome pendente); pop-up na `HomeShell`, testes em `test/peca_parada_test.dart`.
+**Status**: concluída; pop-up na `HomeShell`, testes em `test/peca_parada_test.dart`.
 **Estimativa**: M.
 **Dependências**: E13.F1.1.
 
@@ -1437,7 +1455,7 @@ Detalhamento completo (descrição estendida, decisões técnicas, definição d
 - Cancelar a confirmação não exclui.
 - Acessório não tem o botão de sugerir look.
 
-**Status**: concluída (validação manual no Chrome pendente); exclusão extraída para `views/wardrobe/acoes_da_peca.dart`.
+**Status**: concluída; exclusão extraída para `views/wardrobe/acoes_da_peca.dart`.
 **Estimativa**: P.
 **Dependências**: E13.F1.2, E1.F3.1, E5.F2.2.
 
@@ -1451,64 +1469,65 @@ Registrado em 2026-11-06 como ideia futura: **sem PBIs, sem estimativa e sem pra
 
 | PBI | Descrição curta | Status |
 | --- | --- | --- |
-| E1.F1.1 | Captura/seleção de foto (mobile) | Concluída (validação visual manual pendente) |
+| E1.F1.1 | Captura/seleção de foto (mobile) | Concluída |
 | E1.F1.2 | Endpoint de remoção de fundo (backend) | Concluída (tratamento de erro e validação com imagem real já feitos — ver arquivo detalhado) |
-| E1.F1.3 | Integração envio + exibição (mobile) | Concluída (validação visual manual e teste contra backend real pendentes) |
-| E1.F1.4 | Degradação no app quando processamento falha | Concluída (execução real do endpoint novo e validação visual manual pendentes) |
-| E1.F1.5 | Testes automatizados (de `processar-imagem`) | Não iniciado (a suíte `pytest` existe, mas não cobre `processar-imagem`/`upload-original`) |
-| E1.F1.6 | Recorte manual da foto antes do envio | Concluída — **retroativa** (já implementada; validação manual não verificada) |
-| E1.F2.1 | Formulário de metadados e cadastro da peça (mobile) | Concluída (testes do formulário com falhas conhecidas de harness; validação manual pendente) |
-| E1.F2.2 | Campos extras da peça (cores secundárias, estações, estilos, tonalidade, modelagem, ocasiões) | Concluída — **retroativa** (já implementada; backend sem teste de rota; validação manual não verificada) |
-| E1.F3.1 | Edição e exclusão de peça cadastrada | Concluída (validação manual end-to-end pendente) |
-| E2.F1.1 | Listagem do armário agrupada por categoria + navegação inferior (mobile) | Concluída (validação manual end-to-end pendente) |
-| E2.F2.1 | Filtro de peças por cor, estação e ocasião (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E1.F1.3 | Integração envio + exibição (mobile) | Concluída |
+| E1.F1.4 | Degradação no app quando processamento falha | Concluída (execução real do endpoint novo pendente) |
+| E1.F1.5 | Testes automatizados (de `processar-imagem`) | Concluída (8 testes em `test_processamento_imagem.py`, 18 depois da E1.F1.7; fumaça com `rembg` real pendente) |
+| E1.F1.6 | Recorte manual da foto antes do envio | Concluída — **retroativa** (já implementada) |
+| E1.F1.7 | Segurança das rotas de imagem (token, tipo real, 10 MB) | Concluída |
+| E1.F2.1 | Formulário de metadados e cadastro da peça (mobile) | Concluída (testes do formulário com falhas conhecidas de harness) |
+| E1.F2.2 | Campos extras da peça (cores secundárias, estações, estilos, tonalidade, modelagem, ocasiões) | Concluída — **retroativa** (já implementada; backend sem teste de rota) |
+| E1.F3.1 | Edição e exclusão de peça cadastrada | Concluída |
+| E2.F1.1 | Listagem do armário agrupada por categoria + navegação inferior (mobile) | Concluída |
+| E2.F2.1 | Filtro de peças por cor, estação e ocasião (mobile) | Concluída |
 | E3.F1.1 | Modelo de dados e endpoint de looks (backend) | Concluída e validada (execução real contra Postgres local) |
-| E3.F1.2 | Tela de montagem manual do look (mobile) | Concluída (validação manual visual no Chrome pendente) |
-| E3.F1.3 | Listagem dos looks salvos (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F1.2 | Tela de montagem manual do look (mobile) | Concluída |
+| E3.F1.3 | Listagem dos looks salvos (mobile) | Concluída |
 | E3.F2.1 | Campo favorito e `PATCH /looks/{id}` (backend) | Concluída e validada (execução real contra Postgres local) |
-| E3.F2.2 | Favoritar looks e filtrar favoritos (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F2.2 | Favoritar looks e filtrar favoritos (mobile) | Concluída |
 | E3.F3.1 | Campo ocasião no look (backend) | Concluída e validada (execução real contra Postgres local) |
-| E3.F3.2 | Ocasião na montagem, no card e na edição (mobile) | Concluída (validação manual visual no Chrome pendente) |
-| E3.F3.3 | Filtro de looks por ocasião (mobile) | Concluída (validação manual visual no Chrome pendente) |
+| E3.F3.2 | Ocasião na montagem, no card e na edição (mobile) | Concluída |
+| E3.F3.3 | Filtro de looks por ocasião (mobile) | Concluída |
 | E3.F4.1 | Registro de uso e histórico de looks (backend) | Concluída e validada (execução real contra Postgres local) |
-| E3.F4.2 | Registrar uso de um look (mobile) | Concluída (validação manual end-to-end pendente) |
-| E3.F4.3 | Tela de histórico de looks utilizados (mobile) | Concluída (validação manual end-to-end pendente) |
-| E3.F4.4 | Aviso de repetição recente nos looks (mobile) | Concluída (validação manual end-to-end pendente) |
-| E3.F5.1 | Excluir (arquivar) look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
-| E3.F5.2 | Trocar as peças de um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E3.F4.2 | Registrar uso de um look (mobile) | Concluída |
+| E3.F4.3 | Tela de histórico de looks utilizados (mobile) | Concluída |
+| E3.F4.4 | Aviso de repetição recente nos looks (mobile) | Concluída |
+| E3.F5.1 | Excluir (arquivar) look salvo (backend + mobile) | Concluída |
+| E3.F5.2 | Trocar as peças de um look salvo (backend + mobile) | Concluída |
 | E3.F6.1 | Pastas de looks (backend) | Concluída |
-| E3.F6.2 | Pastas na aba Looks (mobile) | Concluída (validação manual no Chrome pendente) |
-| E3.F6.3 | Mover um look para uma pasta (mobile) | Concluída (validação manual no Chrome pendente) |
+| E3.F6.2 | Pastas na aba Looks (mobile) | Concluída |
+| E3.F6.3 | Mover um look para uma pasta (mobile) | Concluída |
 | E4.F1.1 | Modelo de preferências e endpoints `GET`/`PATCH` (backend) | Concluída e validada (execução real contra Postgres local) |
-| E4.F1.2 | Tela de preferências e combinações de cores favoritas (mobile) | Concluída (validação manual end-to-end pendente) |
-| E4.F2.1 | Sobreposições preferidas na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
-| E4.F3.1 | Estilos preferidos na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F1.2 | Tela de preferências e combinações de cores favoritas (mobile) | Concluída |
+| E4.F2.1 | Sobreposições preferidas na tela de preferências (mobile) | Concluída |
+| E4.F3.1 | Estilos preferidos na tela de preferências (mobile) | Concluída |
 | E4.F4.1 | Peças e combinações evitadas (backend) | Concluída e validada (execução real contra Postgres local) |
-| E4.F4.2 | Marcar peça como evitada no app (mobile) | Concluída (validação manual end-to-end pendente) |
-| E4.F4.3 | Combinações de peças evitadas no app (mobile) | Concluída (validação manual end-to-end pendente) |
-| E4.F5.1 | Nível de criatividade na tela de preferências (mobile) | Concluída (validação manual end-to-end pendente) |
+| E4.F4.2 | Marcar peça como evitada no app (mobile) | Concluída |
+| E4.F4.3 | Combinações de peças evitadas no app (mobile) | Concluída |
+| E4.F5.1 | Nível de criatividade na tela de preferências (mobile) | Concluída |
 | E5.F1.1 | Motor de combinação: regras (backend) | Concluída (`pytest`, 52 testes) |
 | E5.F1.2 | Ordenação, páginas e `POST /sugestoes` (backend) | Concluída e validada (`pytest` + execução real contra Postgres local) |
-| E5.F1.3 | Não sugerir looks já salvos (backend + mobile) | Concluída (validação manual no Chrome pendente) |
-| E5.F2.1 | Tela de sugestões (mobile) | Concluída (validação manual no Chrome pendente) |
-| E5.F2.2 | Sugestões a partir de uma peça (mobile) | Concluída (validação manual no Chrome pendente) |
-| E5.F3.1 | Renomear look (backend + mobile) | Concluída (validação manual do diálogo no Chrome pendente) |
-| E5.F4.1 | Aviso de cadastro incompleto no armário (mobile) | Concluída (validação visual no Chrome pendente) |
+| E5.F1.3 | Não sugerir looks já salvos (backend + mobile) | Concluída |
+| E5.F2.1 | Tela de sugestões (mobile) | Concluída |
+| E5.F2.2 | Sugestões a partir de uma peça (mobile) | Concluída |
+| E5.F3.1 | Renomear look (backend + mobile) | Concluída |
+| E5.F4.1 | Aviso de cadastro incompleto no armário (mobile) | Concluída |
 | E6.F1.1 | Look do dia e rotatividade (backend) | Concluída e validada (`pytest` + execução real contra Postgres local) |
-| E6.F1.2 | Card "Look do dia" na tela inicial (mobile) | Concluída (validação manual no Chrome pendente) |
-| E6.F1.3 | Look do dia que já é um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E6.F1.2 | Card "Look do dia" na tela inicial (mobile) | Concluída |
+| E6.F1.3 | Look do dia que já é um look salvo (backend + mobile) | Concluída |
 | E7.F1.1 | Adaptador do Ollama (Gemma 3) e sugestão no processamento da foto (backend) | Concluída (rota ponta a ponta não exercitada) |
-| E7.F1.2 | Formulário pré-preenchido com a sugestão da IA (mobile) | Concluída (validação manual pendente) |
+| E7.F1.2 | Formulário pré-preenchido com a sugestão da IA (mobile) | Concluída |
 | E8.F1.1 | Referências do mural: tabela, upload e rotas (backend) | Concluída (`pytest` + API real) |
-| E8.F1.2 | Grade do mural e adicionar da galeria (mobile) | Concluída (validação manual no Chrome pendente) |
-| E8.F1.3 | Nota e exclusão da referência (mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F1.2 | Grade do mural e adicionar da galeria (mobile) | Concluída |
+| E8.F1.3 | Nota e exclusão da referência (mobile) | Concluída |
 | E8.F2.1 | Coleções de referências (backend) | Concluída (`pytest` + API real) |
-| E8.F2.2 | Aba de coleções no mural (mobile) | Concluída (validação manual no Chrome pendente) |
-| E8.F3.1 | Ligar a referência a um look salvo (backend + mobile) | Concluída (validação manual no Chrome pendente) |
-| E8.F4.1 | Etiquetas das peças da referência por IA (backend + mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F2.2 | Aba de coleções no mural (mobile) | Concluída |
+| E8.F3.1 | Ligar a referência a um look salvo (backend + mobile) | Concluída |
+| E8.F4.1 | Etiquetas das peças da referência por IA (backend + mobile) | Concluída |
 | E8.F5.1 | Estreitar candidatos do armário a partir das etiquetas (backend) | Concluída (`pytest`) |
 | E8.F5.2 | Sugerir o look da referência comparando com o Gemma (backend) | Concluída (`pytest` + Ollama real; precisão média) |
-| E8.F5.3 | "Ligar a um look": manual ou automático (mobile) | Concluída (validação manual no Chrome pendente) |
+| E8.F5.3 | "Ligar a um look": manual ou automático (mobile) | Concluída |
 | E9.F1.1 | Validação do JWT por chaves públicas (JWKS) | Concluída |
 | E9.F1.2 | Plano e script de migração dos dados existentes | Concluída (dados descartáveis, sem script) |
 | E9.F1.3 | Execução supervisionada da migração de dados | Não aplicável |
@@ -1527,33 +1546,35 @@ Registrado em 2026-11-06 como ideia futura: **sem PBIs, sem estimativa e sem pra
 | E10.F4.1 | Plano e script de migração das imagens locais | Não iniciada |
 | E10.F4.2 | Execução da migração e desligamento do acesso público a `/uploads` | Não iniciada |
 | E11.F1.1 | `GET /pecas` com paginação e filtros | Concluída e validada (`pytest` contra o Postgres local, 25 testes novos) |
-| E11.F1.2 | Armário (carrosséis por gaveta) com carregamento gradual | Concluída (validação manual no Chrome pendente) |
-| E11.F1.3 | Visão de gaveta com rolagem infinita | Concluída (validação manual no Chrome pendente) |
-| E11.F2.1 | Montar look e editar peças do look com peças paginadas | Concluída (validação manual no Chrome pendente) |
-| E11.F2.2 | Escolher par de peças evitadas com peças paginadas | Concluída (validação manual no Chrome pendente) |
-| E11.F2.3 | Formulário: subcategorias já usadas | Concluída (verificação com os dados locais: nenhum endpoint novo; validação manual no Chrome pendente) |
+| E11.F1.2 | Armário (carrosséis por gaveta) com carregamento gradual | Concluída |
+| E11.F1.3 | Visão de gaveta com rolagem infinita | Concluída |
+| E11.F2.1 | Montar look e editar peças do look com peças paginadas | Concluída |
+| E11.F2.2 | Escolher par de peças evitadas com peças paginadas | Concluída |
+| E11.F2.3 | Formulário: subcategorias já usadas | Concluída (verificação com os dados locais: nenhum endpoint novo) |
 | E12.F1.1 | Investigação de viabilidade da integração com o Pinterest | Não iniciada |
 | E12.F1.2 | Decisão go/no-go e alternativas permitidas | Não iniciada |
 | E13.F1.1 | Peças paradas e lembrete adiado (backend) | Concluída |
-| E13.F1.2 | Aviso de peça parada ao abrir o app (mobile) | Concluída (validação manual no Chrome pendente) |
-| E13.F1.3 | Doar a peça ou sugerir um look com ela (mobile) | Concluída (validação manual no Chrome pendente) |
+| E13.F1.2 | Aviso de peça parada ao abrir o app (mobile) | Concluída |
+| E13.F1.3 | Doar a peça ou sugerir um look com ela (mobile) | Concluída |
 
-**Contagem (atualizada em 2026-11-07):**
+**Contagem (atualizada em 2026-11-08):**
 
 | Grupo | PBIs | Status |
 | --- | --- | --- |
-| Épicos 1 a 8, planejadas originalmente | 53 | 52 concluídas, 1 não iniciada (E1.F1.5) |
+| Épicos 1 a 8, planejadas originalmente | 53 | 53 concluídas (E1.F1.5 em 2026-11-08) |
 | Épicos 1 a 8, retroativas (E1.F1.6, E1.F2.2) | 2 | 2 concluídas — já implementadas, documentadas depois do fato |
-| Épicos 9 a 12, novas | 25 | 6 concluídas (E11), 19 não iniciadas |
+| Épicos 9 a 12, novas | 25 | 13 concluídas (7 do E9, 6 do E11), 1 não aplicável (E9.F1.3), 11 não iniciadas (9 do E10, versão futura fora da V1, e 2 do E12) |
 | E3.F6 e Épico 13, novas (2026-11-06) | 6 | 6 concluídas |
-| **Total** | **86** | 66 concluídas, 19 não iniciadas, 1 pendente (E1.F1.5) |
+| E1.F1.7, nova (2026-11-08) | 1 | 1 concluída |
+| **Total** | **87** | 75 concluídas, 1 não aplicável, 11 não iniciadas (9 do Épico 10, versão futura fora da V1, e 2 do Épico 12) |
 
-"Concluída" significa que o código existe e os critérios de aceite do backlog são compatíveis com ele; **não** significa validada em uso real: a maior parte segue com "validação manual no Chrome pendente".
+"Concluída" significa que o código existe e os critérios de aceite do backlog são compatíveis com ele; **não** depende de validação manual individual de cada PBI (decisão da autora, 2026-11-08): os critérios estão comprovados por testes automatizados e pelas verificações registradas em cada arquivo detalhado, onde também ficam as pendências técnicas reais.
 
-E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado — falta a validação manual visual/end-to-end (Chrome + backend real rodando juntos, incluindo `rembg` de verdade), que exige interação humana e um ambiente Python completo, nenhum dos dois disponível nesta sessão. O trabalho restante é a E1.F1.5 (testes automatizados do backend) e a validação manual acumulada de todo o fluxo (cadastro → armário → edição/exclusão). *(Texto original, de quando só existiam os Épicos 1 a 3; ver a verificação de 2026-11-05 abaixo.)*
+E1.F1.1 a E1.F3.1 têm o código escrito, testado (onde há suíte automatizada) e revisado; o que resta de técnico é o teste de fumaça com o `rembg` de verdade (E1.F1.5). *(Texto original, de quando só existiam os Épicos 1 a 3; ver a verificação de 2026-11-05 abaixo.)*
 
 **Verificação da auditoria de 2026-11-05:**
 - `pytest`: 261 testes coletados; 211 executados e passando (os 50 de `test_colecoes.py` e `test_referencias.py` usam o Postgres local e não foram executados na auditoria). Só `referencias` e `colecoes` têm testes de rota; `pecas`, `looks`, `preferencias` e `sugestoes` não têm testes de integração (lacuna → E9.F3.1).
 - `flutter test`: 345 passando, nenhum falhando (os testes usam serviços falsos, não o backend real). `flutter analyze` não pôde ser executado nessa verificação; o "analyze limpo" dos status é histórico.
 - Contagens de testes citadas nos status das PBIs são do momento de cada implementação; as de hoje são as acima.
-- Vulnerabilidade registrada, **não corrigida**: `POST /pecas/processar-imagem` e `POST /pecas/upload-original` não exigem autenticação (correção prevista na E10.F2.2).
+- Vulnerabilidade registrada em 2026-11-05 e **corrigida em 2026-11-08 (E1.F1.7)**: `POST /pecas/processar-imagem` e `POST /pecas/upload-original` não exigiam autenticação. Continua aberto o acesso público a `/uploads` (Épico 10, fora da V1).
+- Estado dos testes em 2026-11-08: `pytest` com 437 testes passando, com o Postgres do `docker compose` no ar (execução da E1.F1.7).

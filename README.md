@@ -126,7 +126,7 @@ Regra prática pro time:
 
 ## Login e endpoints autenticados
 
-Quase todos os endpoints exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. A API aceita dois tipos de token (E9.F1.1): o **token real do Supabase** (ES256, validado pelas chaves públicas do projeto em `SUPABASE_URL`) e o **token de teste** abaixo (HS256, só enquanto `SUPABASE_JWT_SECRET` estiver preenchido; em produção ele fica vazio). **Exceção conhecida (limitação de segurança, ainda não corrigida):** `POST /pecas/processar-imagem` e `POST /pecas/upload-original` **não exigem autenticação**; a correção está prevista na PBI E10.F2.2 (ver [docs/backlog.md](docs/backlog.md)).
+Quase todos os endpoints exigem um JWT válido (ver [CLAUDE.md](CLAUDE.md), seção Auth) — o `usuario_id` sempre vem do token, nunca do corpo da requisição. A API aceita dois tipos de token (E9.F1.1): o **token real do Supabase** (ES256, validado pelas chaves públicas do projeto em `SUPABASE_URL`) e o **token de teste** abaixo (HS256, só enquanto `SUPABASE_JWT_SECRET` estiver preenchido; em produção ele fica vazio). `POST /pecas/processar-imagem` e `POST /pecas/upload-original` também exigem o token desde a E1.F1.7 (2026-11-08): validam o formato real (JPEG, PNG ou WebP), recusam arquivo acima de 10 MB e gravam com a extensão do formato detectado. **Limitação que continua:** as imagens ficam em `backend/uploads/`, servidas em `/uploads` sem autenticação; a migração para o Supabase Storage, com armazenamento privado e isolamento dos arquivos, é o Épico 10, **planejado para versão futura e fora da V1** (ver [docs/backlog.md](docs/backlog.md)).
 
 ### Login no app (E9.F2.1–E9.F2.3)
 
@@ -204,7 +204,7 @@ Alternativas equivalentes: [DBeaver](https://dbeaver.io/) (gratuito, suporta vá
 | `SUPABASE_JWT_SECRET` | **Só desenvolvimento:** segredo dos tokens de teste (`scripts/gerar_token_teste.py`). Vazio desliga os tokens de teste — é o valor de produção |
 | `SUPABASE_SERVICE_KEY` | Chave de serviço do Supabase (storage, Épico 10). Só no backend, nunca no app |
 | `OLLAMA_URL` / `OLLAMA_MODELO` / `OLLAMA_TIMEOUT_S` | Ollama local (padrão `http://localhost:11434`, `gemma3:4b`, 30 s) — sugestão de metadados da peça; sem ele a sugestão vem vazia |
-| `UPLOAD_DIR` | Pasta local onde as imagens são salvas e de onde `/uploads` as serve, **sem autenticação** (MVP; a troca por bucket privado do Supabase Storage está planejada no Épico 10, não iniciado) |
+| `UPLOAD_DIR` | Pasta local onde as imagens são salvas e de onde `/uploads` as serve, **sem autenticação** (MVP; a troca por bucket privado do Supabase Storage está planejada no Épico 10, versão futura fora da V1, não iniciado) |
 | `CORS_ORIGINS` | Origens permitidas a chamar a API, separadas por vírgula |
 
 O `.env` **não é versionado** (está no `.gitignore`) — cada pessoa cria o seu localmente a partir do `.env.example`, que sim é versionado com valores padrão de desenvolvimento.
@@ -227,7 +227,7 @@ Com `AMBIENTE=producao`, a API **falha ao subir** e lista o que está errado se 
 - [ ] No Supabase de produção: "Site URL" e "Redirect URLs" com a URL `https://` do app (não `localhost`).
 - [ ] `--dart-define=SUPABASE_URL=...` e `--dart-define=SUPABASE_PUBLISHABLE_KEY=...` do projeto de produção no build do app; a chave **secreta** nunca vai no app.
 - [ ] `alembic upgrade head` rodado como passo do deploy.
-- [ ] Limitações ainda abertas: dois endpoints de imagem sem login e `/uploads` público (E10.F2.2), exclusão de conta fora do escopo.
+- [ ] Limitações ainda abertas: `/uploads` público e sem autenticação (Épico 10, versão futura fora da V1: E10.F2.2 e E10.F4.2) e exclusão de conta fora do escopo. (Os dois endpoints de imagem já exigem login desde a E1.F1.7.)
 
 O app manda o token no cabeçalho `Authorization` (não usa cookie), por isso o CORS não libera credenciais de navegador (`allow_credentials=False`).
 
